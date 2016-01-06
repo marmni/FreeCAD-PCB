@@ -1,0 +1,611 @@
+#require 5.1001
+//****************************************************************************
+//*            Export board from Eagle v5.xx to Eagle >= v6.xx               *
+//*                                                                          *
+//*   Printed Circuit Board Workbench for FreeCAD             PCB            *
+//*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
+//*   Copyright (c) 2013, 2014                                               *
+//*   marmni <marmni@onet.eu>                                                *
+//*   Version: 1.0                                                           *
+//****************************************************************************
+
+#usage "en: <b>Export board from Eagle v5.xx to Eagle > v6.xx</b>\n"
+           "<author>marmni <marmni@onet.eu></author>"
+
+
+
+////////// CONFIG
+    string programPath_WIN = "C:/Program Files (x86)/FreeCAD/bin/FreeCAD.exe";
+    string programPath_LIN = "freecad";
+    string systemUzytkownika = "linux"; // windows / linux
+//////////
+
+
+//****************************************************************************
+//                                  ARRAYS
+//****************************************************************************
+numeric string unitsList[] = {"mic", "mm", "mil", "inch"};
+numeric string gridStyles[] = {"lines", "dots"};
+numeric string booleanList[] = {"no", "yes"};
+//****************************************************************************
+
+string htmlspecialchars(string value)
+{
+    string wynik;
+    string znak;
+
+    for (int i = 0; value[i]; ++i)
+    {
+        znak = strsub(value, i, 1);
+    
+        if (znak == "<")    znak = "&lt;";
+        if (znak == ">")    znak = "&gt;";
+        
+        wynik += znak;
+    }
+        
+    return wynik;
+}
+
+
+void exportToXML_Header(UL_BOARD B)
+{
+    printf("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+    printf("<!DOCTYPE eagle SYSTEM \"eagle.dtd\">\n");
+    printf("<eagle version=\"%d.%d.0\">\n", EAGLE_VERSION, EAGLE_RELEASE);
+    printf("<drawing>\n");
+    printf("<settings>\n");
+    
+    //if (B.alwaysvectorfont)
+    //    printf("<setting alwaysvectorfont=\"yes\"/>\n");
+    //else
+    //    printf("<setting alwaysvectorfont=\"no\"/>\n");
+    
+    //if (B.verticaltext & VERTICAL_TEXT_UP)
+    //    printf("<setting verticaltext=\"up\"/>\n");
+    //else
+    //    printf("<setting verticaltext=\"down\"/>\n");
+    
+    
+    printf("<setting alwaysvectorfont=\"no\"/>\n");
+    printf("<setting verticaltext=\"up\"/>\n");
+    printf("</settings>\n");
+    printf("<grid distance=\"%f\" unitdist=\"%s\" unit=\"%s\" style=\"%s\" multiple=\"%d\" display=\"%s\" altdistance=\"0.1\" altunitdist=\"inch\" altunit=\"inch\"/>\n", B.grid.distance, unitsList[B.grid.unitdist], unitsList[B.grid.unit], gridStyles[B.grid.dots], B.grid.multiple, booleanList[B.grid.on]);
+}
+
+void exportToXML_Footer(UL_BOARD B)
+{
+    printf("</drawing>\n");
+    printf("</eagle>\n");
+}
+
+real convertUnit(int value)
+{
+    return u2mm(value);
+}
+
+void exportToXML_Layer(UL_BOARD B)
+{
+    printf("<layers>\n");
+    B.layers(L)
+        printf("<layer number=\"%d\" name=\"%s\" color=\"%d\" fill=\"%d\" visible=\"%s\" active=\"yes\"/>\n", L.number, htmlspecialchars(L.name), L.color, L.fill, booleanList[L.visible]);
+    printf("</layers>\n");
+}
+
+void exportToXML_Wires(UL_WIRE W)
+{
+    printf("<wire x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" width=\"%f\" layer=\"%d\"", convertUnit(W.x1),convertUnit(W.y1), convertUnit(W.x2), convertUnit(W.y2), convertUnit(W.width), W.layer);
+    
+    if (W.style != WIRE_STYLE_CONTINUOUS)
+    {
+        string wireStyles[] = {"", "longdash", "shortdash", "dashdot"};
+        printf(" style=\"%s\"", wireStyles[W.style]);
+    }
+    
+    if (W.layer == 19)
+        printf("  extent=\"1-16\"");
+    
+    if (W.curve)
+        printf(" curve=\"%f\"", W.curve);
+        if (W.cap != CAP_ROUND)
+            printf(" cap=\"flat\"");
+    
+    printf("/>\n");
+}
+
+void exportToXML_Circles(UL_CIRCLE C)
+{
+    printf("<circle x=\"%f\" y=\"%f\" radius=\"%f\" width=\"%f\" layer=\"%d\"/>\n", convertUnit(C.x), convertUnit(C.y), convertUnit(C.radius), convertUnit(C.width), C.layer);
+}
+
+void exportToXML_Holes(UL_HOLE H)
+{
+    printf("<hole x=\"%f\" y=\"%f\" drill=\"%f\"/>\n", convertUnit(H.x), convertUnit(H.y), convertUnit(H.drill));
+}
+
+void exportToXML_Texts(UL_TEXT T)
+{
+    printf("<text x=\"%f\" y=\"%f\" size=\"%f\" layer=\"%d\" ratio=\"%d\"", convertUnit(T.x), convertUnit(T.y), convertUnit(T.size), T.layer, T.ratio);
+    
+    if (T.mirror | T.spin)
+    {
+        printf(" rot=\"");
+        if (T.spin)
+            printf("S");
+        if (T.mirror)
+            printf("M");
+        printf("R%f\"", T.angle);
+    }
+    else
+    {
+        if (T.angle != 0)
+            printf(" rot=\"R%f\"", T.angle);
+    }
+    
+    if (T.font == FONT_VECTOR)
+         printf(" font=\"vector\"");
+    if (T.font == FONT_FIXED)
+        printf(" font=\"fixed\"");
+    
+    printf(">%s", htmlspecialchars(T.value));
+    printf("</text>\n");
+}
+
+void exportToXML_Frames(UL_FRAME F)
+{
+    printf("<frame x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" columns=\"%d\" rows=\"%d\" layer=\"%d\"", convertUnit(F.x1), convertUnit(F.y1), convertUnit(F.x2), convertUnit(F.y2), F.columns, F.rows, F.layer);
+    
+    if (F.border == 0)
+        printf(" border-left=\"no\" border-top=\"no\" border-right=\"no\" border-bottom=\"no\"");
+    if (F.border == 1)
+        printf(" border-left=\"no\" border-top=\"no\" border-right=\"no\"");
+    if (F.border == 2)
+        printf(" border-left=\"no\" border-top=\"no\" border-bottom=\"no\"");
+    if (F.border == 3)
+        printf(" border-left=\"no\" border-top=\"no\"");
+    if (F.border == 4)
+        printf(" border-left=\"no\" border-right=\"no\" border-bottom=\"no\"");
+    if (F.border == 5)
+        printf(" border-left=\"no\" border-right=\"no\"");
+    if (F.border == 6)
+        printf(" border-left=\"no\" border-bottom=\"no\"");
+    if (F.border == 7)
+        printf(" border-left=\"no\"");
+    if (F.border == 8)
+        printf(" border-top=\"no\" border-right=\"no\" border-bottom=\"no\"");
+    if (F.border == 9)
+        printf(" border-top=\"no\" border-right=\"no\"");
+    if (F.border == 10)
+        printf(" border-top=\"no\" border-bottom=\"no\"");
+    if (F.border == 11)
+        printf(" border-top=\"no\"");
+    if (F.border == 12)
+        printf(" border-right=\"no\" border-bottom=\"no\"");
+    if (F.border == 13)
+        printf(" border-right=\"no\"");
+    if (F.border == 14)
+        printf(" border-bottom=\"no\"");
+    
+    printf("/>\n");
+}
+
+void exportToXML_Rectangles(UL_RECTANGLE R)
+{
+    //no mirror
+
+    printf("<rectangle x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" layer=\"%d\"", convertUnit(R.x1), convertUnit(R.y1), convertUnit(R.x2), convertUnit(R.y2), R.layer);
+    
+    //if (R.mirror)
+    //{
+    //    printf(" rot=\"");
+    //    if (R.mirror)
+    //        printf("M");
+    //    printf("R%f\"", R.angle);
+    //}
+    //else
+    //{
+    if (R.angle != 0)
+        printf(" rot=\"R%f\"", R.angle);
+    //}
+    
+    printf("/>\n");
+}
+
+void exportToXML_Polygons(UL_POLYGON P)
+{
+    printf("<polygon width=\"%f\" layer=\"%d\" spacing=\"%f\"", convertUnit(P.width), P.layer, convertUnit(P.spacing));
+    
+    if (P.pour == POLYGON_POUR_HATCH)
+        printf(" pour=\"hatch\"");
+
+    printf(">\n");
+    
+    P.wires(W)
+    {
+        printf("<vertex x=\"%f\" y=\"%f\"", convertUnit(W.x1), convertUnit(W.y1));
+        
+        printf("/>\n");
+    }
+    
+    printf("</polygon>");
+}
+
+
+void exportToXML_Plain(UL_BOARD B)
+{
+    printf("<plain>\n");
+        B.wires(W) exportToXML_Wires(W);
+        B.circles(C) exportToXML_Circles(C);
+        B.holes(H) exportToXML_Holes(H);
+        B.texts(T) exportToXML_Texts(T);
+        B.frames(F) exportToXML_Frames(F);
+        B.rectangles(R) exportToXML_Rectangles(R);
+        //B.polygons(P) exportToXML_Polygons(P);
+    printf("</plain>\n");
+}
+
+void exportToXML_Contacts(UL_CONTACT C)
+{
+    if (C.pad)
+    {
+        printf("<pad name=\"%s\" x=\"%f\" y=\"%f\" drill=\"%f\" diameter=\"%f\"", htmlspecialchars(C.name), convertUnit(C.x), convertUnit(C.y), convertUnit(C.pad.drill),  convertUnit(C.pad.diameter[LAYER_BOTTOM]));
+        
+        if (C.pad.shape[LAYER_BOTTOM] == 0)
+            printf(" shape=\"square\"");
+        if (C.pad.shape[LAYER_BOTTOM] == 2)
+            printf(" shape=\"octagon\"");
+        if (C.pad.shape[LAYER_BOTTOM] == 3)
+            printf(" shape=\"long\"");
+        if (C.pad.shape[LAYER_BOTTOM] == 4)
+            printf(" shape=\"offset\"");
+        
+        if (C.pad.angle != 0)
+            printf(" rot=\"R%f\"", C.pad.angle);
+        
+        if (C.pad.flags & PAD_FLAG_STOP)
+            printf("");
+        else
+            printf(" stop=\"no\"");
+            
+        if (C.pad.flags & PAD_FLAG_THERMALS)
+            printf("");
+        else
+            printf(" thermals=\"no\"");
+            
+        if (C.pad.flags & PAD_FLAG_FIRST)
+            printf(" first=\"yes\"");
+        
+        printf("/>\n");
+    }
+    else // smd
+    {
+        printf("<smd name=\"%s\" x=\"%f\" y=\"%f\" dx=\"%f\" dy=\"%f\" layer=\"%d\"", htmlspecialchars(C.smd.name), convertUnit(C.smd.x), convertUnit(C.smd.y), convertUnit(C.smd.dx), convertUnit(C.smd.dy), C.smd.layer);
+        
+        if (C.smd.roundness != 0)
+            printf(" roundness=\"%d\"", C.smd.roundness);
+            
+        if (C.smd.angle != 0)
+            printf(" rot=\"R%f\"", C.smd.angle);
+            
+        if (C.smd.flags & SMD_FLAG_STOP)
+            printf("");
+        else
+            printf(" stop=\"no\"");
+            
+        if (C.smd.flags & SMD_FLAG_THERMALS)
+            printf("");
+        else
+            printf(" thermals=\"no\"");
+            
+        if (C.smd.flags & SMD_FLAG_CREAM)
+            printf("");
+        else
+            printf(" cream==\"no\"");
+        
+        printf("/>\n");
+    }
+    
+
+
+}
+
+
+void exportToXML_Libraries(UL_BOARD B)
+{
+    printf("<libraries>\n");
+    
+    B.libraries(L)
+    {
+        printf("<library name=\"%s\">\n", htmlspecialchars(L.name));
+            printf("<description>%s</description>\n", htmlspecialchars(L.description));
+            printf("<packages>\n");
+            
+            L.packages(P)
+            {
+                printf("<package name=\"%s\">\n", htmlspecialchars(P.name));
+                    printf("<description>%s</description>\n", htmlspecialchars(P.description));
+                    
+                    P.circles(C) exportToXML_Circles(C);
+                    P.frames(F) exportToXML_Frames(F);
+                    P.holes(H) exportToXML_Holes(H);
+                    //P.polygons(Po) exportToXML_Polygons(Po);
+                    P.rectangles(R) exportToXML_Rectangles(R);
+                    P.texts(T) exportToXML_Texts(T);
+                    P.wires(W) exportToXML_Wires(W);
+                    P.contacts(C) exportToXML_Contacts(C);
+                    
+                printf("</package>\n");
+            }
+            
+            printf("</packages>\n");
+        printf("</library>\n");
+    }
+    
+    printf("</libraries>\n");
+}
+
+void exportToXML_Attributes(UL_BOARD B)
+{
+    printf("<attributes>\n");
+    
+    B.attributes(A)
+        printf("<attribute name=\"%s\" value=\"%s\"/>\n", htmlspecialchars(A.name), htmlspecialchars(A.value));
+    
+    printf("</attributes>\n");
+}
+
+void exportToXML_Variantdefs(UL_BOARD B)
+{
+    printf("<variantdefs>\n");
+    
+    printf("</variantdefs>\n");
+}
+
+
+void exportToXML_Classes(UL_BOARD B)
+{
+    printf("<classes>\n");
+    
+    B.classes(C)
+    {
+        if (C.name != "")
+            printf("<class number=\"%d\" name=\"%s\" width=\"%f\" drill=\"%f\">\n</class>\n", C.number, htmlspecialchars(C.name), convertUnit(C.width), convertUnit(C.drill));
+    }
+    
+    printf("</classes>\n");
+}
+
+void exportToXML_Designrules(UL_BOARD B)
+{
+    printf("<designrules>\n");
+    
+    printf("<param name=\"mtIsolate\" value=\"1.5mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm\"/>\n");
+    printf("<param name=\"rlMinPadTop\" value=\"10mil\"/>\n");
+    printf("<param name=\"rlMaxPadTop\" value=\"20mil\"/>\n");
+    printf("<param name=\"rvPadTop\" value=\"0.25\"/>\n");
+    printf("<param name=\"rlMaxViaOuter\" value=\"20mil\"/>\n");
+    printf("<param name=\"rlMinViaOuter\" value=\"8mil\"/>\n");
+    printf("<param name=\"rvViaOuter\" value=\"0.25\"/>\n");
+    printf("<param name=\"psElongationOffset\" value=\"100\"/>\n");
+    printf("<param name=\"psElongationLong\" value=\"100\"/>\n");
+    
+    printf("</designrules>\n");
+}
+
+void exportToXML_Autorouter(UL_BOARD B)
+{
+    printf("<autorouter>\n");
+    
+    printf("</autorouter>\n");
+}
+
+void exportToXML_Attribute(UL_TEXT T, string attributeName)
+{
+    printf("<attribute name=\"%s\" x=\"%f\" y=\"%f\" size=\"%f\" layer=\"%d\" ratio=\"%d\"", htmlspecialchars(attributeName), convertUnit(T.x), convertUnit(T.y), convertUnit(T.size), T.layer, T.ratio);
+    
+    if (T.mirror | T.spin)
+    {
+        printf(" rot=\"");
+        if (T.spin)
+            printf("S");
+        if (T.mirror)
+            printf("M");
+        printf("R%f\"", T.angle);
+    }
+    else
+    {
+        if (T.angle != 0)
+            printf(" rot=\"R%f\"", T.angle);
+    }
+    
+    if (T.font == FONT_VECTOR)
+         printf(" font=\"vector\"");
+    if (T.font == FONT_FIXED)
+        printf(" font=\"fixed\"");
+    
+    printf("/>\n");
+}
+
+void exportToXML_Attribute2(UL_ATTRIBUTE T)
+{
+    printf("<attribute name=\"%s\" value=\"%s\" x=\"%f\" y=\"%f\" size=\"%f\" layer=\"%d\" ratio=\"%d\"", htmlspecialchars(T.name), htmlspecialchars(T.value), convertUnit(T.text.x), convertUnit(T.text.y), convertUnit(T.text.size), T.text.layer, T.text.ratio);
+    
+    if (T.text.mirror | T.text.spin)
+    {
+        printf(" rot=\"");
+        if (T.text.spin)
+            printf("S");
+        if (T.text.mirror)
+            printf("M");
+        printf("R%f\"", T.text.angle);
+    }
+    else
+    {
+        if (T.text.angle != 0)
+            printf(" rot=\"R%f\"", T.text.angle);
+    }
+    
+    if (T.text.font == FONT_VECTOR)
+         printf(" font=\"vector\"");
+    if (T.text.font == FONT_FIXED)
+        printf(" font=\"fixed\"");
+        
+    if (T.display  & ATTRIBUTE_DISPLAY_FLAG_OFF)
+        printf("  display=\"off\"");
+    if (T.display  & ATTRIBUTE_DISPLAY_FLAG_NAME)
+        printf("  display=\"name\"");
+    
+    printf("/>\n");
+}
+
+void exportToXML_Elements(UL_BOARD B)
+{
+    printf("<elements>\n");
+    
+    B.elements(E)
+    {
+        printf("<element name=\"%s\" library=\"%s\" package=\"%s\" value=\"%s\" x=\"%f\" y=\"%f\"", htmlspecialchars(E.name), E.package.library, htmlspecialchars(E.package.name), htmlspecialchars(E.value), convertUnit(E.x), convertUnit(E.y));
+        
+        if (E.mirror | E.spin)
+        {
+            printf(" rot=\"");
+            if (E.spin)
+                printf("S");
+            if (E.mirror)
+                printf("M");
+            printf("R%f\"", E.angle);
+        }
+        else
+        {
+            if (E.angle != 0)
+                printf(" rot=\"R%f\"", E.angle);
+        }
+        
+        if (E.locked)
+            printf(" locked=\"yes\"");
+         
+        if (E.smashed)
+        {
+            printf(" smashed=\"yes\">\n");
+            
+            E.texts(A) 
+            {
+                if (A.value == E.value)
+                    exportToXML_Attribute(A, "VALUE");
+                if (A.value == E.name)
+                    exportToXML_Attribute(A, "NAME");
+            }
+            E.attributes(A) exportToXML_Attribute2(A);
+                
+            printf("</element>\n");
+        }
+        else
+            printf("/>\n");
+    }
+    
+    printf("</elements>\n");
+}
+
+void exportToXML_Vias(UL_VIA V)
+{
+    printf("<via x=\"%f\" y=\"%f\" extent=\"%d-%d\" drill=\"%f\" diameter=\"%f\"", convertUnit(V.x), convertUnit(V.y), V.start, V.end, convertUnit(V.drill), convertUnit(V.diameter[V.start]));
+    
+    if (V.flags & VIA_FLAG_STOP)
+        printf(" alwaysstop=\"yes\"");
+    
+    if (V.shape[V.start] == 0)
+        printf(" shape=\"square\"");
+    if (V.shape[V.start] == 2)
+        printf(" shape=\"octagon\"");
+
+    printf("/>\n");
+}
+
+void exportToXML_Contactrefs(UL_CONTACTREF C)
+{
+    printf("<contactref element=\"%s\" pad=\"%s\"/>\n", htmlspecialchars(C.element.name), htmlspecialchars(C.contact.name));
+}
+
+void exportToXML_Signals(UL_BOARD B)
+{
+    printf("<signals>\n");
+        B.signals(S)
+        {
+            printf("<signal name=\"%s\"", htmlspecialchars(S.name));
+            
+            if (S.airwireshidden)
+                printf(" airwireshidden=\"yes\"");
+            if (S.class.number != 0)
+                printf(" class=\"%d\"", S.class.number);
+            
+            printf(">\n");
+            
+                S.wires(W) exportToXML_Wires(W);
+                S.vias(V) exportToXML_Vias(V);
+                S.contactrefs(C) exportToXML_Contactrefs(C);
+                //S.polygons(P) exportToXML_Polygons(P);
+            
+            printf("</signal>\n");
+        }
+    printf("</signals>\n");
+}
+
+
+
+void exportToXML(string filePath)
+{
+    if (board)
+    {
+        output(filePath, "F") 
+        {
+            board(B) 
+            {
+                exportToXML_Header(B);
+                exportToXML_Layer(B);
+                printf("<board>\n");
+                    exportToXML_Plain(B);
+                    exportToXML_Libraries(B);
+                    exportToXML_Attributes(B);
+                    exportToXML_Variantdefs(B);
+                    exportToXML_Classes(B);
+                    exportToXML_Designrules(B);
+                    exportToXML_Autorouter(B);
+                    exportToXML_Elements(B);
+                    exportToXML_Signals(B);
+                printf("</board>\n");
+                exportToXML_Footer(B);
+            }
+        }
+    }
+}
+
+
+if (board)
+{
+    //string systemUzytkownika =  strlwr(" " + OS_SIGNATURE); // definicja systemu operacyjnego, bez spacji na poczatku skrypt sie sypie ;)
+    string czyPlikIstnieje[];
+    string filePath = "";
+    
+    if (systemUzytkownika == "windows")
+        filePath = "/home/mariusz/Pulpit/eagle_to_new.brd";
+    else if (systemUzytkownika == "linux")
+        filePath = "/tmp/eagleExportToFreeCAD.brd";
+    ///////
+    if (filePath != "")
+    {
+        exportToXML(filePath);
+        if (systemUzytkownika == "windows")
+        {
+            if (fileglob(czyPlikIstnieje, programPath_WIN) > 0)
+                system("cmd.exe /c START \"\" \"" + programPath_WIN + "\" \"" + filePath + "\"");
+            else
+                dlgMessageBox("File path issue, incorrect path: " + programPath_WIN);
+        }  
+        else if (systemUzytkownika == "linux")
+            system("\"" + programPath_LIN + "\" \"" + filePath + "\" &");
+        //else
+        //    dlgMessageBox("Operating system not recognized.");
+    }
+    else
+            dlgMessageBox("Operating system not recognized.");
+}

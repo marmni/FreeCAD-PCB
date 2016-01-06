@@ -1,0 +1,28 @@
+#require 5.1001
+
+board(B) {
+    // CONFIG
+    string programPath_WIN = "C:/Program Files (x86)/FreeCAD/bin/FreeCAD.exe";
+    string programPath_LIN = "freecad";
+    ///////
+
+    string filePath = B.name; // sciezka do aktualnego projektu
+    string systemUzytkownika =  strlwr(" " + OS_SIGNATURE); // definicja systemu operacyjnego, bez spacji na poczatku skrypt sie sypie ;)
+    string czyPlikIstnieje[];
+    //int plikZapisany = fileglob(czyPlikIstnieje, filePath);
+    
+    if (fileglob(czyPlikIstnieje, filePath) > 0)
+        if (strrstr(systemUzytkownika, "window") > 0)
+        {
+            if (fileglob(czyPlikIstnieje, programPath_WIN) > 0)
+                system("cmd.exe /c START \"\" \"" + programPath_WIN + "\" \"" + filePath + "\"");
+            else
+                dlgMessageBox("File path issue, incorrect path: " + programPath_WIN);
+        }  
+        else if (strrstr(systemUzytkownika, "linu") > 0)
+            system("\"" + programPath_LIN + "\" \"" + filePath + "\" &");
+        else
+            dlgMessageBox("Operating system not recognized.");
+    else
+        dlgMessageBox("Please save file first."); 
+}

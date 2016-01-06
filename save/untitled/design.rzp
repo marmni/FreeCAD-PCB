@@ -1,0 +1,1 @@
+{"layers": 2, "drcparams": {"min_spacing": "9mil", "min_anular": "7mil", "check_trace_angle": false, "min_trace_width": "9mil", "min_drill_dia": "13mil", "min_border_spacing": "15mil"}, "prefix": "P", "version": "0.9.8", "layout": "layout.json", "schematic": "schematic.json", "deps": [], "_t": "Project", "pinmapping": {}}

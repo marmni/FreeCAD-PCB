@@ -1,0 +1,4 @@
+.HEADER
+board_file 2.0 "FreeCAD-PCB" {DATE} 1
+{BOARD} MM
+.END_HEADER
