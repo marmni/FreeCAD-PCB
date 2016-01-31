@@ -149,16 +149,13 @@ class createAssembly:
         a = FreeCAD.ActiveDocument.addObject("App::DocumentObjectGroupPython", "{0}".format(os.path.basename(self.fileName).split('.')[0]))
         mainAssemblyObject(a)
         a.File = self.fileName
-        viewProviderMainAssemblyObject(a.ViewObject)
-        
-        #pos = FreeCAD.Placement()
-        #pos.Base.x = self.x
-        #pos.Base.y = self.y
-        #pos.Base.z = self.z
-        #a.Placement = pos
         a.X = self.x
         a.Y = self.y
         a.Z = self.z
+        a.RX = self.rx
+        a.RY = self.ry
+        a.RZ = self.rz
+        viewProviderMainAssemblyObject(a.ViewObject)
         #
         #FreeCAD.setActiveDocument(mainFile)
         FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
@@ -173,7 +170,7 @@ def updateAssembly():
     for i in FreeCADGui.Selection.getSelection():
         if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'assemblyMain':
             i.Proxy.updateParts(i)
-            i.Proxy.updatePosition(i)
+            i.Proxy.updateRotation(i)
     #
     FreeCAD.setActiveDocument(mainFile)
     FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
@@ -183,6 +180,9 @@ def updateAssembly():
     FreeCAD.ActiveDocument.recompute()
     
 def checkFile(fileName):
+    if fileName.startswith('./'):
+        fileName = os.path.join(os.path.dirname(FreeCAD.ActiveDocument.FileName), fileName)
+    
     try:
         return [FreeCAD.open(fileName), True]
     except Exception, e: # file is already open
@@ -202,105 +202,64 @@ class childAssemblyObject:
         
         obj.setEditorMode("Placement", 2)
         #
-        self.mainX = 0
-        self.mainY = 0
-        self.mainZ = 0
-        self.mainRX = 0
-        self.mainRY = 0
-        self.mainRZ = 0
-        self.angle = 0
+        self.rotZ = 0
+        self.rotX = 0
+        self.rotY = 0 # side
+        self.offsetX = 0
+        self.offsetY = 0
+        self.offsetZ = 0
     
     def onChanged(self, fp, prop):
         fp.setEditorMode("Placement", 2)
     
     def execute(self, obj):
         pass
-    
-    def updateRotation(self, obj, prop, rot, center):
+
+    def updateRotation(self, obj, rot, center):
         try:
-            # placement object to 0, 0, ?
-            sX = obj.Placement.Base.x - center[0]
-            sY = obj.Placement.Base.y - center[1]
+            sX = -self.offsetX 
+            sY = -self.offsetY
+            sZ = -self.offsetZ
             
-            obj.Placement.Base.x = sX
-            obj.Placement.Base.y = sY
+            x = center[0] + self.offsetX 
+            y = center[1] + self.offsetY
+            z = center[2] + self.offsetZ
             
-            # rotate
-            sX = obj.Shape.BoundBox.Center.x
-            sY = obj.Shape.BoundBox.Center.y
-            
-            
-            pla = FreeCAD.Placement(obj.Placement.Base, FreeCAD.Rotation(rot[0], rot[1], rot[2]), FreeCAD.Base.Vector(sX, sY, 0))
+            pla = FreeCAD.Placement(FreeCAD.Base.Vector(x, y, z), FreeCAD.Rotation(rot[0], rot[1], rot[2]), FreeCAD.Base.Vector(sX, sY, sZ))
             obj.Placement = pla
             
-            
-            self.mainRX = rot[0]
-            self.mainRY = rot[1]
-            self.mainRZ = rot[2]
+            # rotate object -> ROT property; Z value
+            rot = FreeCAD.Rotation(FreeCAD.Vector(0,0,1), self.rotZ)
+            pos = FreeCAD.Base.Vector(0, 0, 0)
+            nP = FreeCAD.Placement(pos, rot, pos)
+            obj.Placement = obj.Placement.multiply(nP)
+            # change side
+            rot = FreeCAD.Rotation(FreeCAD.Vector(0,1,0), self.rotY)
+            pos = FreeCAD.Base.Vector(0, 0, 0)
+            nP = FreeCAD.Placement(pos, rot, pos)
+            obj.Placement = obj.Placement.multiply(nP)
+            #
+            rot = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), self.rotX)
+            pos = FreeCAD.Base.Vector(0, 0, 0)
+            nP = FreeCAD.Placement(pos, rot, pos)
+            obj.Placement = obj.Placement.multiply(nP)
             
         except Exception, e:
-            FreeCAD.Console.PrintWarning("rot. {0} \n".format(e))
-        
-        
-        
-        
-        #pla = FreeCAD.Placement(obj.Placement.Base, FreeCAD.Rotation(rot[0] - self.mainRX, rot[1] - self.mainRY, rot[2] - self.mainRZ), FreeCAD.Base.Vector(center[0], center[1], center[2]))
-        #obj.Placement = pla
-        
-        #self.mainRX = rot[0]
-        #self.mainRY = rot[1]
-        #self.mainRZ = rot[2]
-        
-        
-        #if prop == 'RX':
-            #shape = obj.Shape.copy()
-            #shape.Placement = obj.Placement
-            #shape.rotate(center, (1.0, 0.0, 0.0), rotation[0] - self.mainRX)
-            #obj.Placement = shape.Placement
-            
-            #self.mainRX = rotation[0]
-        #elif prop == 'RY':
-            #shape = obj.Shape.copy()
-            #shape.Placement = obj.Placement
-            #shape.rotate(center, (0.0, 1.0, 0.0), rotation[1] - self.mainRY)
-            #obj.Placement = shape.Placement
-            
-            #self.mainRY = rotation[1]
-        #else:  # RZ
-            #shape = obj.Shape.copy()
-            #shape.Placement = obj.Placement
-            #shape.rotate(center, (0.0, 0.0, 1.0), rotation[2] - self.mainRZ)
-            #obj.Placement = shape.Placement
-            
-            #self.mainRZ = rotation[2]
-    
-    def updatePosition(self, obj, parent):
-        try:
-            placement = parent
-            
-            obj.Placement.Base.x = obj.Placement.Base.x + (placement[0] - self.mainX)
-            obj.Placement.Base.y = obj.Placement.Base.y + (placement[1] - self.mainY)
-            obj.Placement.Base.z = obj.Placement.Base.z + (placement[2] - self.mainZ)
-            
-            self.mainX = placement[0]
-            self.mainY = placement[1]
-            self.mainZ = placement[2]
-        except Exception, e:
-            FreeCAD.Console.PrintWarning("2. {0} \n".format(e))
-    
+            pass
+            #FreeCAD.Console.PrintWarning("rot. {0} \n".format(e))
+
     def __getstate__(self):
-        return [self.Type, self.mainX, self.mainY, self.mainZ, self.mainRX, self.mainRY, self.mainRZ, self.angle]
+        return [self.Type, self.rotX, self.rotY, self.rotZ, self.offsetX, self.offsetY, self.offsetZ]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
-            self.mainX = state[1]
-            self.mainY = state[2]
-            self.mainZ = state[3]
-            self.mainRX = state[4]
-            self.mainRY = state[5]
-            self.mainRZ = state[6]
-            self.angle = state[7]
+            self.rotX = state[1]
+            self.rotY = state[2]
+            self.rotZ = state[3]
+            self.offsetX = state[4]
+            self.offsetY = state[5]
+            self.offsetZ = state[6]
 
 
 class mainAssemblyObject:
@@ -317,16 +276,19 @@ class mainAssemblyObject:
         obj.addProperty("App::PropertyAngle", "RX", "PCB", "RX").RX = 0
         obj.addProperty("App::PropertyAngle", "RY", "PCB", "RY").RY = 0
         obj.addProperty("App::PropertyAngle", "RZ", "PCB", "RZ").RZ = 0
+        
+        self.center = [0, 0 ,0]
     
     def execute(self, obj):
         pass
     
     def __getstate__(self):
-        return self.Type
+        return [self.Type, str(self.center)]
 
     def __setstate__(self, state):
         if state:
-            self.Type = state
+            self.Type = state[0]
+            self.center = eval(state[1])
     
     def updateParts(self, obj):
         if obj.File.strip() != '':
@@ -341,6 +303,15 @@ class mainAssemblyObject:
             newFile = checkFile(obj.File)
             if not newFile[0]:
                 return
+                
+            for i in newFile[0].Objects:
+                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'PCBboard':
+                    self.center =  i.Shape.BoundBox.Center
+                    self.center = [i.Shape.BoundBox.Center[0], i.Shape.BoundBox.Center[1], i.Shape.BoundBox.Center[2]]
+                    #obj.X = obj.X.Value + self.center[0]
+                    #obj.Y = obj.Y.Value + self.center[1]
+                    #obj.Z = obj.Z.Value + self.center[2]
+                    break
 
             for i in newFile[0].Objects:
                 if not i.ViewObject.Visibility:
@@ -354,58 +325,45 @@ class mainAssemblyObject:
                         child = mainFile.addObject("Part::FeaturePython", "{0}".format(i.Label))
                         childAssemblyObject(child)
                         child.Shape = i.Shape
-                        #child.Proxy.MainPlacement = obj.Placement
                         viewProviderChildAssemblyObject(child.ViewObject)
                         child.ViewObject.DiffuseColor = i.ViewObject.DiffuseColor
                         
+                        child.Proxy.rotZ = i.Placement.Rotation.toEuler()[0]
+                        child.Proxy.rotY = i.Placement.Rotation.toEuler()[1]
+                        child.Proxy.rotX = i.Placement.Rotation.toEuler()[2]
+                        
+                        #
                         obj.addObject(child)
+                        child.Proxy.offsetX = child.Placement.Base.x - self.center[0]
+                        child.Proxy.offsetY = child.Placement.Base.y - self.center[1]
+                        child.Proxy.offsetZ = child.Placement.Base.z - self.center[2]
+                        
                     except Exception, e:
                         FreeCAD.Console.PrintWarning("1. {0} \n".format(e))
             if newFile[1]:
                 FreeCAD.closeDocument(newFile[0].Label)
-            
             FreeCAD.setActiveDocument(mainFile.Label)
             FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile.Label)
             
             FreeCADGui.ActiveDocument.activeView().viewAxometric()
             FreeCADGui.ActiveDocument.activeView().fitAll()
-            FreeCAD.ActiveDocument.recompute()
-            
-            # center of assembly
-            #bbc =  Part.makeCompound([i.Shape for i in obj.OutList if i.ViewObject.Visibility]).BoundBox.Center
-            #self.center = (bbc[0], bbc[1], bbc[2])
 
-    def updatePosition(self, fp):
+    def updateRotation(self, fp):
         try:
+            center =  [fp.X.Value, fp.Y.Value, fp.Z.Value]
+           
             for i in fp.OutList:
-                i.Proxy.updatePosition(i, [fp.X.Value, fp.Y.Value, fp.Z.Value])
+                i.Proxy.updateRotation(i, [fp.RZ.Value, fp.RY.Value, fp.RX.Value], center)
         except Exception, e:
-            FreeCAD.Console.PrintWarning("3. {0} \n".format(e))
-    
-    def updateRotation(self, fp, prop):
-        try:
-            #boundBox = Part.makeCompound([i.Shape for i in fp.OutList])
-            #center = (boundBox.BoundBox.XLength / 2.0, boundBox.BoundBox.YLength / 2.0, boundBox.BoundBox.ZLength / 2.0)
-            #center = [fp.X.Value, fp.Y.Value, fp.Z.Value]
-            
-            #center = [self.center[0] + fp.X.Value, self.center[1] + fp.Y.Value, self.center[2] + fp.Z.Value]
-            center = FreeCAD.ActiveDocument.Board.Shape.BoundBox.Center
-            center = [center.x, center.y, center.z]
-            
-            for i in fp.OutList:
-                #updateRotation(self, obj, prop, rotation, center):
-                i.Proxy.updateRotation(i, prop, [fp.RX.Value, fp.RY.Value, fp.RZ.Value], center)
-        except Exception, e:
-            FreeCAD.Console.PrintWarning("3. {0} \n".format(e))
-    
+            pass
+            #FreeCAD.Console.PrintWarning("3. {0} \n".format(e))
+        
     def onChanged(self, fp, prop):
         try:
             if prop == "File":
                 self.updateParts(fp)
-            elif prop in ['X', 'Y', 'Z']:
-                self.updatePosition(fp)
-            elif prop in ['RX', 'RY', 'RZ']:
-                self.updateRotation(fp, prop)
+            elif prop in ['X', 'Y', 'Z', 'RX', 'RY', 'RZ']:
+                self.updateRotation(fp)
         except:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass
