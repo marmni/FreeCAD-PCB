@@ -157,8 +157,10 @@ class createAssembly:
         a.RZ = self.rz
         viewProviderMainAssemblyObject(a.ViewObject)
         #
-        #FreeCAD.setActiveDocument(mainFile)
-        FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
+        try:
+            FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
+        except:
+            pass
         
         FreeCADGui.ActiveDocument.activeView().viewAxometric()
         FreeCADGui.ActiveDocument.activeView().fitAll()
