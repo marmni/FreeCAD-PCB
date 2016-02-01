@@ -159,15 +159,17 @@ class createAssembly:
         #
         try:
             FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
+            FreeCADGui.ActiveDocument.activeView().viewAxometric()
+            FreeCADGui.ActiveDocument.activeView().fitAll()
         except:
             pass
-        
-        FreeCADGui.ActiveDocument.activeView().viewAxometric()
-        FreeCADGui.ActiveDocument.activeView().fitAll()
         FreeCAD.ActiveDocument.recompute()
 
 
 def updateAssembly():
+    if len(FreeCADGui.Selection.getSelection()) == 0:
+        FreeCAD.Console.PrintWarning("Select assembly!\n")
+    
     mainFile = FreeCAD.ActiveDocument.Label
     for i in FreeCADGui.Selection.getSelection():
         if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'assemblyMain':
@@ -305,16 +307,21 @@ class mainAssemblyObject:
             newFile = checkFile(obj.File)
             if not newFile[0]:
                 return
-                
-            for i in newFile[0].Objects:
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'PCBboard':
-                    self.center =  i.Shape.BoundBox.Center
-                    self.center = [i.Shape.BoundBox.Center[0], i.Shape.BoundBox.Center[1], i.Shape.BoundBox.Center[2]]
-                    #obj.X = obj.X.Value + self.center[0]
-                    #obj.Y = obj.Y.Value + self.center[1]
-                    #obj.Z = obj.Z.Value + self.center[2]
-                    break
-
+            #
+            try:
+                center = Part.makeCompound([i.Shape for i in newFile[0].Objects if hasattr(i, "Shape")]).BoundBox.Center
+                self.center = [center[0], center[1], center[2]]
+            except Exception, e:
+                FreeCAD.Console.PrintWarning("1. {0} \n".format(e))
+            #for i in newFile[0].Objects:
+                #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'PCBboard':
+                    #self.center =  i.Shape.BoundBox.Center
+                    #self.center = [i.Shape.BoundBox.Center[0], i.Shape.BoundBox.Center[1], i.Shape.BoundBox.Center[2]]
+                    ##obj.X = obj.X.Value + self.center[0]
+                    ##obj.Y = obj.Y.Value + self.center[1]
+                    ##obj.Z = obj.Z.Value + self.center[2]
+                    #break
+            #
             for i in newFile[0].Objects:
                 if not i.ViewObject.Visibility:
                     continue
