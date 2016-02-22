@@ -52,10 +52,12 @@ from command.PCBcreateBoard import createPCB
 from command.PCBlayers import layersSettings
 from command.PCBannotations import createAnnotation_Gui
 from command.PCBexportKerkythea import exportToKerkytheaGui
+from command.PCBexportPovRay import exportObjectToPovRayGui
 from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
 from command.PCBglue import createGlueGui
 from command.PCBassembly import createAssemblyGui, updateAssembly
 from command.PCBdrill import createDrillcenter_Gui
+from command.PCBcollision import checkCollisionsGui
 
 
 class pcbToolBarMain(QtGui.QToolBar):
@@ -135,12 +137,18 @@ class pcbToolBarView(pcbToolBarMain):
         scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.png")
         QtCore.QObject.connect(scriptCmd_ExportToKerkythea, QtCore.SIGNAL("triggered()"), self.exportToKerkytheaF)
         
+        scriptCmd_ExportObjectToPovRay = self.createAction(u"3D rendering: export object to POV-Ray (*.inc)", u"3D rendering: export object to POV-Ray (*.inc)", ":/data/img/file_inc_slick_32.png")
+        QtCore.QObject.connect(scriptCmd_ExportObjectToPovRay, QtCore.SIGNAL("triggered()"), self.exportObjectToPovRayF)
+        
         # assembly
         scriptCmd_QuickAssembly = self.createAction(u"Add assembly", u"Add assembly", ":/data/img/asmMain.png")
         QtCore.QObject.connect(scriptCmd_QuickAssembly, QtCore.SIGNAL("triggered()"), self.quickAssembly)
         
         scriptCmd_QuickAssembly2 = self.createAction(u"Update assembly", u"Update assembly", ":/data/img/asmUpdate.png")
         QtCore.QObject.connect(scriptCmd_QuickAssembly2, QtCore.SIGNAL("triggered()"), self.quickAssemblyUpdate)
+        
+        scriptCmd_CheckForCollisions = self.createAction(u"Check for collisions", u"Check for collisions", ":/data/img/collisions.png")
+        QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
         
         # parts groups
         scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/Draft_AddToGroup.png")
@@ -161,9 +169,11 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_groupParts)
         self.addSeparator()
         self.addAction(scriptCmd_ExportToKerkythea)
+        self.addAction(scriptCmd_ExportObjectToPovRay)
         self.addSeparator()
         self.addAction(scriptCmd_QuickAssembly)
         self.addAction(scriptCmd_QuickAssembly2)
+        self.addAction(scriptCmd_CheckForCollisions)
         #self.addAction(self.scriptCmd_HeightDisplay)
         self.addToolBar(self)
     
@@ -203,11 +213,26 @@ class pcbToolBarView(pcbToolBarMain):
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def quickAssemblyUpdate(self):
-        updateAssembly()
+        try:
+            if FreeCAD.activeDocument():
+                updateAssembly()
+        except Exception ,e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    
+    def checkForCollisionsF(self):
+        try:
+            if FreeCAD.activeDocument():
+                FreeCADGui.Control.showDialog(checkCollisionsGui())
+        except Exception ,e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportToKerkytheaF(self):
         if FreeCAD.activeDocument():
             FreeCADGui.Control.showDialog(exportToKerkytheaGui())
+            
+    def exportObjectToPovRayF(self):
+        if FreeCAD.activeDocument():
+            FreeCADGui.Control.showDialog(exportObjectToPovRayGui())
     
     def Flayers(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
