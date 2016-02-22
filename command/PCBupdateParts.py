@@ -147,6 +147,8 @@ class updateParts(partsManaging):
                 a = QtGui.QListWidgetItem(j.Package)
                 a.setData(QtCore.Qt.UserRole, j.Package)
                 a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
+                a.setIcon(j.ViewObject.Icon)
+                
                 if self.updateModel:
                     if self.updateModel == j.Package:
                         a.setCheckState(QtCore.Qt.Checked)
