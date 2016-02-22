@@ -242,29 +242,35 @@ class exportTokerkythea:
         modelsMultiColors = False
 
     def write(self, file, name):
-        file = __builtin__.open(file, "w")
-        #
-        self.writeHeader(file, name)
-        
-        if self.modelsMultiColors:
-            for i, j in self.models.items():
-                file.write('<Object Identifier="./Models/{0}" Label="Default Model" Name="{0}" Type="Model">\n'.format(i.encode('utf-8')))
-                for k in j:
-                    k.write(file)
-                file.write('</Object>\n')
-        else:
-            for i in self.models.values():
-                i.write(file)
-        # CAMERA
-        #activeCamera = self.cameras[0][0].name
-        for i in self.cameras:
-            i[0].write(file)
-            #if i[1]:
-            #    activeCamera = i[0].name
-        #
-        #file.write('<Parameter Name="./Cameras/Active" Type="String" Value="{0}"/>\n'.format(activeCamera))
+        try:
+            file = __builtin__.open(file, "w")
+            #
+            self.writeHeader(file, name)
+            
+            if self.modelsMultiColors:
+                for i, j in self.models.items():
+                    file.write('<Object Identifier="./Models/{0}" Label="Default Model" Name="{0}" Type="Model">\n'.format(i.encode('utf-8')))
+                    for k in j:
+                        k.write(file)
+                    file.write('</Object>\n')
+            else:
+                for i in self.models.values():
+                    i.write(file)
+            # CAMERA
+            #activeCamera = self.cameras[0][0].name
+            for i in self.cameras:
+                i[0].write(file)
+                #if i[1]:
+                #    activeCamera = i[0].name
+            #
+            #file.write('<Parameter Name="./Cameras/Active" Type="String" Value="{0}"/>\n'.format(activeCamera))
 
-        self.writeFooter(file, name)
+            self.writeFooter(file, name)
+        except Exception, e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+            return
+        
+        FreeCAD.Console.PrintWarning("Export finished successfully.\n")
 
     def writeHeader(self, file, name):
         file.write('''<Root Label="Kernel" Name="" Type="Kernel">
