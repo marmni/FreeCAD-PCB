@@ -2170,7 +2170,7 @@ class viewProviderConstraintAreaObject:
 
 class DocumentObserver:
     def slotDeletedObject(self, obj):
-        if hasattr(obj, "Proxy") and hasattr(obj, "Type") and obj.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+        if hasattr(obj, "Proxy") and hasattr(obj.Proxy, "Type") and obj.Proxy.Type in ["PCBpart", "PCBpart_E"]:
             try:
                 FreeCAD.ActiveDocument.removeObject(obj.PartName.Name)
             except:
