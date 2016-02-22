@@ -25,6 +25,7 @@
 #*                                                                          *
 #****************************************************************************
 import FreeCAD, FreeCADGui
+import Part
 if FreeCAD.GuiUp:
     from PySide import QtGui, QtCore
 import Part
@@ -282,7 +283,7 @@ class mainAssemblyObject:
         obj.addProperty("App::PropertyAngle", "RZ", "PCB", "RZ").RZ = 0
         
         self.center = [0, 0 ,0]
-    
+
     def execute(self, obj):
         pass
     
@@ -371,6 +372,8 @@ class viewProviderMainAssemblyObject:
     def __init__(self, obj):
         obj.Proxy = self
         self.Object = obj.Object
+        
+        obj.addProperty("App::PropertyInteger", "Transparency", "Base", "Transparency").Transparency= 0
 
     def attach(self, obj):
         ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
@@ -390,6 +393,13 @@ class viewProviderMainAssemblyObject:
         if prop == 'Visibility':
             for i in vp.Object.OutList:
                 i.ViewObject.Visibility = vp.Visibility
+        
+        try:
+            if prop == 'Transparency' and vp.Transparency >= 0 and vp.Transparency <= 100:
+                for i in vp.Object.OutList:
+                    i.ViewObject.Transparency = vp.Transparency
+        except:
+            pass
 
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
@@ -428,6 +438,16 @@ class viewProviderChildAssemblyObject:
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
         vp.setEditorMode("ShapeColor", 2)
+        #vp.setEditorMode("Transparency", 2)
+        
+        try:
+            if prop == 'Transparency' and vp.Transparency >= 0 and vp.Transparency <= 100:
+                for i in vp.Object.OutList:
+                    col = i.ViewObject.DiffuseColor
+                    i.ViewObject.Transparency = vp.Transparency
+                    i.ViewObject.DiffuseColor = col
+        except:
+            pass
 
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
