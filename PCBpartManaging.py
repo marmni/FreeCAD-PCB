@@ -73,11 +73,13 @@ class partsManaging(mathFunctions):
             partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
         #
         partValueTXT = newPart[0][2]
+        #if isinstance(partValueTXT, unicode):
+            #partValueTXT = unicodedata.normalize('NFKD', partValueTXT).encode('ascii', 'ignore')
         partRotation = self.adjustRotation(newPart[0][5])  # rotation around Z
         # check if 3D model exist
         #################################################################
         #################################################################
-        fileData = self.partExist(newPart[0][1], u"{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
+        fileData = self.partExist(newPart[0][1], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
         
         if fileData[0]:
             packageData = self.__SQL__.getValues(fileData[2])
@@ -92,7 +94,7 @@ class partsManaging(mathFunctions):
             ################################################################
             # DODANIE OBIEKTU NA PLANSZE
             ################################################################
-            step_model = doc.addObject("Part::FeaturePython", u"{0} ({1})".format(partNameTXT, fileData[3][0]))
+            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3][0]))
             step_model.Label = partNameTXT_label
             step_model.Shape = Part.read(filePath)
             obj = partObject(step_model)
@@ -236,7 +238,7 @@ class partsManaging(mathFunctions):
             # [txt, x, y, size, rot, side, align, spin, mirror, font]
             #################################################################
             annotationName = createAnnotation()
-            annotationName.defaultName = u'{0}_Name'.format(partNameTXT_label)
+            annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
             annotationName.mode = 'anno_name'
             annotationName.Side = newPart[1][5]
             annotationName.Rot = self.adjustRotation(newPart[1][4])
@@ -279,7 +281,7 @@ class partsManaging(mathFunctions):
             # [txt, x, y, size, rot, side, align, spin, mirror, font]
             #################################################################
             annotationValue = createAnnotation()
-            annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
+            annotationValue.defaultName = '{0}_Value'.format(partNameTXT_label)
             annotationValue.mode = 'anno_value'
             annotationValue.Side = newPart[2][5]
             annotationValue.Rot = self.adjustRotation(newPart[2][4])
