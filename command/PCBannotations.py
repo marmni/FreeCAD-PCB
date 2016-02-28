@@ -533,8 +533,8 @@ class viewProviderPCBannotation:
         ####################
         # TEMPORARY SOLUTION
         ####################
-        if not hasattr(vp, "Text"):
-            self.__init__(vp)
+        #if not hasattr(vp, "Text"):
+            #self.__init__(vp)
         ####################
         ####################
         vp.setEditorMode("LineColor", 2)
