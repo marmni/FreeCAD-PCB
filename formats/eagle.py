@@ -165,7 +165,165 @@ class EaglePCB(mainPCB):
                         side = 1  # TOP
                 
                 self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
-
+    
+    def getSection(self, name):
+        if name.strip() == "":
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            return ''
+        
+        try:
+            return re.findall("<{0}>(.+?)</{0}>".format(name), self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+        except:
+            return ''
+    
+    def getPolygons(self, section, layer):
+        if section.strip() == "":
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            return []
+        
+        if not isinstance(layer, list):
+            layer = [layer]
+            
+        data = []
+        for lay in layer:
+            for i in re.findall('<polygon width=".+?" layer="%s">(.+?)</polygon>' % str(lay), section, re.MULTILINE|re.DOTALL):
+                data.append(re.findall('<vertex x="(.+?)" y="(.+?)"( curve="(.+?)"|)/>', i))
+        
+        return data
+    
+    def getRectangle(self, section, layer, m=[0,0]):
+        if section.strip() == "":
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            return []
+        
+        if not isinstance(layer, list):
+            layer = [layer]
+            
+        data = []
+        for lay in layer:
+            for i in re.findall('<rectangle\s+x1="(.+?)"\s+y1="(.+?)"\s+x2="(.+?)"\s+y2="(.+?)"\s+layer="%s"(\s+rot="(.+?)"|)/>' % str(lay), section):
+                x1 = float(i[0])
+                y1 = float(i[1])
+                x2 = float(i[2])
+                y2 = float(i[3])
+                
+                if [x1, y1] == [x2, y2]:
+                    continue
+                if m[0] != 0:
+                    x1 += m[0]
+                    x2 += m[0]
+                if m[1] != 0:
+                    y1 += m[1]
+                    y2 += m[1]
+                
+                if i[5] == "":
+                    rot = 0.
+                else:
+                    rot = float(re.search('R([0-9,.-]*)', i[5]).groups()[0])
+                    
+                xs = x1 + (abs(x1 - x2) / 2.)
+                ys = y1 + (abs(y1 - x2) / 2.)
+                
+                data.append({
+                    'x1': x1,
+                    'y1': y1,
+                    'x2': x2,
+                    'y2': y2,
+                    'xs': xs,
+                    'ys': ys,
+                    'rot': rot,
+                    'layer': lay,
+                })
+        
+        return data
+    
+    def getCircles(self, section, layer, m=[0,0]):
+        if section.strip() == "":
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            return []
+        
+        if not isinstance(layer, list):
+            layer = [layer]
+        
+        data = []
+        for lay in layer:
+            for i in re.findall('<circle\s+x="(.+?)"\s+y="(.+?)"\s+radius="(.+?)"\s+width="(.+?)"\s+layer="%s"/>' % str(lay), section):
+                x = float(i[0])
+                y = float(i[1])
+                r = float(i[2])
+                w = float(i[3])
+                
+                if w == 0:
+                    w = 0.01
+                if m[0] != 0:
+                    x += m[0]
+                if m[1] != 0:
+                    y += m[1]
+                
+                data.append({
+                    'x': x,
+                    'y': y,
+                    'r': r,
+                    'width': w,
+                    'layer': lay,
+                })
+        
+        return data
+            
+    def getWires(self, section, layer, m=[0,0]):
+        if section.strip() == "":
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            return []
+        
+        if not isinstance(layer, list):
+            layer = [layer]
+        
+        data = []
+        for lay in layer:
+            for i in re.findall('<wire\s+x1="(.+?)"\s+y1="(.+?)"\s+x2="(.+?)"\s+y2="(.+?)"\s+width="(.+?)"\s+layer="%s"(\s+style="(.+?)"|)(\s+curve="(.+?)"|)(\s+cap="(.+?)"|)/>' % str(lay), section):
+                x1 = float(i[0])
+                y1 = float(i[1])
+                x2 = float(i[2])
+                y2 = float(i[3])
+                width = float(i[4])
+                style = i[6]
+                
+                if [x1, y1] == [x2, y2]:
+                    continue
+                if m[0] != 0:
+                    x1 += m[0]
+                    x2 += m[0]
+                if m[1] != 0:
+                    y1 += m[1]
+                    y2 += m[1]
+                
+                if i[8] == '':
+                    curve = 0
+                else:
+                    curve = float(i[8])
+                
+                if i[10] == '':
+                    cap = 'round'
+                else:
+                    cap = i[10]
+                    
+                if width == 0:
+                    width = 0.01
+                
+                data.append({
+                    'x1': x1,
+                    'y1': y1,
+                    'x2': x2,
+                    'y2': y2,
+                    'width': width,
+                    'style': style,
+                    'curve': curve,
+                    'cap': cap,
+                    'layer': lay,
+                })
+            
+        return data
+    
     ##############################
     # MAIN FUNCTIONS
     ##############################
@@ -176,69 +334,68 @@ class EaglePCB(mainPCB):
     def getPCB(self):
         PCB = []
         wygenerujPada = True
-        dane = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+        dane = self.getSection('plain')
         #
-        dane1 = re.findall('<wire x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" width=".+?" layer="20"( curve="(.+?)"|)/>', dane)
-        for i in dane1:
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            
-            if i[5] == '':
-                PCB.append(['Line', x1, y1, x2, y2])
-            else:  # arc
-                curve = float(i[5])
-                PCB.append(['Arc', x2, y2, x1, y1, curve])
-                wygenerujPada = False
+        for i in self.getWires(dane, 20):
+            if not i['curve']:
+                PCB.append(['Line', i['x1'], i['y1'], i['x2'], i['y2']])
+            else:
+                PCB.append(['Arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve']])
         #
-        dane1 = re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width=".+?" layer="20"/>', dane)
-        for i in dane1:
-            x = float(i[0])
-            y = float(i[1])
-            r = float(i[2])
-            
-            PCB.append(['Circle', x, y, r])
+        for i in self.getCircles(dane, 20):
+            PCB.append(['Circle', i['x'], i['y'], i['r']])
+        #
+        self.getLibraries()
+        self.getElements()
+        
+        for i in self.elements:
+            ROT = i['rot']
+            #######
+            #linie/luki
+            for j in self.getWires(self.libraries[i['library']][i['package']], 20, [i['x'], i['y']]):
+                [x1, y1] = self.obrocPunkt2([j['x1'], j['y1']], [i['x'], i['y']], ROT)
+                [x2, y2] = self.obrocPunkt2([j['x2'], j['y2']], [i['x'], i['y']], ROT)
+                if i['side'] == 0:
+                    x1 = self.odbijWspolrzedne(x1, i['x'])
+                    x2 = self.odbijWspolrzedne(x2, i['x'])
+                
+                if not j['curve']:
+                    PCB.append(['Line', x1, y1, x2, y2])
+                else:
+                    curve = j['curve']
+                    if i['side'] == 0:
+                        curve *= -1
+                    
+                    PCB.append(['Arc', x2, y2, x1, y1, curve])
+            #okregi
+            for j in self.getCircles(self.libraries[i['library']][i['package']], 20, [i['x'], i['y']]):
+                [x, y] = self.obrocPunkt2([j['x'], j['y']], [i['x'], i['y']], ROT)
+                if i['side'] == 0:
+                    x = self.odbijWspolrzedne(x, i['x'])
+                
+                PCB.append(['Circle', x, y, j['r']])
         #
         return [PCB, wygenerujPada]
     
     def getGlue(self, layerNumber):
         glue = {}
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+        dane = self.getSection('plain')
         # line/arc
-        for i in re.findall('<wire x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" width="(.+?)" layer="{0}"( style="(.+?)"|)( curve="(.+?)"|)( cap="(.+?)"|)/>'.format(layerNumber), data):
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            width = float(i[4])
+        for i in self.getWires(dane, layerNumber):
             
-            if [x1, y1] != [x2, y2]:
-                if not width in glue.keys():
-                    glue[width] = []
-                
-                if i[8] == '':
-                    glue[width].append(['line', x1, y1, x2, y2])
-                else:
-                    curve = float(i[8])
-                    
-                    if i[10] == '':
-                        cap = 'round'
-                    else:
-                        cap = i[10]
-                        
-                    glue[width].append(['arc', x2, y2, x1, y1, curve, cap])
-        #circle
-        for i in re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width="(.+?)" layer="{0}"/>'.format(layerNumber), data):
-            x = float(i[0])
-            y = float(i[1])
-            r = float(i[2])
-            width = float(i[03])
-           
-            if not width in glue.keys():
-                glue[width] = []
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
             
-            glue[width].append(['circle', x, y, r])
+            if not i['curve']:
+                glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
+            else:
+                glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], i['cap']])
+        # circle
+        for i in self.getCircles(dane, layerNumber):
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
+            
+            glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
         #
         return glue
 
@@ -432,65 +589,19 @@ class EaglePCB(mainPCB):
 
     def getConstraintAreas(self, layerNumber):
         areas = []
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-        #kola
-        for i in re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width="(.+?)" layer="{0}"/>'.format(layerNumber), data):
-            x = float(i[0])
-            y = float(i[1])
-            r = float(i[2])
-            w = float(i[03])
-            
-            areas.append(['circle', x, y, r, w])
-        #kwadraty
-        for i in re.findall('<rectangle x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" layer="{0}"( rot="(.+?)"|)/>'.format(layerNumber), data):
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            
-            if i[5] == "":
-                rot = 0
-            else:
-                rot = float(re.search('R(.*)', i[5]).groups()[0])
-            #
-            areas.append(['rect', x1, y1, x2, y2, 0, rot])
-        #polygon
-        for i in re.findall('<polygon width=".+?" layer="{0}">(.+?)</polygon>'.format(layerNumber), data, re.MULTILINE|re.DOTALL):
-            polygonL = re.findall('<vertex x="(.+?)" y="(.+?)"( curve="(.+?)"|)/>', i)
-            
-            areas.append(['polygon', self.getPolygon(polygonL)])
+        dane = self.getSection('plain')
+        # kola
+        for i in self.getCircles(dane, layerNumber):
+            areas.append(['circle', i['x'], i['y'], i['r'], i['width']])
+        # kwadraty
+        for i in self.getRectangle(dane, layerNumber):
+            areas.append(['rect', i['x1'], i['y1'], i['x2'], i['y2'], 0, i['rot']])
+        # polygon
+        for i in self.getPolygons(dane, layerNumber):
+            areas.append(['polygon', self.getPolygon(i)])
         #
         return areas
 
-    #def centerDrill(self, doc, layerNumber, grp, layerName, layerColor):
-        #layerName = "{0}_{1}".format(layerName, layerNumber)
-        ##layerSide = PCBlayers[softLayers["eagle"][layerNumber][1]][0]
-        #####
-        #dane1 = self.pobierzParametryPCB("plain", "circle", 116)
-        #if len(dane1):
-            #layerType = PCBlayers[softLayers["eagle"][layerNumber][1]][3]
-            
-            #layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-            #layerNew = layerSilkObject(layerS, layerType)
-            ##layerNew.defHeight = defHeight
-            #####
-            #for i in dane1:
-                #x = float(i.getAttribute("x"))
-                #y = float(i.getAttribute("y"))
-                #radius = float(i.getAttribute("radius"))
-                #width = float(i.getAttribute("width"))
-                
-                #layerNew.createObject()
-                #layerNew.addCircle(x, y, radius, width)
-                #layerNew.setFace()
-            #####
-            #layerNew.generuj(layerS)
-            #layerNew.updatePosition_Z(layerS)
-            #viewProviderLayerSilkObject(layerS.ViewObject)
-            #layerS.ViewObject.ShapeColor = layerColor
-            #grp.addObject(layerS)
-
-    
     #def getPolygons(self, layerNumber):
         #if layerNumber == 998:
             #layerNumber = 1
@@ -540,30 +651,15 @@ class EaglePCB(mainPCB):
         wires = []
         num = 1
         #
-        dane = re.findall("<signals(.+?)</signals>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-        dane1= re.findall('<wire x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" width="(.+?)" layer="{0}"( style="(.+?)"|)( curve="(.+?)"|)( cap="(.+?)"|)/>'.format(layerNumber), dane)
-        
-        for i in dane1:
+        dane = self.getSection('signals')
+        #
+        for i in self.getWires(dane, layerNumber):
             signal.append([])
             #
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            width = float(i[4])
-            
-            if [x1, y1] != [x2, y2]:
-                if i[8] == '':
-                    wires.append(['line', x1, y1, x2, y2, width])
-                else:
-                    curve = float(i[8])
-                    
-                    if i[10] == '':
-                        cap = 'round'
-                    else:
-                        cap = i[10]
-                    
-                    wires.append(['arc', x1, y1, x2, y2, curve, width, cap])
+            if not i['curve']:
+                wires.append(['line', i['x1'], i['y1'], i['x2'], i['y2'], i['width']])
+            else:
+                wires.append(['arc', i['x1'], i['y1'], i['x2'], i['y2'], i['curve'], i['width'], i['cap']])
             #
             signal[-1].append(num)
             num += 1
@@ -650,35 +746,20 @@ class EaglePCB(mainPCB):
         elif layerNumber == 18:
             newLayer = 16
         ##
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-        for i in re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width="(.+?)" layer="({0}|{1})"/>'.format(newLayer, layerNumber), data):
-            x = float(i[0])
-            y = float(i[1])
-            radius = float(i[2])
-            width = float(i[3])
-        
+        dane = self.getSection('plain')
+        #
+        for i in self.getCircles(dane, [newLayer, layerNumber]):
             layerNew.createObject()
-            layerNew.addCircle(x, y, diameter / 2., width)
+            layerNew.addCircle(i['x'], i['y'], i['r'] / 2., i['width'])
             layerNew.setFace()
-        ##
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-        for i in re.findall('<rectangle x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" layer="({0}|{1})"( rot="(.+?)"|)/>'.format(newLayer, layerNumber), data):
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            
-            dx = x1 - x2
-            dy = y1 - y2
-            
-            if i[6] != "":
-                rot = float(re.search('R([0-9,.-]*)', i[6]).groups()[0])
-            else:
-                rot = 0
+        # kwadraty
+        for i in self.getRectangle(dane, [newLayer, layerNumber]):
+            dx = i['x1'] - i['x2']
+            dy = i['y1'] - i['y2']
             
             layerNew.createObject()
-            layerNew.addRectangle(x1, y1, x2, y2)
-            layerNew.addRotation(x1 - (dx / 2.), y1 - (dy / 2.), rot)
+            layerNew.addRectangle(i['x1'], i['y1'], i['x2'], i['y2'])
+            layerNew.addRotation(i['x1'] - (dx / 2.), i['y1'] - (dy / 2.), i['rot'])
             layerNew.setFace()
         #####
         self.getLibraries()
@@ -833,143 +914,70 @@ class EaglePCB(mainPCB):
             if i['side'] != layerSide:
                 continue
             #######
-            #linie/luki
-            for j in re.findall('<wire x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" width="(.+?)" layer="(.+?)"( style="(.+?)"|)( curve="(.+?)"|)( cap="(.+?)"|)/>', self.libraries[i['library']][i['package']]):
-                if int(j[5]) in szukanaWarstwa:
-                    x1 = float(j[0]) + i['x']
-                    y1 = float(j[1]) + i['y']
-                    x2 = float(j[2]) + i['x']
-                    y2 = float(j[3]) + i['y']
-                    width = float(j[4])
-                    style = j[7]
-                    
-                    if [x1, y1] != [x2, y2]:
-                        if j[9] == '':
-                            layerNew.createObject()
-                            layerNew.addLineWidth(x1, y1, x2, y2, width, style)
-                            layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                            layerNew.setFace()
-                        else:
-                            curve = float(j[9])
-                            
-                            if j[11] == '':
-                                cap = 'round'
-                            else:
-                                cap = j[11]
-                            
-                            layerNew.createObject()
-                            layerNew.addArcWidth([x1, y1], [x2, y2], curve, width, cap)
-                            layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                            layerNew.setFace()
-            #okregi
-            for j in re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width="(.+?)" layer="(.+?)"/>', self.libraries[i['library']][i['package']]):
-                if int(j[4]) in szukanaWarstwa:
-                    x = float(j[0]) + i['x']
-                    y = float(j[1]) + i['y']
-                    radius = float(j[2])
-                    width = float(j[3])
-                    
+            # linie/luki
+            for j in self.getWires(self.libraries[i['library']][i['package']], szukanaWarstwa, [i['x'], i['y']]):
+                if not j['curve']:
                     layerNew.createObject()
-                    layerNew.addCircle(x, y, radius, width)
+                    layerNew.addLineWidth(j['x1'], j['y1'], j['x2'], j['y2'], j['width'], j['style'])
                     layerNew.addRotation(i['x'], i['y'], i['rot'])
                     layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                    layerNew.setFace()
-            #kwadraty
-            for j in re.findall('<rectangle x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" layer="(.+?)"( rot="(.+?)"|)/>', self.libraries[i['library']][i['package']]):
-                if int(j[4]) in szukanaWarstwa:
-                    x1 = float(j[0]) + i['x']
-                    y1 = float(j[1]) + i['y']
-                    x2 = float(j[2]) + i['x']
-                    y2 = float(j[3]) + i['y']
-                    
-                    xs = x1 + (abs(x1 - x2) / 2.)
-                    ys = y1 + (abs(y1 - y2) / 2.)
-                    
-                    if j[6] == "":
-                        ROT_2 = 0.
-                    else:
-                        ROT_2 = float(re.search('R([0-9,.-]*)', j[6]).groups()[0])
-                    
-                    layerNew.createObject()
-                    layerNew.addRectangle(x1, y1, x2, y2)
-                    layerNew.addRotation(xs, ys, ROT_2)
-                    layerNew.addRotation(i['x'], i['y'], i['rot'])
-                    layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                    layerNew.setFace()
-            #polygon
-            for j in re.findall('<polygon width=".+?" layer="(.+?)">(.+?)</polygon>', self.libraries[i['library']][i['package']], re.MULTILINE|re.DOTALL):
-                if int(j[0]) in szukanaWarstwa:
-                    polygonL = re.findall('<vertex x="(.+?)" y="(.+?)"( curve="(.+?)"|)/>', j[1])
-                    
-                    layerNew.createObject()
-                    layerNew.addPolygon(self.getPolygon(polygonL, i['x'], i['y']))
-                    layerNew.addRotation(i['x'], i['y'], i['rot'])
-                    layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                    layerNew.setFace()
-        ######
-        ######
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-        #linie/luki
-        for i in re.findall('<wire x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" width="(.+?)" layer="{0}"( style="(.+?)"|)( curve="(.+?)"|)( cap="(.+?)"|)/>'.format(layerNumber), data):
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            width = float(i[4])
-            
-            if [x1, y1] != [x2, y2]:
-                if i[8] == '':
-                    layerNew.createObject()
-                    layerNew.addLineWidth(x1, y1, x2, y2, width)
                     layerNew.setFace()
                 else:
-                    curve = float(i[8])
-                    
-                    if i[10] == '':
-                        cap = 'round'
-                    else:
-                        cap = i[10]
-                    
                     layerNew.createObject()
-                    layerNew.addArcWidth([x1, y1], [x2, y2], curve, width, cap)
+                    layerNew.addArcWidth([j['x1'], j['y1']], [j['x2'], j['y2']], j['curve'], j['width'], j['cap'])
+                    layerNew.addRotation(i['x'], i['y'], i['rot'])
+                    layerNew.setChangeSide(i['x'], i['y'], i['side'])
                     layerNew.setFace()
-        #kola
-        for i in re.findall('<circle x="(.+?)" y="(.+?)" radius="(.+?)" width="(.+?)" layer="{0}"/>'.format(layerNumber), data):
-            x = float(i[0])
-            y = float(i[1])
-            radius = float(i[2])
-            width = float(i[03])
-            
-            layerNew.createObject()
-            layerNew.addCircle(x, y, radius, width)
-            layerNew.setFace()
-        #kwadraty
-        for i in re.findall('<rectangle x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" layer="{0}"( rot="(.+?)"|)/>'.format(layerNumber), data):
-            x1 = float(i[0])
-            y1 = float(i[1])
-            x2 = float(i[2])
-            y2 = float(i[3])
-            
-            xs = x1 + (abs(x1 - x2) / 2.)
-            ys = y1 + (abs(y1 - y2) / 2.)
-            
-            if i[5] == "":
-                ROT_2 = 0.
+            # okregi
+            for j in self.getCircles(self.libraries[i['library']][i['package']], szukanaWarstwa, [i['x'], i['y']]):
+                layerNew.createObject()
+                layerNew.addCircle(j['x'], j['y'], j['r'], j['width'])
+                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                layerNew.setFace()
+            # kwadraty
+            for j in self.getRectangle(self.libraries[i['library']][i['package']], szukanaWarstwa, [i['x'], i['y']]):
+                layerNew.createObject()
+                layerNew.addRectangle(j['x1'], j['y1'], j['x2'], j['y2'])
+                layerNew.addRotation(j['xs'], j['ys'], j['rot'])
+                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                layerNew.setFace()
+            # polygon
+            for j in self.getPolygons(self.libraries[i['library']][i['package']], szukanaWarstwa):
+                layerNew.createObject()
+                layerNew.addPolygon(self.getPolygon(j, i['x'], i['y']))
+                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                layerNew.setFace()
+        ######
+        ######
+        dane = self.getSection('plain')
+        # linie/luki
+        for i in self.getWires(dane, layerNumber):
+            if not i['curve']:
+                layerNew.createObject()
+                layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
+                layerNew.setFace()
             else:
-                ROT_2 = float(re.search('R(.*)', i[5]).groups()[0])
-            
+                layerNew.createObject()
+                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'], i['cap'])
+                layerNew.setFace()
+        # kola
+        for i in self.getCircles(dane, layerNumber):
             layerNew.createObject()
-            layerNew.addRectangle(x1, y1, x2, y2)
-            layerNew.addRotation(xs, ys, ROT_2)
+            layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
             layerNew.setFace()
-        #polygon
-        for i in re.findall('<polygon width=".+?" layer="{0}">(.+?)</polygon>'.format(layerNumber), data, re.MULTILINE|re.DOTALL):
-            polygonL = re.findall('<vertex x="(.+?)" y="(.+?)"( curve="(.+?)"|)/>', i)
-            
+        # kwadraty
+        for i in self.getRectangle(dane, layerNumber):
             layerNew.createObject()
-            layerNew.addPolygon(self.getPolygon(polygonL))
+            layerNew.addRectangle(i['x1'], i['y1'], i['x2'], i['y2'])
+            layerNew.addRotation(i['xs'], i['ys'], i['rot'])
+            layerNew.setFace()
+        # polygon
+        for i in self.getPolygons(dane, layerNumber):
+            layerNew.createObject()
+            layerNew.addPolygon(self.getPolygon(i))
             layerNew.setFace()
         #######
         layerNew.generuj(layerS)
@@ -1054,7 +1062,7 @@ class EaglePCB(mainPCB):
     def getDimensions(self):
         wymiary = []
         #
-        data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+        data = self.getSection('plain')
         for i in re.findall('<dimension x1="(.+?)" y1="(.+?)" x2="(.+?)" y2="(.+?)" x3="(.+?)" y3="(.+?)" textsize="(.+?) layer=".+?"/>', data):
             x1 = float(i[0])
             y1 = float(i[1])

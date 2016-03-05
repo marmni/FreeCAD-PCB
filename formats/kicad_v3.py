@@ -246,41 +246,22 @@ class KiCadv3_PCB(mainPCB):
         glue = {}
         # lines
         for i in self.getLine(layer, self.projektBRD, "gr_line"):
-            x1 = i[0]
-            y1 = i[1]
-            x2 = i[2]
-            y2 = i[3]
-            width = i[4]
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
             
-            if [x1, y1] != [x2, y2]:
-                if not width in glue.keys():
-                    glue[width] = []
-                
-                glue[width].append(['line', x1, y1, x2, y2])
+            glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
         # circles
         for i in self.getCircle(layer, self.projektBRD, "gr_circle"):
-            x = i[0]
-            y = i[1]
-            r = i[2]
-            width = i[3]
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
             
-            if not width in glue.keys():
-                glue[width] = []
-            
-            glue[width].append(['circle', x, y, r])
+            glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
         # arcs
         for i in self.getArc(layer, self.projektBRD, "gr_arc"):
-            x1 = i[0]
-            y1 = i[1]
-            x2 = i[2]
-            y2 = i[3]
-            curve = i[4]
-            width = i[5]
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
             
-            if not width in glue.keys():
-                glue[width] = []
-            
-            glue[width].append(['arc', x2, y2, x1, y1, curve, True])
+            glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], True])
         ##
         return glue
     
@@ -518,7 +499,7 @@ class KiCadv3_PCB(mainPCB):
         ####
         return holes
     
-    def getLine(self, layer, source, oType):
+    def getLine(self, layer, source, oType, m=[0,0]):
         data = []
         #
         dane1 = re.findall(r'\({1}\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)(\s+\(angle\s+[0-9\.-]*?\)\s+|\s+)\(layer\s+{0}\)\s+\(width\s+([0-9\.]*?)\)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
@@ -529,11 +510,31 @@ class KiCadv3_PCB(mainPCB):
             y2 = float(i[3]) * (-1)
             width = float(i[5])
             
-            data.append([x1, y1, x2, y2, width])
+            if [x1, y1] == [x2, y2]:
+                continue
+            if m[0] != 0:
+                x1 += m[0]
+                x2 += m[0]
+            if m[1] != 0:
+                y1 += m[1]
+                y2 += m[1]
+            
+            if width == 0:
+                width = 0.01
+            
+            data.append({
+                    'x1': x1,
+                    'y1': y1,
+                    'x2': x2,
+                    'y2': y2,
+                    'width': width,
+                    'layer': layer,
+                    'type': oType,
+                })
         #
         return data
     
-    def getCircle(self, layer, source, oType):
+    def getCircle(self, layer, source, oType, m=[0,0]):
         data = []
         #
         dane1 = re.findall(r'\({1}\s+\(center\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)(\s+\(width\s+([0-9\.]*?)\)|)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
@@ -542,18 +543,30 @@ class KiCadv3_PCB(mainPCB):
             ys = float(i[1]) * (-1)
             x1 = float(i[2])
             y1 = float(i[3]) * (-1)
-            radius = sqrt((xs - x1) ** 2 + (ys - y1) ** 2)
+            r = sqrt((xs - x1) ** 2 + (ys - y1) ** 2)
             
             if i[5] == '':
                 width = 0.01
             else:
                 width = float(i[5])
             
-            data.append([xs, ys, radius, width])
+            if m[0] != 0:
+                xs += m[0]
+            if m[1] != 0:
+                ys += m[1]
+            
+            data.append({
+                    'x': xs,
+                    'y': ys,
+                    'r': r,
+                    'width': width,
+                    'layer': layer,
+                    'type': oType,
+                })
         #
         return data
         
-    def getArc(self, layer, source, oType):
+    def getArc(self, layer, source, oType, m=[0,0]):
         data = []
         #
         dane1 = re.findall(r'\({1}\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(angle\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)(\s+\(width\s+([0-9\.]*?)\)|)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
@@ -563,15 +576,33 @@ class KiCadv3_PCB(mainPCB):
             x1 = float(i[2])
             y1 = float(i[3])
             curve = float(i[4])
+            [x2, y2] = self.obrocPunkt2([x1, y1], [xs, ys], curve)
             
             if i[6].strip() != '':
                 width = float(i[6]) 
             else:
                 width = 0
+                
+            y1 *= -1
+            y2 *= -1
             
-            [x2, y2] = self.obrocPunkt2([x1, y1], [xs, ys], curve)
+            if m[0] != 0:
+                x1 += m[0]
+                x2 += m[0]
+            if m[1] != 0:
+                y1 += m[1]
+                y2 += m[1]
             
-            data.append([x1, y1 * (-1), x2, y2 * (-1), curve, width])
+            data.append({
+                    'x1': x1,
+                    'y1': y1,
+                    'x2': x2,
+                    'y2': y2,
+                    'curve': curve,
+                    'width': width,
+                    'layer': layer,
+                    'type': oType,
+                })
         #
         return data
 
@@ -581,14 +612,69 @@ class KiCadv3_PCB(mainPCB):
         ###
         # lines
         for i in self.getLine(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_line'):
-            PCB.append(['Line', i[0], i[1], i[2], i[3]])
+            PCB.append(['Line', i['x1'], i['y1'], i['x2'], i['y2']])
         # circles
         for i in self.getCircle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_circle'):
-            PCB.append(['Circle', i[0], i[1], i[2]])
+            PCB.append(['Circle', i['x'], i['y'], i['r']])
         # arc
         for i in self.getArc(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_arc'):
-            PCB.append(['Arc', i[0], i[1], i[2], i[3], i[4]])
+            PCB.append(['Arc', i['x1'], i['y1'], i['x2'], i['y2'], i['curve']])
             wygenerujPada = False
+        # obj
+        lType = re.escape(self.getLayerName(self.borderLayerNumber))
+        
+        for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+            [X1, Y1, ROT] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', j).groups()
+            layer = re.search(r'\(layer\s+(.+?)\)', j).groups()[0]
+            
+            X1 = float(X1)
+            Y1 = float(Y1) * (-1)
+            
+            if ROT == '':
+                ROT = 0.0
+            else:
+                ROT = float(ROT)
+            
+            if self.databaseType == "kicad":
+                if self.spisWarstw[layer] == 15:  # top
+                    side = 1
+                else:
+                    side = 0
+            else:  # eagle v4
+                if self.spisWarstw[layer] == 0:  # top
+                    side = 1
+                else:
+                    side = 0
+            
+            # line
+            for i in self.getLine(lType, j, 'fp_line', [X1, Y1]):
+                [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
+                [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
+                #if side == 0:
+                    #y1 = self.odbijWspolrzedne(y1, Y1)
+                    #y2 = self.odbijWspolrzedne(y2, Y1)
+                
+                PCB.append(['Line', x1, y1, x2, y2])
+            # circle
+            for i in self.getCircle(lType, j, 'fp_circle', [X1, Y1]):
+                [x, y] = self.obrocPunkt2([i['x'], i['y']], [X1, Y1], ROT)
+                #if side == 0:
+                    #y = self.odbijWspolrzedne(y, Y1)
+                
+                PCB.append(['Circle', x, y, i['r']])
+            # arc
+            for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
+                [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
+                [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
+                #if side == 0:
+                    #y1 = self.odbijWspolrzedne(y1, Y1)
+                    #y2 = self.odbijWspolrzedne(y2, Y1)
+                
+                curve = i['curve']
+                #if side == 0:
+                    #curve *= -1
+                
+                PCB.append(['Arc', x1, y1, x2, y2, curve])
         ###
         return [PCB, wygenerujPada]
 
@@ -715,17 +801,17 @@ class KiCadv3_PCB(mainPCB):
         # lines
         for i in self.getLine(lType, self.projektBRD, 'gr_line'):
             layerNew.createObject()
-            layerNew.addLineWidth(i[0], i[1], i[2], i[3], i[4])
+            layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
             layerNew.setFace()
         # circles
         for i in self.getCircle(lType, self.projektBRD, 'gr_circle'):
             layerNew.createObject()
-            layerNew.addCircle(i[0], i[1], i[2], i[3])
+            layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
             layerNew.setFace()
         # arc
         for i in self.getArc(lType, self.projektBRD, 'gr_arc'):
             layerNew.createObject()
-            layerNew.addArcWidth([i[0], i[1]], [i[2], i[3]], i[4], i[5])
+            layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'])
             layerNew.setFace()
         # obj
         for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -740,34 +826,21 @@ class KiCadv3_PCB(mainPCB):
                 ROT = float(ROT)
             
             # line
-            for i in self.getLine(lType, j, 'fp_line'):
-                x1 = i[0] + X1
-                y1 = i[1] + Y1
-                x2 = i[2] + X1
-                y2 = i[3] + Y1
-                
+            for i in self.getLine(lType, j, 'fp_line', [X1, Y1]):
                 layerNew.createObject()
-                layerNew.addLineWidth(x1, y1, x2, y2, i[4])
+                layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
                 layerNew.addRotation(X1, Y1, ROT)
                 layerNew.setFace()
             # circle
-            for i in self.getCircle(lType, j, 'fp_circle'):
-                xs = i[0] + X1
-                ys = i[1] + Y1
-                
+            for i in self.getCircle(lType, j, 'fp_circle', [X1, Y1]):
                 layerNew.createObject()
-                layerNew.addCircle(xs, ys, i[2], i[3])
+                layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
                 layerNew.addRotation(X1, Y1, ROT)
                 layerNew.setFace()
             # arc
-            for i in self.getArc(lType, j, 'fp_arc'):
-                x1 = i[0] + X1
-                y1 = i[1] + Y1
-                x2 = i[2] + X1
-                y2 = i[3] + Y1
-                
+            for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
                 layerNew.createObject()
-                layerNew.addArcWidth([x1, y1], [x2, y2], i[4], i[5])
+                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'])
                 layerNew.addRotation(X1, Y1, ROT)
                 layerNew.setFace()
         ##

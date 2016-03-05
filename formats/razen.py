@@ -94,13 +94,12 @@ class Razen_PCB(mainPCB):
         except:
             self.fileVersion = False
     
-    def getParts(self):
+    def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
         self.__SQL__.reloadList()
-        ##
-        PCB_EL = []
-        elementy = self.projektBRD["elts"]
-        
-        for i in elementy:
+        #
+        PCB_ER = []
+        #
+        for i in self.projektBRD["elts"]:
             try:
                 if i["_t"] == "Footprint":
                     x = self.setUnit(i['pos'][0], self.fileVersion)
@@ -149,11 +148,20 @@ class Razen_PCB(mainPCB):
                             except Exception, e:
                                 FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
                     #
-                    PCB_EL.append([[name, package, value, x, y, rot, side, library], EL_Name, EL_Value])
+                    newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
+                    wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+                    #
+                    if wyn[0] == 'Error':  # lista brakujacych elementow
+                        partNameTXT = partNameTXT_label = self.generateNewLabel(name)
+                        if isinstance(partNameTXT, unicode):
+                            partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
+                        
+                        PCB_ER.append([partNameTXT, package, value, library])
             except Exception, e:
-                FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+                FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
         #######
-        return PCB_EL
+        return PCB_ER
+        
     
     def getAnnotations(self):
         adnotacje = []
@@ -575,11 +583,14 @@ class Razen_PCB(mainPCB):
         types = {'H':self.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.dialogMAIN.plytkaPCB_otworyP.isChecked()}
         self.generateHoles(self.getHoles(types), doc, self.dialogMAIN.holesMin.value(), self.dialogMAIN.holesMax.value())
         #
+        #if self.dialogMAIN.plytkaPCB_elementy.isChecked():
+            #partsError = self.addParts(self.getParts(), doc, groupBRD, self.dialogMAIN.gruboscPlytki.value(), self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value())
+            #if self.dialogMAIN.plytkaPCB_plikER.isChecked():
+                #self.generateErrorReport(partsError, filename)
         if self.dialogMAIN.plytkaPCB_elementy.isChecked():
-            partsError = self.addParts(self.getParts(), doc, groupBRD, self.dialogMAIN.gruboscPlytki.value(), self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value())
+            partsError = self.getParts(self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value())
             if self.dialogMAIN.plytkaPCB_plikER.isChecked():
                 self.generateErrorReport(partsError, filename)
-        
         #  dodatkowe warstwy
         grp = createGroup_Layers()
         for i in range(self.dialogMAIN.spisWarstw.rowCount()):
@@ -702,5 +713,72 @@ class Razen_PCB(mainPCB):
                 (x, y, r, width) = self.gerCircleParameters(i, self.fileVersion)
                 
                 PCB.append(['Circle', x, y, r])
+        #####
+        if self.dialogMAIN.razenBiblioteki != "":
+            for i in self.projektBRD["elts"]:
+                if i["_t"] == "Footprint":
+                    if not i['mirror']:
+                        warst = 1  # top side
+                    else:
+                        warst = 0  # bottom side
+                    
+                    library = i['lib']
+                    package = i['part']
+                    X1 = self.setUnit(i['pos'][0], self.fileVersion)  # punkt wzgledem ktorego dokonany zostanie obrot
+                    Y1 = self.setUnit(i['pos'][1], self.fileVersion) * (-1)  # punkt wzgledem ktorego dokonany zostanie obrot
+                    ROT = i['angle'] * (-1)
+                    
+                    lineList = self.znajdzBiblioteke(library, package)
+                    if not lineList:
+                        continue
+                    
+                    try:
+                        fileVersion = lineList["version"]
+                    except:
+                        fileVersion = None
+                    
+                    for j in lineList["elts"]:
+                        try:
+                            if j["_t"] == "Segment" and j["layer"] == 20:
+                                (x1, y1, x2, y2, width) = self.getLineParameters(j, fileVersion)
+                                x1 += X1
+                                y1 += Y1
+                                x2 += X1
+                                y2 += Y1
+                                
+                                [x1, y1] = self.obrocPunkt2([x1, y1], [X1, Y1], ROT)
+                                [x2, y2] = self.obrocPunkt2([x2, y2], [X1, Y1], ROT)
+                                if warst == 0:
+                                    x1 = self.odbijWspolrzedne(x1, X1)
+                                    x2 = self.odbijWspolrzedne(x2, X1)
+                                
+                                PCB.append(['Line', x1, y1, x2, y2])
+                            elif j["_t"] == "Arc" and j["layer"] == 20 and j["ofsa"] == j["ofsb"]:
+                                (x, y, r, width) = self.gerCircleParameters(j, fileVersion)
+                                
+                                [x, y] = self.obrocPunkt2([x, y], [X1, Y1], ROT)
+                                if warst == 0:
+                                    x = self.odbijWspolrzedne(x, X1)
+                                
+                                PCB.append(['Circle', x, y, r])
+                            elif j["_t"] == "Arc" and j["layer"] == 20:
+                                (x1, y1, x2, y2, curve, width) = self.getArcParameters(j, fileVersion)
+                                x1 += X1
+                                y1 += Y1
+                                x2 += X1
+                                y2 += Y1
+                                
+                                [x1, y1] = self.obrocPunkt2([x1, y1], [X1, Y1], ROT)
+                                [x2, y2] = self.obrocPunkt2([x2, y2], [X1, Y1], ROT)
+                                if warst == 0:
+                                    x1 = self.odbijWspolrzedne(x1, X1)
+                                    x2 = self.odbijWspolrzedne(x2, X1)
+                                    curve *= -1
+                                
+                                PCB.append(['Arc', x1, y1, x2, y2, curve])
+                                wygenerujPada = False
+                        except Exception, e:
+                            FreeCAD.Console.PrintWarning(str(e) + "1\n")
+                            pass
         #
         return [PCB, wygenerujPada]

@@ -1210,8 +1210,8 @@ class layerSilkObject(objectWire):
     #def addArc_v2(self, p1, p2, curve, width=0, cap='round'):
         #return self.spisObiektowTXT[-1]['objects'].append(['arcV2', p1, p2, curve, width, cap])
         
-    def addElipse(self, x, y, r1, r2):
-        self.spisObiektowTXT[-1]['objects'].append(['elipse', x, y, r1, r2])
+    def addElipse(self, x, y, r1, r2, w=0):
+        self.spisObiektowTXT[-1]['objects'].append(['elipse', x, y, r1, r2, w])
         
     ################
     ################
@@ -1318,11 +1318,15 @@ class layerSilkObject(objectWire):
                 y = i[2]
                 r1 = i[3]
                 r2 = i[4]
+                w = i[4]
                 
                 if r2 > r1:
                     obj['rotations'].append([x, y,  90])
-                
-                data.append(self.createElipse(x, y, r1, r2))
+                    
+                if w > 0:
+                    data.append(self.createElipse(x, y, r1 + w / 2., r2 + w / 2.))
+                else:
+                    data.append(self.createElipse(x, y, r1, r2))
             elif i[0] == 'line':
                 x1 = i[1]
                 y1 = i[2]

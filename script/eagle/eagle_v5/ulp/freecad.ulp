@@ -12,15 +12,6 @@
 #usage "en: <b>Export board from Eagle v5.xx to Eagle > v6.xx</b>\n"
            "<author>marmni <marmni@onet.eu></author>"
 
-
-
-////////// CONFIG
-    string programPath_WIN = "C:/Program Files (x86)/FreeCAD/bin/FreeCAD.exe";
-    string programPath_LIN = "freecad";
-    string systemUzytkownika = "linux"; // windows / linux
-//////////
-
-
 //****************************************************************************
 //                                  ARRAYS
 //****************************************************************************
@@ -582,27 +573,34 @@ void exportToXML(string filePath)
 
 if (board)
 {
+    string data;
+    int nChars = fileread(data, path_ulp[0] + '/' + "freecad_pcb.conf");
+    string a[];
+    int n = strsplit(a, data, '\n');
+    string programPath = a[0];
+    int systemUzytkownika = strtol(a[1]);
+    
     //string systemUzytkownika =  strlwr(" " + OS_SIGNATURE); // definicja systemu operacyjnego, bez spacji na poczatku skrypt sie sypie ;)
     string czyPlikIstnieje[];
     string filePath = "";
     
-    if (systemUzytkownika == "windows")
+    if (systemUzytkownika == 1) // windows
         filePath = "/home/mariusz/Pulpit/eagle_to_new.brd";
-    else if (systemUzytkownika == "linux")
+    else if (systemUzytkownika == 0)
         filePath = "/tmp/eagleExportToFreeCAD.brd";
     ///////
     if (filePath != "")
     {
         exportToXML(filePath);
-        if (systemUzytkownika == "windows")
+        if (systemUzytkownika == 1) // windows
         {
-            if (fileglob(czyPlikIstnieje, programPath_WIN) > 0)
-                system("cmd.exe /c START \"\" \"" + programPath_WIN + "\" \"" + filePath + "\"");
+            if (fileglob(czyPlikIstnieje, programPath) > 0)
+                system("cmd.exe /c START \"\" \"" + programPath + "\" \"" + filePath + "\"");
             else
-                dlgMessageBox("File path issue, incorrect path: " + programPath_WIN);
+                dlgMessageBox("File path issue, incorrect path: " + programPath);
         }  
-        else if (systemUzytkownika == "linux")
-            system("\"" + programPath_LIN + "\" \"" + filePath + "\" &");
+        else if (systemUzytkownika == 0)
+            system("\"" + programPath + "\" \"" + filePath + "\" &");
         //else
         //    dlgMessageBox("Operating system not recognized.");
     }

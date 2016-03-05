@@ -1,0 +1,45 @@
+#require 5.1001
+
+board(B) {
+    int Result = dlgDialog("Path settings") 
+    {
+        string data;
+        int nChars = fileread(data, path_ulp[0] + '/' + "freecad_pcb.conf");
+        string a[];
+        int n = strsplit(a, data, '\n');
+    
+        string programPath = a[0];
+        int userSoftware = strtol(a[1]);
+        
+        dlgHBoxLayout 
+        {
+            dlgGridLayout 
+            {
+                dlgCell(0, 0) dlgLabel("Path");
+                dlgCell(0, 1) dlgStringEdit(programPath);
+                dlgCell(1, 0) dlgLabel("Software");
+                dlgCell(1, 1) 
+                    dlgGroup("") 
+                    {
+                        dlgRadioButton("&Linux", userSoftware);
+                        dlgRadioButton("&Windows", userSoftware);
+                    
+                };
+                dlgCell(2, 1) dlgGridLayout {
+                    dlgCell(0, 0) dlgPushButton("+Save") 
+                    {
+                        dlgAccept();
+                        fileerror();
+                        output(path_ulp[0] + '/' + "freecad_pcb.conf", "wt") {
+                            printf(programPath + '\n');
+                            printf("%d", userSoftware);
+                        }
+                        if (fileerror())
+                        exit(1);
+                    }
+                    dlgCell(0, 1) dlgPushButton("-Cancel") dlgReject();
+                };
+            }
+        }
+    };
+}

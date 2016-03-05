@@ -1,11 +1,12 @@
-#require 5.1001
+#require 6.1001
 
 board(B) {
-    // CONFIG
-    string programPath_WIN = "C:/Program Files (x86)/FreeCAD/bin/FreeCAD.exe";
-    string programPath_LIN = "freecad";
-    ///////
-
+    string data;
+    int nChars = fileread(data, path_ulp[0] + '/' + "freecad_pcb.conf");
+    string a[];
+    int n = strsplit(a, data, '\n');
+    string programPath = a[0];
+    //////
     string filePath = B.name; // sciezka do aktualnego projektu
     string systemUzytkownika =  strlwr(" " + OS_SIGNATURE); // definicja systemu operacyjnego, bez spacji na poczatku skrypt sie sypie ;)
     string czyPlikIstnieje[];
@@ -14,13 +15,13 @@ board(B) {
     if (fileglob(czyPlikIstnieje, filePath) > 0)
         if (strrstr(systemUzytkownika, "window") > 0)
         {
-            if (fileglob(czyPlikIstnieje, programPath_WIN) > 0)
-                system("cmd.exe /c START \"\" \"" + programPath_WIN + "\" \"" + filePath + "\"");
+            if (fileglob(czyPlikIstnieje, programPath) > 0)
+                system("cmd.exe /c START \"\" \"" + programPath + "\" \"" + filePath + "\"");
             else
-                dlgMessageBox("File path issue, incorrect path: " + programPath_WIN);
+                dlgMessageBox("File path issue, incorrect path: " + programPath);
         }  
         else if (strrstr(systemUzytkownika, "linu") > 0)
-            system("\"" + programPath_LIN + "\" \"" + filePath + "\" &");
+            system("\"" + programPath + "\" \"" + filePath + "\" &");
         else
             dlgMessageBox("Operating system not recognized.");
     else

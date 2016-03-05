@@ -1,2 +1,3 @@
 BRD:
-MENU '[freecad.png] Open board in FreeCAD : Run freecad.ulp;'
+MENU '[freecad.png] Open board in FreeCAD : Run freecad.ulp; | \
+      [icons/Change.svg] Edit parameters : Run freecad-conf.ulp;'
