@@ -164,7 +164,10 @@ class checkCollisionsGui(QtGui.QWidget):
                 a = QtGui.QListWidgetItem(i.Label)
                 a.setData(QtCore.Qt.UserRole, i.Name)
                 a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-                a.setIcon(i.ViewObject.Icon)
+                try:
+                    a.setIcon(i.ViewObject.Icon)
+                except AttributeError:
+                    pass
                 a.setCheckState(QtCore.Qt.Unchecked)
                 
                 self.table1.addItem(a)
@@ -172,7 +175,10 @@ class checkCollisionsGui(QtGui.QWidget):
                 a = QtGui.QListWidgetItem(i.Label)
                 a.setData(QtCore.Qt.UserRole, i.Name)
                 a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-                a.setIcon(i.ViewObject.Icon)
+                try:
+                    a.setIcon(i.ViewObject.Icon)
+                except AttributeError:
+                    pass
                 a.setCheckState(QtCore.Qt.Unchecked)
                 
                 self.table2.addItem(a)

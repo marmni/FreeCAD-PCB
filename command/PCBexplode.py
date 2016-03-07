@@ -391,7 +391,10 @@ class explodeWizard:
                 a.setText(0, i.Label)
                 a.setCheckState(0, QtCore.Qt.Unchecked)
                 a.setData(0, QtCore.Qt.UserRole, i.Name)
-                a.setIcon(0, i.ViewObject.Icon)
+                try:
+                    a.setIcon(0, i.ViewObject.Icon)
+                except AttributeError:
+                    pass
                 a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
                 
                 dostepneWarstwy = QtGui.QComboBox()
@@ -408,7 +411,10 @@ class explodeWizard:
                 a.setText(0, i.Label)
                 a.setCheckState(0, QtCore.Qt.Unchecked)
                 a.setData(0, QtCore.Qt.UserRole, i.Name)
-                a.setIcon(0, i.ViewObject.Icon)
+                try:
+                    a.setIcon(0, i.ViewObject.Icon)
+                except AttributeError:
+                    pass
                 a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
                 
                 dostepneWarstwy = QtGui.QComboBox()
