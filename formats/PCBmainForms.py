@@ -477,6 +477,7 @@ class mainPCB(partsManaging):
             FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
             FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
             FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
+            self.updateView()
         
     def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
         for i in data[0]:
@@ -539,6 +540,7 @@ class mainPCB(partsManaging):
         groupBRD.addObject(doc.Board)
         FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = PCBconf.PCB_COLOR
         FreeCADGui.activeDocument().PCB_Border.Visibility = False
+        self.updateView()
             #FreeCADGui.activeDocument().Sketch_PCB.Visibility = False
             ## PAD
             #doc.recompute()

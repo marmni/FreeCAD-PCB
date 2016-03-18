@@ -26,6 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
+import FreeCADGui
 import Part
 import os
 import re
@@ -54,6 +55,10 @@ class partsManaging(mathFunctions):
             angle = angle % 360
         
         return angle
+        
+    def updateView(self):
+        FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
+        FreeCADGui.ActiveDocument.ActiveView.fitAll()
     
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         doc = FreeCAD.activeDocument()
@@ -409,6 +414,7 @@ class partsManaging(mathFunctions):
         ######
         result.append(step_model)
         self.addPartToGroup(groupParts, fileData, step_model)
+        self.updateView()
         return result
     
     def addPartToGroup(self, groupParts, fileData, step_model):
@@ -845,17 +851,3 @@ class modelTypes(QtGui.QDialog):
         lay.addWidget(QtGui.QLabel(u"<div style='font-weight:bold;'>{0}</div>".format(model)), 1, 0, 1, 1, QtCore.Qt.AlignHCenter)
         lay.addWidget(self.modelsList, 2, 0, 1, 1)
         lay.addWidget(buttons, 2, 1, 1, 1)
-
-
-
-
-
-    
-
-        
-        
-        
-        
-        
-        
-    
