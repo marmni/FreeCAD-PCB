@@ -29,12 +29,15 @@ from PySide import QtCore, QtGui
 import os
 import FreeCAD
 import glob
+import sys
 #
 from PCBdataBase import dataBase
 from PCBconf import supSoftware, defSoftware, partPaths
 from PCBfunctions import getFromSettings_databasePath, kolorWarstwy
 from PCBcategories import readCategories, addCategoryGui, removeCategoryGui, updateCategoryGui
 from PCBpartManaging import partExistPath
+
+__currentPath__ = os.path.dirname(os.path.abspath(__file__))
 
 
 class addModelDialog(QtGui.QDialog):
@@ -141,7 +144,7 @@ class pathChooser(QtGui.QTreeView):
         self.parent = parent
         #
         model = QtGui.QFileSystemModel()
-        model.setFilter(QtCore.QDir.AllEntries | QtCore.QDir.NoDot | QtCore.QDir.NoDotDot)
+        model.setFilter(QtCore.QDir.AllEntries | QtCore.QDir.NoDot | QtCore.QDir.NoDotDot | QtCore.QDir.Hidden)
         model.setNameFilters(["*.stp", "*.step", "*.igs", "*.iges"])
         model.setRootPath(QtCore.QDir().homePath())
         
@@ -176,6 +179,16 @@ class addNewPath(QtGui.QDialog):
         self.pathsList = QtGui.QListWidget()
         self.pathsList.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.EditKeyPressed)
         #self.pathsList.setStyleSheet('''QListWidget:item:selected:active {background: rgb(215, 243, 255);} ''')
+        #
+        librariesList = QtGui.QComboBox()
+        librariesList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLength)
+        
+        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsPaths", "").strip() != '':
+            librariesList.addItems(FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsPaths", "").split(','))
+        else:
+            librariesList.addItem(__currentPath__.replace('command', 'parts'))
+            
+        librariesList.addItem(u'Whole computer')
         #
         addPathButton = QtGui.QPushButton(u'Add')
         self.connect(addPathButton, QtCore.SIGNAL("clicked()"), self.addNewPath)
@@ -215,15 +228,29 @@ class addNewPath(QtGui.QDialog):
         layPathsLis.setContentsMargins(0, 0, 0, 0)
         #
         lay = QtGui.QGridLayout(self)
-        lay.addWidget(self.pathChooser, 0, 0, 3, 1)
-        lay.addWidget(layPathWidget, 0, 1, 1, 1)
-        lay.addWidget(layPathsListWidget, 1, 1, 2, 1)
-        lay.addWidget(buttons, 3, 0, 1, 2)
+        lay.addWidget(self.pathChooser, 0, 0, 3, 2)
+        lay.addWidget(QtGui.QLabel('Saved paths'), 3, 0, 1, 1)
+        lay.addWidget(librariesList, 3, 1, 1, 1)
+        lay.addWidget(layPathWidget, 0, 2, 1, 1)
+        lay.addWidget(layPathsListWidget, 1, 2, 3, 1)
+        lay.addWidget(buttons, 4, 0, 1, 3)
         lay.setRowStretch(2, 10)
         #
         self.loadlist(lista)
-        self.connect(self.pathsList, QtCore.SIGNAL(" itemChanged (QListWidgetItem*)"), self.checkPath)
-    
+        self.connect(self.pathsList, QtCore.SIGNAL("itemChanged (QListWidgetItem*)"), self.checkPath)
+        self.connect(librariesList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadPath)
+        librariesList.setCurrentIndex(0)
+        self.loadPath(librariesList.currentText())
+        
+    def loadPath(self, value):
+        try:
+            if value == "Whole computer":
+                self.pathChooser.setRootIndex(self.pathChooser.model().index('/'))
+            else:
+                self.pathChooser.setRootIndex(self.pathChooser.model().index(value))
+        except Exception, e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+            
     def setNewPath(self, path):
         self.path.setText(path)
     
@@ -240,7 +267,7 @@ class addNewPath(QtGui.QDialog):
             
             for i in pathsToModels:
                 if i in path:
-                    self.addItem(path.replace(i, ''))  # relative path
+                    self.addItem(path.replace(os.path.join(i, ''), ''))  # relative path
                     return
             #
             self.addItem(path) # absolute path
