@@ -108,7 +108,7 @@ class HYP_PCB(mainPCB):
                 if ID in [1, 16]:  # paths
                     self.generatePaths(self.getPaths(ID), doc, grp, name, color, ID, transp)
                 elif ID in [17, 18]:  # pady
-                    self.getPads(doc, ID, grp, name, color)
+                    self.getPads(doc, ID, grp, name, color, transp)
                 
         return doc
     
@@ -265,7 +265,7 @@ class HYP_PCB(mainPCB):
                 layerNew.addRectangle(x1, y1, x2, y2)
                 layerNew.addRotation(x, y, rot)
                 layerNew.setFace()
-                layerNew.addObject(obj)
+                #layerNew.addObject(obj)
             elif padType == 2:  # oblong
                 e = self.setUnit(padParameters[2])
                 
@@ -309,7 +309,7 @@ class HYP_PCB(mainPCB):
                     layerNew.addRectangle(x1, y1, x2, y2)
                     layerNew.addRotation(xs, ys, float(rot))
                     layerNew.setFace()
-                    layerNew.addObject(obj)
+                    #layerNew.addObject(obj)
         ###
         layerNew.generuj(layerS)
         layerNew.updatePosition_Z(layerS)
