@@ -163,7 +163,7 @@ class HYP_PCB(mainPCB):
         #
         PCB_ER = []
         #
-        for i in re.findall(r'\(.+? REF=(|.+?) NAME=(|.+?) L=(.+?)(| PKG=.+?)\)  R(.+?) X=(.+?) Y=(.+?) :  Lib: (.+?) : (.+?) ', self.projektBRD):
+        for i in re.findall(r'\(.+? REF=(|.+?) .+?=(|.+?) L=(.+?)(| PKG=.+?)\)  R(.+?) X=(.+?) Y=(.+?) :  Lib: (.+?) : (.+?) ', self.projektBRD):
             x = self.setUnit(i[5])
             y = self.setUnit(i[6])
             rot = float(i[4])
