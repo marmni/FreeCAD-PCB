@@ -272,7 +272,7 @@ class EaglePCB(mainPCB):
             
     def getWires(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
             return []
         
         if not isinstance(layer, list):
