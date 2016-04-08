@@ -168,7 +168,7 @@ class EaglePCB(mainPCB):
     
     def getSection(self, name):
         if name.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
             return ''
         
         try:
@@ -178,7 +178,7 @@ class EaglePCB(mainPCB):
     
     def getPolygons(self, section, layer):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
             return []
         
         if not isinstance(layer, list):
@@ -193,7 +193,7 @@ class EaglePCB(mainPCB):
     
     def getRectangle(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
             return []
         
         if not isinstance(layer, list):
@@ -239,7 +239,7 @@ class EaglePCB(mainPCB):
     
     def getCircles(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
+            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
             return []
         
         if not isinstance(layer, list):
