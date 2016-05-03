@@ -172,7 +172,7 @@ class KiCadv3_PCB(mainPCB):
                 mirror = 'None'
             else:
                 side = "BOTTOM"
-                rot *= -1
+                #rot *= -1
                 mirror = 'Local Y axis'
             ####
             # textReferencere
@@ -422,7 +422,8 @@ class KiCadv3_PCB(mainPCB):
                     pType= re.search(r'^.*?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad type - SMD/thru_hole/connect
                     pShape = re.search(r'^.+?\s+.+?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad shape - circle/rec/oval/trapezoid
                     [dx, dy] = re.search(r'\(size\s+([0-9\.-]+?)\s+([0-9\.-]+?)\)', j).groups(0)  #
-                    layers = re.search(r'\(layers\s+(.+?)\)', j).groups(0)[0]  #
+                    #layers = re.search(r'\(layers\s+(.+?)\)', j).groups(0)[0]  #
+                    layers = re.search(r'\(layers\s?(.*?|)\)', j).groups(0)[0].strip()  #
                     data = re.search(r'\(drill(\s+oval\s+|\s+)(.*?)(\s+[-0-9\.]*?|)(\s+\(offset\s+(.*?)\s+(.*?)\)|)\)', j)
                     #
                     x = float(x)
@@ -433,6 +434,9 @@ class KiCadv3_PCB(mainPCB):
                         rot = 0.0
                     else:
                         rot = float(rot)
+                        
+                    if layers == "":
+                        layers = ' '.join(self.spisWarstw.keys())
                     
                     if pType == 'smd' or data == None:
                         drill = 0.0
