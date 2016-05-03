@@ -49,6 +49,12 @@ class partsManaging(mathFunctions):
     
     def __init__(self):
         self.objColors = {}
+        
+        # allSocked - definicja zachowania przy dodawaniu podstawki dla wszystkich obeiktow
+        #   -1 - brak podstawek
+        #    0 - zapytaj o dodanie podstawki (def)
+        #    1 - dodaj podstawki dla wszystkich obiektow
+        self.allSocked = 0
     
     def adjustRotation(self, angle):
         if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
@@ -66,11 +72,6 @@ class partsManaging(mathFunctions):
         result = ['OK']
         
         #grp = doc.addObject("App::DocumentObjectGroup", "Parts")
-        # allSocked - definicja zachowania przy dodawaniu podstawki dla wszystkich obeiktow
-        #   -1 - brak podstawek
-        #    0 - zapytaj o dodanie podstawki (def)
-        #    1 - dodaj podstawki dla wszystkich obiektow
-        allSocked = 0
         
         # basic data
         partNameTXT = partNameTXT_label = self.generateNewLabel(newPart[0][0])
@@ -203,7 +204,8 @@ class partsManaging(mathFunctions):
             #     1 - dodanie podstawki
             #################################################################
             dodajPodstawke = False
-            if eval(packageData["add_socket"])[0] and allSocked == 0 and eval(packageData["add_socket"])[1] != fileData[2]:
+            
+            if eval(packageData["add_socket"])[0] and self.allSocked == 0 and eval(packageData["add_socket"])[1] != fileData[2]:
                 socketData = self.__SQL__.getValues(eval(packageData["add_socket"])[1])
                 
                 if eval(socketData["socket"])[0]:
@@ -218,15 +220,17 @@ class partsManaging(mathFunctions):
                     dial.exec_()
                     
                     if dial.clickedButton() == nigdyPodstawki:
-                        allSocked = -1
+                        self.allSocked = -1
                     elif dial.clickedButton() == zawszePodstawki:
-                        allSocked = 1
+                        self.allSocked = 1
                     elif dial.clickedButton() == podstawkaTAK:
                         dodajPodstawke = True
                     else:
                         dodajPodstawke = False
             #
-            if (dodajPodstawke or allSocked == 1) and eval(packageData["add_socket"])[0]:
+            if (dodajPodstawke or self.allSocked == 1) and eval(packageData["add_socket"])[0]:
+                socketData = self.__SQL__.getValues(eval(packageData["add_socket"])[1])
+                
                 if self.__SQL__.has_section(eval(packageData["add_socket"])[1]):  # sprawdzamy czy podana podstawka istnieje
                     step_model.Socket = float(eval(socketData["socket"])[1])  # ustawienie wysokosci podstawki
                     package = eval(socketData["soft"])[0][0]
