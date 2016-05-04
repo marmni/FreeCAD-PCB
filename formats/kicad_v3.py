@@ -172,7 +172,11 @@ class KiCadv3_PCB(mainPCB):
                 mirror = 'None'
             else:
                 side = "BOTTOM"
-                #rot *= -1
+                #rot = (rot + 180) * (-1)
+                if rot < 180:
+                    rot = (180 - rot)
+                else:
+                    rot = int(rot % 180) * (-1)
                 mirror = 'Local Y axis'
             ####
             # textReferencere
