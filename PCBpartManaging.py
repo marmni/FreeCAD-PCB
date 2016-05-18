@@ -40,7 +40,7 @@ from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
 from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
-from PCBcategories import readCategories
+from PCBcategories import readCategories,getCategoryIdByName,addCategory,newID
 from command.PCBgroups import createGroup_Parts, makeGroup
 from command.PCBannotations import createAnnotation
 
@@ -85,7 +85,7 @@ class partsManaging(mathFunctions):
         # check if 3D model exist
         #################################################################
         #################################################################
-        fileData = self.partExist(newPart[0][1], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
+        fileData = self.partExist(newPart[0], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
         
         if fileData[0]:
             packageData = self.__SQL__.getValues(fileData[2])
@@ -102,7 +102,10 @@ class partsManaging(mathFunctions):
             ################################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3][0]))
             step_model.Label = partNameTXT_label
-            step_model.Shape = Part.read(filePath)
+            if len(fileData)==6 and isinstance(fileData[5],Part.Compound) :
+                step_model.Shape = fileData[5]
+            else :
+                step_model.Shape = Part.read(filePath)
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3][0])
             step_model.Side = "{0}".format(newPart[0][6])
@@ -755,14 +758,57 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.read(getFromSettings_databasePath())
 
-    def partExist(self, name, model):
+    def partExist(self, info, model):
         try:
+            name = info[1]
+
             databaseType = self.databaseType
             if databaseType == 'kicad_v4':
                 databaseType = 'kicad'
             #
             sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
-            if sectionName[0]:
+
+            if not sectionName[0]:
+                modelInfo = getExtensionInfo(info,'model')
+                if modelInfo is None or \
+                    not FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("autoModelAssign", True):
+                    return [False]
+
+                [found, path] = partExistPath(modelInfo['path'])
+                if not found:
+                    return [False]
+
+                catID = getCategoryIdByName(modelInfo['category'])
+                if catID == -1:
+                    catID = newID()
+                    addCategory(modelInfo['category'],'')
+
+                modelInfo['category'] = str(catID)
+
+                # We need to adjust offset, because FreeCAD-PCB needs object centered placement
+                shape = Part.read(path)
+                at = modelInfo['at']
+                modelInfo.pop('at')
+                at[0] += shape.BoundBox.Center.x
+                at[1] += shape.BoundBox.Center.y
+                at[2] += shape.BoundBox.Center.z
+                # TODO verify that kicad also rotate at object center
+                rotate = modelInfo['rotate']
+                modelInfo.pop('rotate')
+
+                modelSoft = [name,supSoftware[databaseType]['name']]
+                modelSoft.extend(at)
+                modelSoft.extend(rotate)
+                modelInfo['soft'] = str([modelSoft])
+                
+                self.__SQL__.addPackage(modelInfo)
+
+                sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
+                if sectionName[0]:
+                    return [True, path, sectionName[1], sectionName[2], sectionName[3], shape]
+
+            else :
+
                 partPath = self.__SQL__.getValues(sectionName[1])
                 
                 filePos = partPath["path"]
@@ -793,7 +839,12 @@ class partsManaging(mathFunctions):
             #return [False]
 
 
-
+def getExtensionInfo(info,name):
+    if len(info)==9 and \
+        isinstance(info[8],dict) and \
+        name in info[8] :
+        return info[8][name]
+    return None
 
 def partExistPath(filePos):
     #if filePos.startswith('/'):

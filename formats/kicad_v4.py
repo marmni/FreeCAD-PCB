@@ -25,6 +25,7 @@
 #*                                                                          *
 #****************************************************************************
 
+import os
 import FreeCAD
 import Sketcher
 import __builtin__
@@ -32,7 +33,7 @@ import Part
 import re
 from math import sqrt
 
-from PCBconf import PCBlayers, softLayers
+from PCBconf import PCBlayers, softLayers,supSoftware
 from PCBobjects import *
 from formats.PCBmainForms import *
 from formats.kicad_v3 import KiCadv3_PCB, setProjectFile
@@ -88,8 +89,12 @@ class KiCadv4_PCB(KiCadv3_PCB):
             #package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
             package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
             #
+            category = ''
             if ':' in package:
-                package = package.replace('"', '').split(':')[-1]
+                package = package.replace('"', '').split(':')
+                # use kicad footprint module name as the category
+                category = package[0]
+                package = package[-1]
             else:
                 if '"' in package:
                     package = package.replace('"', '')
@@ -171,6 +176,57 @@ class KiCadv4_PCB(KiCadv3_PCB):
             EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
             #
             newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
+
+            # model settings, the dictionary is prepare to be esaily inserted into the database
+            m = re.search(r'\(\s*model',i)
+            if m:
+                # searching of ending ')'
+                # TODO deal with '()' inside literal strings
+                end = m.start()
+                counter = 0
+                for c in i[m.start():]:
+                    if c == '(': counter+=1
+                    if c == ')': 
+                        counter-=1
+                        if counter == 0:
+                            break
+                    end+=1
+
+                m = i[m.start():end]
+                model = {}
+
+                model['path'] = os.path.splitext(re.search(r'\(\s*model\s+(\S+)', m).group(1))[0]
+                model['name'] = package
+                if category=='':
+                    # empirical guess of category using the directory name of the model
+                    category = os.path.split(os.path.split(model['path'])[0])
+                    if category[1] == '':
+                        category = category[0]
+                    else: 
+                        category = category[1]
+                    categorySplit = os.path.splitext(category)[1]
+                    if categorySplit[1] == '3dshapes':
+                        category = categorySplit[0]
+
+                # category name shall later be tranlated into category ID before
+                # insert into the database
+                model['category'] = category
+
+                # Placement shall be adjusted according to the model bounding box.
+                # Delay that till the actual import for performance
+                model['at'] = [float(t) for t in re.search((r'\(\s*at\s*\(xyz\s*'
+                        '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
+                        m,re.MULTILINE|re.DOTALL).groups()]
+                model['rotate'] = [float(t) for t in re.search((r'\(\s*rotate\s*\(xyz\s*'
+                        '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
+                        m,re.MULTILINE|re.DOTALL).groups()]
+                model['description'] = readStringInBracket('descr',i)
+                model['add_socket'] = '[False, None]'
+                model['socket'] = '[False, 0.0]'
+                model['datasheet'] = ''
+
+                newPart[0].append({'model':model})
+
             wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             #
             if wyn[0] == 'Error':  # lista brakujacych elementow
@@ -229,3 +285,12 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     self.generateConstraintAreas(self.getConstraintAreas(ID), doc, ID, grp_2, name, color, transp)
         ##
         return doc
+
+def readStringInBracket(key,txt):
+    match = re.search(r'\(\s*'+key+r'\s+',txt)
+    if not match:
+        return ''
+    elif txt[match.end()] == '"':
+        return re.match(r'"((?:\\.|[^"\\])*)"',txt[match.end():]).group(1)
+    else:
+        return re.match(r'(.*?)\)',txt[match.end():]).group(1)
