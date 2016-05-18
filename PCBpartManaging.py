@@ -811,7 +811,7 @@ class partsManaging(mathFunctions):
 
                 modelInfo['category'] = str(catID)
 
-                [shape,colors] = self.loadPart(doc,path)
+                [shape,colors] = self.loadPart(FreeCAD.activeDocument(),path)
 
                 # We need to adjust offset, because FreeCAD-PCB needs object centered placement
                 at = modelInfo['at']
