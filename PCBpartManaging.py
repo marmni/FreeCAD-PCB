@@ -27,12 +27,14 @@
 
 import FreeCAD
 import FreeCADGui
+import ImportGui
 import Part
 import os
 import re
 import __builtin__
 import glob
 import unicodedata
+import random
 from PySide import QtCore, QtGui
 #
 from PCBdataBase import dataBase
@@ -65,6 +67,27 @@ class partsManaging(mathFunctions):
     def updateView(self):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
+
+    def loadPart(self,doc,path):
+        count = len(doc.Objects)
+        ImportGui.insert(path,doc.Name)
+        countNew = len(doc.Objects)
+        if countNew == count+1:
+            obj = doc.Objects[count]
+            shape = obj.Shape
+            colors = obj.ViewObject.DiffuseColor
+            doc.removeObject(obj.Name)
+        else:
+            objs = [s for s in doc.Objects[count:]]
+            obj = doc.addObject('Part::Compound',str(random.randrange(10000,99999)))
+            obj.Links = objs
+            doc.recompute()
+            shape = obj.Shape
+            colors = obj.ViewObject.DiffuseColor
+            doc.removeObject(obj.Name)
+            for obj in objs:
+                doc.removeObject(obj.Name) 
+        return [shape,colors]
     
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         doc = FreeCAD.activeDocument()
@@ -102,11 +125,14 @@ class partsManaging(mathFunctions):
             ################################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3][0]))
             step_model.Label = partNameTXT_label
-            if len(fileData)==6 and isinstance(fileData[5],Part.Compound) :
-                step_model.Shape = fileData[5]
+            if len(fileData)==7 and isinstance(fileData[5],Part.Compound) :
+                shape = fileData[5]
+                colors = fileData[6]
             else :
-                step_model.Shape = Part.read(filePath)
+                [shape,colors] = self.loadPart(doc,filePath)
+            step_model.Shape = shape
             obj = partObject(step_model)
+            step_model.ViewObject.DiffuseColor = colors
             step_model.Package = u"{0}".format(fileData[3][0])
             step_model.Side = "{0}".format(newPart[0][6])
             ################################################################
@@ -342,8 +368,8 @@ class partsManaging(mathFunctions):
             if koloroweElemnty:
                 if filePath.upper().endswith('.IGS') or filePath.upper().endswith('IGES'):
                     step_model = self.getColorFromIGS(filePath, step_model)
-                elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
-                    step_model = self.getColorFromSTP(filePath, step_model)
+                # elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
+                    # step_model = self.getColorFromSTP(filePath, step_model)
         else:
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
@@ -785,8 +811,9 @@ class partsManaging(mathFunctions):
 
                 modelInfo['category'] = str(catID)
 
+                [shape,colors] = self.loadPart(doc,path)
+
                 # We need to adjust offset, because FreeCAD-PCB needs object centered placement
-                shape = Part.read(path)
                 at = modelInfo['at']
                 modelInfo.pop('at')
                 at[0] += shape.BoundBox.Center.x
@@ -805,7 +832,7 @@ class partsManaging(mathFunctions):
 
                 sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
                 if sectionName[0]:
-                    return [True, path, sectionName[1], sectionName[2], sectionName[3], shape]
+                    return [True, path, sectionName[1], sectionName[2], sectionName[3], shape, colors]
 
             else :
 
