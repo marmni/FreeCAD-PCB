@@ -71,22 +71,15 @@ class partsManaging(mathFunctions):
     def loadPart(self,doc,path):
         count = len(doc.Objects)
         ImportGui.insert(path,doc.Name)
-        countNew = len(doc.Objects)
-        if countNew == count+1:
-            obj = doc.Objects[count]
-            shape = obj.Shape
-            colors = obj.ViewObject.DiffuseColor
-            doc.removeObject(obj.Name)
-        else:
-            objs = [s for s in doc.Objects[count:]]
-            obj = doc.addObject('Part::Compound',str(random.randrange(10000,99999)))
-            obj.Links = objs
-            doc.recompute()
-            shape = obj.Shape
-            colors = obj.ViewObject.DiffuseColor
-            doc.removeObject(obj.Name)
-            for obj in objs:
-                doc.removeObject(obj.Name) 
+        objs = [s for s in doc.Objects[count:]]
+        obj = doc.addObject('Part::Compound',str(random.randrange(10000,99999)))
+        obj.Links = objs
+        doc.recompute()
+        shape = obj.Shape
+        colors = obj.ViewObject.DiffuseColor
+        doc.removeObject(obj.Name)
+        for obj in objs:
+            doc.removeObject(obj.Name) 
         return [shape,colors]
     
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
