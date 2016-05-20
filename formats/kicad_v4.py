@@ -214,12 +214,15 @@ class KiCadv4_PCB(KiCadv3_PCB):
 
                 # Placement shall be adjusted according to the model bounding box.
                 # Delay that till the actual import for performance
-                model['at'] = [float(t) for t in re.search((r'\(\s*at\s*\(xyz\s*'
+                model['at'] = [float(t)*25.4 for t in re.search((r'\(\s*at\s*\(xyz\s*'
                         '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
                         m,re.MULTILINE|re.DOTALL).groups()]
-                model['rotate'] = [float(t) for t in re.search((r'\(\s*rotate\s*\(xyz\s*'
+                
+                # KiCad uses RX,RY,RZ, but FreeCAD.Rotation() needs Yaw-Pitch-Row
+                # Errrr! my head is spinning!
+                model['rotate'] = [-float(t) for t in reversed(re.search((r'\(\s*rotate\s*\(xyz\s*'
                         '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
-                        m,re.MULTILINE|re.DOTALL).groups()]
+                        m,re.MULTILINE|re.DOTALL).groups())]
                 model['description'] = readStringInBracket('descr',i)
                 model['add_socket'] = '[False, None]'
                 model['socket'] = '[False, 0.0]'
