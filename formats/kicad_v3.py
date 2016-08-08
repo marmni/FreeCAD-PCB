@@ -819,7 +819,7 @@ class KiCadv3_PCB(mainPCB):
         # arc
         for i in self.getArc(lType, self.projektBRD, 'gr_arc'):
             layerNew.createObject()
-            layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'])
+            layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
             layerNew.setFace()
         # obj
         for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -848,7 +848,7 @@ class KiCadv3_PCB(mainPCB):
             # arc
             for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
                 layerNew.createObject()
-                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'])
+                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
                 layerNew.addRotation(X1, Y1, ROT)
                 layerNew.setFace()
         ##
