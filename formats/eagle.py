@@ -898,11 +898,6 @@ class EaglePCB(mainPCB):
         layerSide = PCBlayers[softLayers["eagle"][layerNumber][1]][0]
         layerType = PCBlayers[softLayers["eagle"][layerNumber][1]][3]
         
-        if layerNumber in [21, 22]:
-            szukanaWarstwa = [21, 22]
-        elif layerNumber in [51, 52]:
-            szukanaWarstwa = [51, 52]
-        
         layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
         layerNew = layerSilkObject(layerS, layerType)
         layerNew.defHeight = defHeight
@@ -911,9 +906,14 @@ class EaglePCB(mainPCB):
         self.getElements()
         
         for i in self.elements:
-            if i['side'] != layerSide:
-                continue
-            #######
+            if i['side'] == 0:
+                if layerNumber in [21, 51]:  # bottom
+                    szukanaWarstwa = [layerNumber + 1]
+                elif layerNumber in [22, 52]:  # bottom
+                    szukanaWarstwa = [layerNumber - 1]
+            else:
+                szukanaWarstwa = [layerNumber]
+            #
             # linie/luki
             for j in self.getWires(self.libraries[i['library']][i['package']], szukanaWarstwa, [i['x'], i['y']]):
                 if not j['curve']:

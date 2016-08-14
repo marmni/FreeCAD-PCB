@@ -501,65 +501,67 @@ class Razen_PCB(mainPCB):
                         layerNew.addPolygon(self.getPolygon(i['pts'], self.fileVersion, x, y))
                         layerNew.setFace()
                     elif i["_t"] == "Footprint":
-                        if not i['mirror']:
-                            warst = 1  # top side
-                        else:
-                            warst = 0  # bottom side
+                        library = i['lib']
+                        package = i['part']
+                        X1 = self.setUnit(i['pos'][0], self.fileVersion)  # punkt wzgledem ktorego dokonany zostanie obrot
+                        Y1 = self.setUnit(i['pos'][1], self.fileVersion) * (-1)  # punkt wzgledem ktorego dokonany zostanie obrot
+                        ROT = i['angle'] * (-1)
                         
-                        if warst == layerSide:
-                            library = i['lib']
-                            package = i['part']
-                            X1 = self.setUnit(i['pos'][0], self.fileVersion)  # punkt wzgledem ktorego dokonany zostanie obrot
-                            Y1 = self.setUnit(i['pos'][1], self.fileVersion) * (-1)  # punkt wzgledem ktorego dokonany zostanie obrot
-                            ROT = i['angle'] * (-1)
-                            
-                            lineList = self.znajdzBiblioteke(library, package)
-                            if not lineList:
-                                continue
-                            
+                        lineList = self.znajdzBiblioteke(library, package)
+                        if not lineList:
+                            continue
+                        
+                        try:
+                            fileVersion = lineList["version"]
+                        except:
+                            fileVersion = None
+                        
+                        for j in lineList["elts"]:
                             try:
-                                fileVersion = lineList["version"]
-                            except:
-                                fileVersion = None
-                            
-                            for j in lineList["elts"]:
-                                try:
-                                    if j["_t"] == "Segment" and j["layer"] == 21:
-                                        (x1, y1, x2, y2, width) = self.getLineParameters(j, fileVersion)
-                                        
-                                        layerNew.createObject()
-                                        layerNew.addLineWidth(x1 + X1, y1 + Y1, x2 + X1, y2 + Y1, width)
-                                        layerNew.addRotation(X1, Y1, ROT)
-                                        layerNew.setChangeSide(X1, Y1, warst)
-                                        layerNew.setFace()
-                                    elif j["_t"] == "Arc" and j["layer"] == 21 and j["ofsa"] == j["ofsb"]:
-                                        (x, y, radius, width) = self.gerCircleParameters(j, fileVersion)
-                                        
-                                        layerNew.createObject()
-                                        layerNew.addCircle(x + X1, y * (-1) + Y1, radius, width)
-                                        layerNew.addRotation(X1, Y1, ROT)
-                                        layerNew.setChangeSide(X1, Y1, warst)
-                                        layerNew.setFace()
-                                    elif j["_t"] == "Arc" and j["layer"] == 21:
-                                        (x1, y1, x2, y2, curve, width) = self.getArcParameters(j, fileVersion)
-                                        
-                                        layerNew.createObject()
-                                        layerNew.addArcWidth([x2 + X1, y2 + Y1], [x1 + X1, y1 + Y1], curve, width)
-                                        layerNew.addRotation(X1, Y1, ROT)
-                                        layerNew.setChangeSide(X1, Y1, warst)
-                                        layerNew.setFace()
-                                    elif j["_t"] == "Polygon" and j["layer"] == 21:
-                                        x = self.setUnit(j['pos'][0], fileVersion)
-                                        y = self.setUnit(j['pos'][1], fileVersion) * (-1)
-                                        
-                                        layerNew.createObject()
-                                        layerNew.addPolygon(self.getPolygon(j['pts'], fileVersion, X1 + x, Y1 + y))
-                                        layerNew.addRotation(X1, Y1, ROT)
-                                        layerNew.setChangeSide(X1, Y1, warst)
-                                        layerNew.setFace()
-                                except Exception, e:
-                                    FreeCAD.Console.PrintWarning(str(e) + "1\n")
-                                    pass
+                                if i['mirror']:
+                                    if layerNumber == 21:  # top
+                                        szukanaWarstwa = 22
+                                    elif layerNumber == 22:  # bottom
+                                        szukanaWarstwa = 21
+                                else:
+                                    szukanaWarstwa = layerNumber
+                                ####
+                                if j["_t"] == "Segment" and j["layer"] == szukanaWarstwa:
+                                    (x1, y1, x2, y2, width) = self.getLineParameters(j, fileVersion)
+                                    
+                                    layerNew.createObject()
+                                    layerNew.addLineWidth(x1 + X1, y1 + Y1, x2 + X1, y2 + Y1, width)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, warst)
+                                    layerNew.setFace()
+                                elif j["_t"] == "Arc" and j["layer"] == szukanaWarstwa and j["ofsa"] == j["ofsb"]:
+                                    (x, y, radius, width) = self.gerCircleParameters(j, fileVersion)
+                                    
+                                    layerNew.createObject()
+                                    layerNew.addCircle(x + X1, y * (-1) + Y1, radius, width)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, warst)
+                                    layerNew.setFace()
+                                elif j["_t"] == "Arc" and j["layer"] == szukanaWarstwa:
+                                    (x1, y1, x2, y2, curve, width) = self.getArcParameters(j, fileVersion)
+                                    
+                                    layerNew.createObject()
+                                    layerNew.addArcWidth([x2 + X1, y2 + Y1], [x1 + X1, y1 + Y1], curve, width)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, warst)
+                                    layerNew.setFace()
+                                elif j["_t"] == "Polygon" and j["layer"] == szukanaWarstwa:
+                                    x = self.setUnit(j['pos'][0], fileVersion)
+                                    y = self.setUnit(j['pos'][1], fileVersion) * (-1)
+                                    
+                                    layerNew.createObject()
+                                    layerNew.addPolygon(self.getPolygon(j['pts'], fileVersion, X1 + x, Y1 + y))
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, warst)
+                                    layerNew.setFace()
+                            except Exception, e:
+                                FreeCAD.Console.PrintWarning(str(e) + "1\n")
+                                pass
                 except Exception, e:
                     FreeCAD.Console.PrintWarning(str(e) + "2\n")
                     pass
