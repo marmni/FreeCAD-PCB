@@ -148,16 +148,19 @@ class KiCadv3_PCB(mainPCB):
         for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
             [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
             layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
+            ##
             #package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
-            package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
+            #package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
+            #if ':' in package:
+                #package = package.replace('"', '').split(':')[-1]
+            #else:
+                #if '"' in package:
+                    #package = package.replace('"', '')
+                #else:
+                    #package = package
+            package = re.sub('locked|placed|pla', '', package).split(':')[-1]
+            package = package.replace('"', '')
             #
-            if ':' in package:
-                package = package.replace('"', '').split(':')[-1]
-            else:
-                if '"' in package:
-                    package = package.replace('"', '')
-                else:
-                    package = package
             library = package
             
             x = float(x)
