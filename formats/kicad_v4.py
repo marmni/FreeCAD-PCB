@@ -95,6 +95,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     #package = package.replace('"', '')
                 #else:
                     #package = package
+            package = re.search(r'\s+(".+?"|.+?)\(layer', i).groups()[0]
             package = re.sub('locked|placed|pla', '', package).split(':')[-1]
             package = package.replace('"', '')
             #
