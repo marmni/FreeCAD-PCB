@@ -31,6 +31,7 @@ import __builtin__
 import Part
 import re
 from math import sqrt
+import os
 
 from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
@@ -161,6 +162,13 @@ class KiCadv3_PCB(mainPCB):
             package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
             package = re.sub('locked|placed|pla', '', package).split(':')[-1]
             package = package.replace('"', '').strip()
+            #3D package from KiCad
+            try:
+                package3D = package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                if package3D and self.partExist(os.path.basename(package3D), "", False):
+                    package = os.path.basename(package3D)
+            except:
+                pass
             #
             library = package
             

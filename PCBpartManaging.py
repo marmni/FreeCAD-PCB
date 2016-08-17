@@ -755,7 +755,7 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.read(getFromSettings_databasePath())
 
-    def partExist(self, name, model):
+    def partExist(self, name, model, showDial=True):
         try:
             databaseType = self.databaseType
             if databaseType == 'kicad_v4':
@@ -771,7 +771,7 @@ class partsManaging(mathFunctions):
                 if isinstance(model, unicode):
                     model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
                 
-                if len(filePos.split(';')) > 1:
+                if len(filePos.split(';')) > 1 and showDial:
                     dial = modelTypes(model, filePos.split(';'))
                     
                     if dial.exec_():
