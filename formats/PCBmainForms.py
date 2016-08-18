@@ -641,14 +641,14 @@ class mainPCB(partsManaging):
         if PCB_ER and len(PCB_ER):
             if os.path.exists(filename) and os.path.isfile(filename):
                 (path, docname) = os.path.splitext(os.path.basename(filename))
-                plik = __builtin__.open("{0}.err".format(filename), "w")
+                plik = __builtin__.open(u"{0}.err".format(filename), "w")
                 a = []
                 a = [i for i in PCB_ER if str(i) not in a and not a.append(str(i))]
                 PCB_ER = list(a)
                 
                 FreeCAD.Console.PrintWarning("**************************\n")
                 for i in PCB_ER:
-                    line = "Object not found: {0} {2} [Package: {1}, Library: {3}]\n".format(i[0], i[1], i[2], i[3])
+                    line = u"Object not found: {0} {2} [Package: {1}, Library: {3}]\n".format(i[0], i[1], i[2], i[3])
                     plik.writelines(line)
                     FreeCAD.Console.PrintWarning(line)
                 FreeCAD.Console.PrintWarning("**************************\n")
