@@ -127,6 +127,8 @@ def wersjaFormatuF(filename):
                 return ["kicad_v3", "KiCad (version 3)"]
             elif version == '4':
                 return ["kicad_v4", "KiCad (version 4)"]
+            elif int(version[:4]) >= 2016:  # nightly build v4
+                return ["kicad_v4", "KiCad (version 4 NB)"]
             else:
                 FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
                 return [False]
