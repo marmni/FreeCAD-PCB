@@ -164,7 +164,7 @@ class KiCadv3_PCB(mainPCB):
             package = package.replace('"', '').strip()
             #3D package from KiCad
             try:
-                package3D = package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
                 if package3D and self.partExist(os.path.basename(package3D), "", False):
                     package = os.path.basename(package3D)
             except:
@@ -412,7 +412,7 @@ class KiCadv3_PCB(mainPCB):
                             layerNew.setFace()
                     elif pShape == 'circle':
                         layerNew.createObject()
-                        layerNew.addCircle(xs, ys, dx / 2.)
+                        layerNew.addCircle(xs + xOF, ys + yOF, dx / 2.)
                         layerNew.addRotation(xs, ys, rot_2)
                         layerNew.addRotation(X1, Y1, ROT)
                         layerNew.setFace()
@@ -440,7 +440,7 @@ class KiCadv3_PCB(mainPCB):
                     [dx, dy] = re.search(r'\(size\s+([0-9\.-]+?)\s+([0-9\.-]+?)\)', j).groups(0)  #
                     #layers = re.search(r'\(layers\s+(.+?)\)', j).groups(0)[0]  #
                     layers = re.search(r'\(layers\s?(.*?|)\)', j).groups(0)[0].strip()  #
-                    data = re.search(r'\(drill(\s+oval\s+|\s+)(.*?)(\s+[-0-9\.]*?|)(\s+\(offset\s+(.*?)\s+(.*?)\)|)\)', j)
+                    data = re.search(r'\(drill(\s+[a-zA-Z]*?|)(\s+[-0-9\.]*?|)(\s+[-0-9\.]*?|)(\s+\(offset\s+(.*?)\s+(.*?)\)|)\)', j)
                     #
                     x = float(x)
                     y = float(y) * (-1)
@@ -453,19 +453,25 @@ class KiCadv3_PCB(mainPCB):
                         
                     if layers == "":
                         layers = ' '.join(self.spisWarstw.keys())
-                    
-                    if pType == 'smd' or data == None:
+                        
+                        
+                    if data == None:
                         drill = 0.0
                         hType = None
                         [xOF, yOF] = [0.0, 0.0]
                     else:
                         data = data.groups()
                         
-                        hType = data[0]
-                        if hType.strip() == '':
-                            hType = 'circle'
-                        
-                        drill = float(data[1]) / 2.0
+                        if pType == 'smd':
+                            drill = 0.0
+                            hType = None
+                        else:
+                            hType = data[0].strip()
+                            if hType == '':
+                                hType = 'circle'
+                                drill = float(data[1]) / 2.0
+                            else:
+                                drill = "{0} {1}".format(data[1], data[2])
                         
                         if not data[4] or data[4].strip() == '':
                             xOF = 0.0
@@ -513,7 +519,7 @@ class KiCadv3_PCB(mainPCB):
                     ROT = float(ROT)
                 ##
                 for j in self.getPadsList(i):
-                    if j['padType'] != 'smd' and j['r'] != 0.0:
+                    if j['padType'] != 'smd' and j['r'] != 0.0 and j['holeType'] == "circle":
                         [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
                         holes.append([xR, yR, j['r']])
         ####
@@ -695,6 +701,31 @@ class KiCadv3_PCB(mainPCB):
                     #curve *= -1
                 
                 PCB.append(['Arc', x1, y1, x2, y2, curve])
+            # oval holes
+            #for i in self.getPadsList(j):
+                #if i['holeType'] == "oval":
+                    #FreeCAD.Console.PrintWarning("{0} \n".format(i['r'].split(' ')))
+                    #dx = float(i['r'].strip().split(' ')[0]) / 2.
+                    #dy = float(i['r'].strip().split(' ')[-1]) / 2.
+                    #xs = i['x'] + X1
+                    #ys = i['y'] + Y1
+                    
+                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys + dy], [X1, Y1], ROT)
+                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys + dy], [X1, Y1], ROT)
+                    #PCB.append(['Line', x1, y1, x2, y2])
+                    
+                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys - dy], [X1, Y1], ROT)
+                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys - dy], [X1, Y1], ROT)
+                    #PCB.append(['Line', x1, y1, x2, y2])
+                    
+                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys + dy], [X1, Y1], ROT)
+                    #[x2, y2] = self.obrocPunkt2([xs - dx + dy , ys - dy], [X1, Y1], ROT)
+                    #PCB.append(['Arc', x1, y1, x2, y2, -180])
+                    
+                    #[x1, y1] = self.obrocPunkt2([xs + dx - dy , ys + dy], [X1, Y1], ROT)
+                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys - dy], [X1, Y1], ROT)
+                    #PCB.append(['Arc', x1, y1, x2, y2, 180])
+                    
         ###
         return [PCB, wygenerujPada]
 
