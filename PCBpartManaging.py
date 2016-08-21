@@ -33,6 +33,7 @@ import re
 import __builtin__
 import glob
 import unicodedata
+import ImportGui
 from PySide import QtCore, QtGui
 #
 from PCBdataBase import dataBase
@@ -65,7 +66,89 @@ class partsManaging(mathFunctions):
     def updateView(self):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
-    
+        
+    def getPartShape(self, filePath, step_model, koloroweElemnty):
+        #if not partExistPath(filePath)[0]:
+            #return step_model
+        
+        if filePath in self.objColors:
+            step_model.Shape = self.objColors[filePath]['shape']
+            if koloroweElemnty:
+                step_model.ViewObject.DiffuseColor = self.objColors[filePath]['col']
+            return step_model
+        else:
+            self.objColors[filePath] = {}
+        
+        #active = FreeCAD.ActiveDocument.Label
+        
+        # colFile
+        colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+        try:
+            if os.path.exists(colFile):
+                colFileData = __builtin__.open(colFile, "r").readlines()
+                header = colFileData[0].strip().split("|")
+                
+                if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
+                    shape=Part.Shape()
+                    shape.importBrepFromString("".join(colFileData[2:]))
+                    
+                    step_model.Shape = shape
+                    if koloroweElemnty:
+                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                    
+                    self.objColors[filePath]['shape'] = shape
+                    self.objColors[filePath]['col'] = eval(colFileData[1].strip())
+                    
+                    return step_model
+        except Exception, e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        ##
+        colFileData = __builtin__.open(colFile, "w")
+        colFileData.write("2|{0}\n".format(os.path.getmtime(filePath)))  # wersja|data
+        
+        FreeCAD.newDocument('importingPartsPCB')
+        #FreeCAD.setActiveDocument('importingPartsPCB')
+        FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
+        FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
+        ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
+        
+        fuse = []
+        for i in FreeCAD.ActiveDocument.Objects:
+            if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility:
+                fuse.append(i)
+        try:
+            if len(fuse) == 1:
+                shape = fuse[0].Shape
+                col = fuse[0].ViewObject.DiffuseColor
+            else:
+                newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
+                FreeCAD.ActiveDocument.recompute()
+            
+                shape = FreeCAD.ActiveDocument.getObject("Union").Shape
+                col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
+        except Exception,e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        
+        #FreeCADGui.insert(u"{0}".format(filePath), "importingPartsPCB")
+        
+        colFileData.write(str(col))
+        colFileData.write(shape.exportBrepToString())
+        colFileData.close()
+        
+        FreeCAD.closeDocument("importingPartsPCB")
+        #FreeCAD.setActiveDocument(active)
+        #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+        #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+        
+        step_model.Shape = shape
+        if koloroweElemnty:
+            step_model.ViewObject.DiffuseColor = col
+        
+        self.objColors[filePath]['shape'] = shape
+        self.objColors[filePath]['col'] = col
+        
+        return step_model
+        
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         doc = FreeCAD.activeDocument()
         gruboscPlytki = getPCBheight()[1]
@@ -102,7 +185,14 @@ class partsManaging(mathFunctions):
             ################################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3][0]))
             step_model.Label = partNameTXT_label
-            step_model.Shape = Part.read(filePath)
+            #step_model.Shape = Part.read(filePath)
+            
+            active = FreeCAD.ActiveDocument.Label
+            step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
+            FreeCAD.setActiveDocument(active)
+            FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+            FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+            
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3][0])
             step_model.Side = "{0}".format(newPart[0][6])
@@ -242,10 +332,10 @@ class partsManaging(mathFunctions):
                     PCB_EL = [socketData["name"], socketData["name"], "", ""]
                     
                 self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #################################################################
-            # part name object
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            #################################################################
+            ##################################################################
+            ## part name object
+            ## [txt, x, y, size, rot, side, align, spin, mirror, font]
+            ##################################################################
             annotationName = createAnnotation()
             annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
             annotationName.mode = 'anno_name'
@@ -331,16 +421,16 @@ class partsManaging(mathFunctions):
             #
             step_model.PartName = annotationName.Annotation
             step_model.PartValue = annotationValue.Annotation
-            #################
+            ################
             viewProviderPartObject(step_model.ViewObject)
             #################################################################
             # KOLORY DLA ELEMENTOW
             #################################################################
-            if koloroweElemnty:
-                if filePath.upper().endswith('.IGS') or filePath.upper().endswith('IGES'):
-                    step_model = self.getColorFromIGS(filePath, step_model)
-                elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
-                    step_model = self.getColorFromSTP(filePath, step_model)
+            #if koloroweElemnty:
+                #if filePath.upper().endswith('.IGS') or filePath.upper().endswith('IGES'):
+                    #step_model = self.getColorFromIGS(filePath, step_model)
+                #elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
+                    #step_model = self.getColorFromSTP(filePath, step_model)
         else:
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
@@ -771,13 +861,19 @@ class partsManaging(mathFunctions):
                 if isinstance(model, unicode):
                     model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
                 
+                #if len(filePos.split(';')) > 1:
+                    #return [False]
                 if len(filePos.split(';')) > 1 and showDial:
+                    #active = FreeCAD.ActiveDocument.Label
                     dial = modelTypes(model, filePos.split(';'))
                     
                     if dial.exec_():
                         filePos = str(dial.modelsList.currentItem().text())
                     else:
                         return [False]
+                    #FreeCAD.setActiveDocument(active)
+                    #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+                    #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
                 ######################################
                 [boolValue, path] = partExistPath(filePos)
                 if boolValue:
@@ -791,8 +887,6 @@ class partsManaging(mathFunctions):
             return [False]
             #FreeCAD.Console.PrintWarning(u"Error 2: {0} \n".format(e))
             #return [False]
-
-
 
 
 def partExistPath(filePos):
