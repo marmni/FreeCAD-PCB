@@ -519,9 +519,18 @@ class KiCadv3_PCB(mainPCB):
                     ROT = float(ROT)
                 ##
                 for j in self.getPadsList(i):
-                    if j['padType'] != 'smd' and j['r'] != 0.0 and j['holeType'] == "circle":
+                    if j['padType'] != 'smd' and j['r'] != 0.0:
                         [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
-                        holes.append([xR, yR, j['r']])
+                        
+                        if j['holeType'] == "circle":
+                            holes.append([xR, yR, j['r']])
+                        else:  # oval
+                            data = j['r'].strip().split(' ')
+                            
+                            if float(data[0]) < float(data[-1]):
+                                holes.append([xR, yR, float(data[0]) / 2.])
+                            else:
+                                holes.append([xR, yR, float(data[-1]) / 2.])
         ####
         return holes
     
