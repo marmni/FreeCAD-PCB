@@ -124,10 +124,10 @@ class dataBase:
         for i in self.packages():
             for j in eval(self.getValues(i)["soft"]):
                 if soft == '*':
-                    if str(package).lower() in str(j).lower():
+                    if package.lower()+"'" in str(j).lower():
                         return [True, i, j, int(self.getValues(i)['category'])]
                 else:
-                    if str(soft) in j and str(package).lower() in str(j).lower():
+                    if str(soft) in j and package.lower()+"'" in str(j).lower():
                         return [True, i, j, int(self.getValues(i)['category'])]
         return [False]
         
