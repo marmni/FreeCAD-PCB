@@ -614,14 +614,41 @@ class mainPCB(partsManaging):
             if r == 0:
                 continue
             
-            if Hmin == 0 and Hmax == 0:
-                doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-            elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
-                doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-            elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
-                doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-            elif Hmin <= r * 2 <= Hmax:
-                doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+            if len(i) > 3:  # oval
+                r2 = float("%4.3f" % i[3])
+                
+                p1 = i[4]
+                p2 = i[5]
+                p3 = i[6]
+                p4 = i[7]
+                
+                if r > r2:
+                    doc.PCB_Holes.addGeometry(Part.Line(FreeCAD.Vector(p1[0], p1[1], 0), FreeCAD.Vector(p2[0], p2[1], 0)))
+                    doc.PCB_Holes.addGeometry(Part.Line(FreeCAD.Vector(p3[0], p3[1], 0), FreeCAD.Vector(p4[0], p4[1], 0)))
+                    
+                    p5 = self.arcMidPoint(p1, p3, 180)
+                    doc.PCB_Holes.addGeometry(Part.Arc(FreeCAD.Vector(p1[0], p1[1], 0.0), FreeCAD.Vector(p5[0], p5[1], 0.0), FreeCAD.Vector(p3[0], p3[1], 0.0)))
+                    
+                    p5 = self.arcMidPoint(p2, p4, -180)
+                    doc.PCB_Holes.addGeometry(Part.Arc(FreeCAD.Vector(p2[0], p2[1], 0.0), FreeCAD.Vector(p5[0], p5[1], 0.0), FreeCAD.Vector(p4[0], p4[1], 0.0)))
+                else:
+                    doc.PCB_Holes.addGeometry(Part.Line(FreeCAD.Vector(p1[0], p1[1], 0), FreeCAD.Vector(p3[0], p3[1], 0)))
+                    doc.PCB_Holes.addGeometry(Part.Line(FreeCAD.Vector(p2[0], p2[1], 0), FreeCAD.Vector(p4[0], p4[1], 0)))
+                    
+                    p5 = self.arcMidPoint(p1, p2, -180)
+                    doc.PCB_Holes.addGeometry(Part.Arc(FreeCAD.Vector(p1[0], p1[1], 0.0), FreeCAD.Vector(p5[0], p5[1], 0.0), FreeCAD.Vector(p2[0], p2[1], 0.0)))
+                    
+                    p5 = self.arcMidPoint(p3, p4, 180)
+                    doc.PCB_Holes.addGeometry(Part.Arc(FreeCAD.Vector(p3[0], p3[1], 0.0), FreeCAD.Vector(p5[0], p5[1], 0.0), FreeCAD.Vector(p4[0], p4[1], 0.0)))
+            else:  # circle
+                if Hmin == 0 and Hmax == 0:
+                    doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
+                    doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
+                    doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                elif Hmin <= r * 2 <= Hmax:
+                    doc.PCB_Holes.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
             ####
             ##hole = [Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r).toShape()]
             ##hole = Part.Wire(hole)

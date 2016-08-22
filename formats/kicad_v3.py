@@ -520,17 +520,46 @@ class KiCadv3_PCB(mainPCB):
                 ##
                 for j in self.getPadsList(i):
                     if j['padType'] != 'smd' and j['r'] != 0.0:
-                        [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
-                        
                         if j['holeType'] == "circle":
-                            holes.append([xR, yR, j['r']])
-                        else:  # oval
-                            data = j['r'].strip().split(' ')
+                            [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
                             
-                            if float(data[0]) < float(data[-1]):
-                                holes.append([xR, yR, float(data[0]) / 2.])
-                            else:
-                                holes.append([xR, yR, float(data[-1]) / 2.])
+                            holes.append([xR, yR, j['r']])
+                        else:
+                            r1 = float(j['r'].strip().split(' ')[0]) / 2.
+                            r2 = float(j['r'].strip().split(' ')[-1]) / 2.
+
+                            if r1 == r2:  # circle
+                                holes.append([xR, yR, r1])
+                            else:  # oval
+                                x = j['x'] + X1
+                                y = j['y'] + Y1
+                                
+                                if r1 > r2:
+                                    x1 = x - r1 + r2
+                                    y1 = y + r2
+                                    x2 = x + r1 - r2
+                                    y2 = y - r2
+                                else:
+                                    x1 = x - r2 + r1
+                                    y1 = y + r1
+                                    x2 = x + r2 - r1
+                                    y2 = y - r1
+                                
+                                rot_2 = j['rot']
+                                if ROT != 0:
+                                    rot_2 -= ROT
+                                
+                                p1 = self.obrocPunkt2([x1, y1], [x, y], rot_2)
+                                p2 = self.obrocPunkt2([x2, y1], [x, y], rot_2)
+                                p3 = self.obrocPunkt2([x1, y2], [x, y], rot_2)
+                                p4 = self.obrocPunkt2([x2, y2], [x, y], rot_2)
+                                
+                                p1 = self.obrocPunkt2(p1, [X1, Y1], ROT)
+                                p2 = self.obrocPunkt2(p2, [X1, Y1], ROT)
+                                p3 = self.obrocPunkt2(p3, [X1, Y1], ROT)
+                                p4 = self.obrocPunkt2(p4, [X1, Y1], ROT)
+                                
+                                holes.append([xR, yR, r1, r2, p1, p2, p3, p4])
         ####
         return holes
     
