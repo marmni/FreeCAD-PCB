@@ -99,7 +99,8 @@ class partsManaging(mathFunctions):
                     self.objColors[filePath]['shape'] = shape
                     self.objColors[filePath]['col'] = eval(colFileData[1].strip())
                     
-                    return step_model
+                    if len(colFileData[2:]) > 20:
+                        return step_model
         except Exception, e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         ##
@@ -114,7 +115,7 @@ class partsManaging(mathFunctions):
         
         fuse = []
         for i in FreeCAD.ActiveDocument.Objects:
-            if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility:
+            if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility and len(i.Shape.Solids):
                 fuse.append(i)
         try:
             if len(fuse) == 1:
@@ -627,219 +628,221 @@ class partsManaging(mathFunctions):
             return label
             
     def getColorFromSTP(self, filePath, step_model):
-        try:
-            ################################################################
-            # paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
-            # paletaKolorow = [(R, G, B), (R, G, B), itd]
-            ################################################################
-            if filePath in self.objColors:
-                step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
-                return step_model
-            #
-            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
-            if os.path.exists(colFile):
-                colFileData = __builtin__.open(colFile, "r").readlines()
-                if str(os.path.getmtime(filePath)) == colFileData[0].strip():
-                    try:
-                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
-                        self.objColors[filePath] = eval(colFileData[1].strip())
-                        return step_model
-                    except:
-                        pass
-            
-            colFileData = __builtin__.open(colFile, "w")
-            colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
-            #
-            plik = __builtin__.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
-            paletaKolorow = []
-            # v2
-            defColors = {}
-            for k in re.findall("#([0-9]+) = CLOSED_SHELL\('',\((.+?)\).+?;", plik):
-                for j in k[1].split(','):
-                    try:
-                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),{0}\);".format(j.strip()), plik)[0].strip()
-                        colNum = j.strip()
-                    except:
-                        part = re.search("#([0-9]+) = MANIFOLD_SOLID_BREP\('',#{0}\);".format(k[0]), plik).groups()[0]
-                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),#{0}\);".format(part.strip()), plik)[0].strip()
-                        colNum = part.strip()
-                        
-                    if colNum in defColors:
-                        paletaKolorow.append(defColors[colNum])
-                        continue
-                    
-                    PRESENTATION_STYLE_ASSIGNMENT = int(re.findall("#{0} = PRESENTATION_STYLE_ASSIGNMENT[\s]?\(\([\s]?#([0-9]+?)[\s]?[,|\)]".format(STYLED_ITEM), plik)[0])
-                    SURFACE_STYLE_USAGE = int(re.findall("#{0} = SURFACE_STYLE_USAGE[\s]?\(.+?,[\s]?#(.+?)[\s]?\)[\s]?;".format(PRESENTATION_STYLE_ASSIGNMENT), plik)[0])
-                    SURFACE_SIDE_STYLE = int(re.findall("#{0} = SURFACE_SIDE_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_USAGE), plik)[0])
-                    SURFACE_STYLE_FILL_AREA = int(re.findall("#{0} = SURFACE_STYLE_FILL_AREA[\s]?\([\s]?#(.+?)[\s]?\)".format(SURFACE_SIDE_STYLE), plik)[0])
-                    FILL_AREA_STYLE = int(re.findall("#{0} = FILL_AREA_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_FILL_AREA), plik)[0])
-                    FILL_AREA_STYLE_COLOUR = int(re.findall("#{0} = FILL_AREA_STYLE_COLOUR[\s]?\(.+?,[\s]?#(.+?)[\s]?\)".format(FILL_AREA_STYLE), plik)[0])
-                    defKoloru = re.findall("#{0} = (.+?);".format(int(FILL_AREA_STYLE_COLOUR)), plik)[0]
-                    
-                    matchObj = re.match("DRAUGHTING_PRE_DEFINED_COLOUR[\s]?\([\s]?'(.*)'[\s]?\)", defKoloru)
-                    if matchObj:
-                        paletaKolorow.append(spisKolorowSTP[matchObj.groups()[0]])
-                        defColors[colNum] = spisKolorowSTP[matchObj.groups()[0]]
-                    else:
-                        matchObj = re.match("COLOUR_RGB[\s]?\([\s]?'',[\s]?(.*),[\s]?(.*),[\s]?(.*)[\s]?\)", defKoloru)
-                        if matchObj:
-                            paletaKolorow.append((float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2])))
-                            defColors[colNum] = (float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2]))
+        pass
+        #try:
+            #################################################################
+            ## paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
+            ## paletaKolorow = [(R, G, B), (R, G, B), itd]
+            #################################################################
+            #if filePath in self.objColors:
+                #step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
+                #return step_model
             ##
-            step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
-            self.objColors[filePath] = paletaKolorow
-            colFileData.write(str(paletaKolorow))
-            colFileData.close()
-        except Exception, e:
-            FreeCAD.Console.PrintWarning(u"Error 1b: {0} \n".format(e))
-        return step_model
+            #colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+            #if os.path.exists(colFile):
+                #colFileData = __builtin__.open(colFile, "r").readlines()
+                #if str(os.path.getmtime(filePath)) == colFileData[0].strip():
+                    #try:
+                        #step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                        #self.objColors[filePath] = eval(colFileData[1].strip())
+                        #return step_model
+                    #except:
+                        #pass
+            
+            #colFileData = __builtin__.open(colFile, "w")
+            #colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
+            ##
+            #plik = __builtin__.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
+            #paletaKolorow = []
+            ## v2
+            #defColors = {}
+            #for k in re.findall("#([0-9]+) = CLOSED_SHELL\('',\((.+?)\).+?;", plik):
+                #for j in k[1].split(','):
+                    #try:
+                        #STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),{0}\);".format(j.strip()), plik)[0].strip()
+                        #colNum = j.strip()
+                    #except:
+                        #part = re.search("#([0-9]+) = MANIFOLD_SOLID_BREP\('',#{0}\);".format(k[0]), plik).groups()[0]
+                        #STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),#{0}\);".format(part.strip()), plik)[0].strip()
+                        #colNum = part.strip()
+                        
+                    #if colNum in defColors:
+                        #paletaKolorow.append(defColors[colNum])
+                        #continue
+                    
+                    #PRESENTATION_STYLE_ASSIGNMENT = int(re.findall("#{0} = PRESENTATION_STYLE_ASSIGNMENT[\s]?\(\([\s]?#([0-9]+?)[\s]?[,|\)]".format(STYLED_ITEM), plik)[0])
+                    #SURFACE_STYLE_USAGE = int(re.findall("#{0} = SURFACE_STYLE_USAGE[\s]?\(.+?,[\s]?#(.+?)[\s]?\)[\s]?;".format(PRESENTATION_STYLE_ASSIGNMENT), plik)[0])
+                    #SURFACE_SIDE_STYLE = int(re.findall("#{0} = SURFACE_SIDE_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_USAGE), plik)[0])
+                    #SURFACE_STYLE_FILL_AREA = int(re.findall("#{0} = SURFACE_STYLE_FILL_AREA[\s]?\([\s]?#(.+?)[\s]?\)".format(SURFACE_SIDE_STYLE), plik)[0])
+                    #FILL_AREA_STYLE = int(re.findall("#{0} = FILL_AREA_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_FILL_AREA), plik)[0])
+                    #FILL_AREA_STYLE_COLOUR = int(re.findall("#{0} = FILL_AREA_STYLE_COLOUR[\s]?\(.+?,[\s]?#(.+?)[\s]?\)".format(FILL_AREA_STYLE), plik)[0])
+                    #defKoloru = re.findall("#{0} = (.+?);".format(int(FILL_AREA_STYLE_COLOUR)), plik)[0]
+                    
+                    #matchObj = re.match("DRAUGHTING_PRE_DEFINED_COLOUR[\s]?\([\s]?'(.*)'[\s]?\)", defKoloru)
+                    #if matchObj:
+                        #paletaKolorow.append(spisKolorowSTP[matchObj.groups()[0]])
+                        #defColors[colNum] = spisKolorowSTP[matchObj.groups()[0]]
+                    #else:
+                        #matchObj = re.match("COLOUR_RGB[\s]?\([\s]?'',[\s]?(.*),[\s]?(.*),[\s]?(.*)[\s]?\)", defKoloru)
+                        #if matchObj:
+                            #paletaKolorow.append((float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2])))
+                            #defColors[colNum] = (float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2]))
+            ###
+            #step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
+            #self.objColors[filePath] = paletaKolorow
+            #colFileData.write(str(paletaKolorow))
+            #colFileData.close()
+        #except Exception, e:
+            #FreeCAD.Console.PrintWarning(u"Error 1b: {0} \n".format(e))
+        #return step_model
 
     def getColorFromIGS(self, filePath, step_model):
-        try:
-            ################################################################
-            # paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
-            # paletaKolorow = [(R, G, B), (R, G, B), itd]
-            paletaKolorow = []
-            ################################################################
-            if filePath in self.objColors:
-                step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
-                return step_model
-            #
-            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
-            if os.path.exists(colFile):
-                colFileData = __builtin__.open(colFile, "r").readlines()
-                if str(os.path.getmtime(filePath)) == colFileData[0].strip():
-                    try:
-                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
-                        self.objColors[filePath] = eval(colFileData[1].strip())
-                        return step_model
-                    except:
-                        pass
+        pass
+        #try:
+            #################################################################
+            ## paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
+            ## paletaKolorow = [(R, G, B), (R, G, B), itd]
+            #paletaKolorow = []
+            #################################################################
+            #if filePath in self.objColors:
+                #step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
+                #return step_model
+            ##
+            #colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+            #if os.path.exists(colFile):
+                #colFileData = __builtin__.open(colFile, "r").readlines()
+                #if str(os.path.getmtime(filePath)) == colFileData[0].strip():
+                    #try:
+                        #step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                        #self.objColors[filePath] = eval(colFileData[1].strip())
+                        #return step_model
+                    #except:
+                        #pass
             
-            colFileData = __builtin__.open(colFile, "w")
-            colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
-            #
-            plik = __builtin__.open(filePath, "r").readlines()
+            #colFileData = __builtin__.open(colFile, "w")
+            #colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
+            ##
+            #plik = __builtin__.open(filePath, "r").readlines()
             
-            stopka = plik[-1]  # stopka okresla ile lini zawiera naglowek oraz poszczegolne czesci pliku
-            dlugoscSTART = int(re.search('S.*G', stopka).group(0)[1:-1])  # S = Start Sender comments
-            dlugoscNAGLOWEK = int(re.search('G.*D', stopka).group(0)[1:-1])  # G = Global General file characteristics
-            dlugoscMAIN_1 = int(re.search('D.*P', stopka).group(0)[1:-1])  # D = Directory Entry Entity index and common attributes
-            #dlugoscMAIN_2 = int(re.search('P.*T', stopka).group(0)[1:-1])  # P = Parameter Data Entity data
+            #stopka = plik[-1]  # stopka okresla ile lini zawiera naglowek oraz poszczegolne czesci pliku
+            #dlugoscSTART = int(re.search('S.*G', stopka).group(0)[1:-1])  # S = Start Sender comments
+            #dlugoscNAGLOWEK = int(re.search('G.*D', stopka).group(0)[1:-1])  # G = Global General file characteristics
+            #dlugoscMAIN_1 = int(re.search('D.*P', stopka).group(0)[1:-1])  # D = Directory Entry Entity index and common attributes
+            ##dlugoscMAIN_2 = int(re.search('P.*T', stopka).group(0)[1:-1])  # P = Parameter Data Entity data
             
-            dodatkoweDane = plik[dlugoscSTART + dlugoscNAGLOWEK + dlugoscMAIN_1: -1]  # dodatkoweDane = PARAMETER DATA
-            # dane = plik[dlugoscSTART+dlugoscNAGLOWEK : dlugoscSTART+dlugoscNAGLOWEK+dlugoscMAIN_1]
-            daneKolory = plik[dlugoscSTART + dlugoscNAGLOWEK: dlugoscSTART + dlugoscNAGLOWEK + dlugoscMAIN_1]  # daneKolory = DIRECTORY ENTITY
+            #dodatkoweDane = plik[dlugoscSTART + dlugoscNAGLOWEK + dlugoscMAIN_1: -1]  # dodatkoweDane = PARAMETER DATA
+            ## dane = plik[dlugoscSTART+dlugoscNAGLOWEK : dlugoscSTART+dlugoscNAGLOWEK+dlugoscMAIN_1]
+            #daneKolory = plik[dlugoscSTART + dlugoscNAGLOWEK: dlugoscSTART + dlugoscNAGLOWEK + dlugoscMAIN_1]  # daneKolory = DIRECTORY ENTITY
             
-            ################################################################
-            # niektore programy elementy grupuja w obiekcie 308 - Subfigure Definition Entity
-            # sprawdzamy czy mamy doczynienia z takim rodzajem zapisu
-            obj_308 = [pp for pp in daneKolory if re.search("^ *308.*", pp)]
-            ################################################################
-            nr = 0
+            #################################################################
+            ## niektore programy elementy grupuja w obiekcie 308 - Subfigure Definition Entity
+            ## sprawdzamy czy mamy doczynienia z takim rodzajem zapisu
+            #obj_308 = [pp for pp in daneKolory if re.search("^ *308.*", pp)]
+            #################################################################
+            #nr = 0
             
-            for pp in range(len(daneKolory)):
-                if len(obj_308):  # np. SolidWorks
-                    ################################################################
-                    #  408 - Singular Subfigure Instance Entity
-                    ################################################################
-                    if re.search("^ *408.*", daneKolory[pp]):
-                        if not nr:
-                            nr = 1
-                            ################################################################
-                            #  zmienna param_308 zawiera poczatkowa linie elementu 308 (spis poszczegolnych obiektow 144)
-                            #  odwolujemy sie do niej za pomoca 408
-                            nr_308 = int(re.split(" *", daneKolory[pp])[2])
-                            nr_308 = int(dodatkoweDane[nr_308 - 1].split(',')[1])
-                            nr_308 = int(re.split(" *", daneKolory[nr_308 - 1])[2])
-                            param_308 = dodatkoweDane[nr_308 - 1].split(',')[:-1]
-                            ################################################################
-                            ################################################################
-                            # zmienna param_308 zawiera poczatkowa linie elementu 308 (spis poszczegolnych obiektow 144)
-                            # param_308[3] - liczba elementow 144 zawartych w ramach jednego elementu 308
-                            # len(param_308) > 3; param_308[2] - nazwa elementu, zbyt dluga powoduje przerzucenie do nastepnej linijki
-                            #   parametru param_308[3]
-                            if len(param_308) > 3:
-                                liczba_144 = int(param_308[3])
-                                danu = [param_308[4:]]
-                                nan = nr_308
-                            else:
-                                param_308 = dodatkoweDane[nr_308].split(',')[:-1]
-                                try:
-                                    liczba_144 = int(param_308[0])
-                                    danu = [param_308[1:]]
-                                except:
-                                    liczba_144 = int(param_308[1])
-                                    danu = [param_308[2:]]
-                                nan = nr_308 + 1
-                            ################################################################
-                            ################################################################
-                            #  pobieramy poszczegolne elementy 144 zgrupowane w ramach 308
-                            for j in range(liczba_144):
-                                #param = dodatkoweDane[nan].split(',')
-                                if re.search("^.*;.*", dodatkoweDane[nan]):
-                                    danu.append(dodatkoweDane[nan].split(','))
-                                    danu[-1][-1] = danu[-1][-1].split(';')[0]
-                                    break
-                                danu.append(dodatkoweDane[nan].split(',')[:-1])
-                                nan += 1
+            #for pp in range(len(daneKolory)):
+                #if len(obj_308):  # np. SolidWorks
+                    #################################################################
+                    ##  408 - Singular Subfigure Instance Entity
+                    #################################################################
+                    #if re.search("^ *408.*", daneKolory[pp]):
+                        #if not nr:
+                            #nr = 1
+                            #################################################################
+                            ##  zmienna param_308 zawiera poczatkowa linie elementu 308 (spis poszczegolnych obiektow 144)
+                            ##  odwolujemy sie do niej za pomoca 408
+                            #nr_308 = int(re.split(" *", daneKolory[pp])[2])
+                            #nr_308 = int(dodatkoweDane[nr_308 - 1].split(',')[1])
+                            #nr_308 = int(re.split(" *", daneKolory[nr_308 - 1])[2])
+                            #param_308 = dodatkoweDane[nr_308 - 1].split(',')[:-1]
+                            #################################################################
+                            #################################################################
+                            ## zmienna param_308 zawiera poczatkowa linie elementu 308 (spis poszczegolnych obiektow 144)
+                            ## param_308[3] - liczba elementow 144 zawartych w ramach jednego elementu 308
+                            ## len(param_308) > 3; param_308[2] - nazwa elementu, zbyt dluga powoduje przerzucenie do nastepnej linijki
+                            ##   parametru param_308[3]
+                            #if len(param_308) > 3:
+                                #liczba_144 = int(param_308[3])
+                                #danu = [param_308[4:]]
+                                #nan = nr_308
+                            #else:
+                                #param_308 = dodatkoweDane[nr_308].split(',')[:-1]
+                                #try:
+                                    #liczba_144 = int(param_308[0])
+                                    #danu = [param_308[1:]]
+                                #except:
+                                    #liczba_144 = int(param_308[1])
+                                    #danu = [param_308[2:]]
+                                #nan = nr_308 + 1
+                            #################################################################
+                            #################################################################
+                            ##  pobieramy poszczegolne elementy 144 zgrupowane w ramach 308
+                            #for j in range(liczba_144):
+                                ##param = dodatkoweDane[nan].split(',')
+                                #if re.search("^.*;.*", dodatkoweDane[nan]):
+                                    #danu.append(dodatkoweDane[nan].split(','))
+                                    #danu[-1][-1] = danu[-1][-1].split(';')[0]
+                                    #break
+                                #danu.append(dodatkoweDane[nan].split(',')[:-1])
+                                #nan += 1
                             
-                            paramu = []
-                            for j in danu:
-                                paramu += j
-                            ################################################################
-                            ################################################################
-                            #  wyciagamy kolory poszczegolnych plaszczyzn
-                            for j in paramu:
-                                kolor = int(re.split(" *", daneKolory[int(j)])[3])
-                                if kolor >= 0:  # standardowy kolor IGS
-                                    paletaKolorow.append(spisKolorow[kolor])
-                                else:  # zdefiniowany w pliku kolor, 314 - Color Definition Entity
-                                    kolor = daneKolory[(kolor * -1) - 1]
-                                    kolor = int(re.split(" *", kolor)[2])
-                                    kolor = dodatkoweDane[kolor - 1].split(',')
+                            #paramu = []
+                            #for j in danu:
+                                #paramu += j
+                            #################################################################
+                            #################################################################
+                            ##  wyciagamy kolory poszczegolnych plaszczyzn
+                            #for j in paramu:
+                                #kolor = int(re.split(" *", daneKolory[int(j)])[3])
+                                #if kolor >= 0:  # standardowy kolor IGS
+                                    #paletaKolorow.append(spisKolorow[kolor])
+                                #else:  # zdefiniowany w pliku kolor, 314 - Color Definition Entity
+                                    #kolor = daneKolory[(kolor * -1) - 1]
+                                    #kolor = int(re.split(" *", kolor)[2])
+                                    #kolor = dodatkoweDane[kolor - 1].split(',')
                                     
-                                    R = float(kolor[1]) / 100.
-                                    G = float(kolor[2]) / 100.
-                                    B = float(kolor[3]) / 100.
-                                    paletaKolorow.append((R, G, B))
-                            ################################################################
-                        else:
-                            nr = 0
-                            continue
-                ################################################################
-                #  144 - Trimmed (Parametric) Surface Entity
-                ################################################################
-                else:  # np. CATIA
-                    if re.search("^ *144.*", daneKolory[pp]):
-                        if nr:
-                            nr = 0
-                            ################################################################
-                            #  wyciagamy kolory poszczegolnych plaszczyzn
-                            kolor = int(re.split(" *", daneKolory[pp])[3])
-                            if kolor >= 0:  # standardowy kolor IGS
-                                paletaKolorow.append(spisKolorow[kolor])
-                            else:  # zdefiniowany w pliku kolor, 314 - Color Definition Entity
-                                kolor = daneKolory[(kolor * -1) - 1]
-                                kolor = int(re.split(" *", kolor)[2])
-                                kolor = dodatkoweDane[kolor - 1].split(',')
+                                    #R = float(kolor[1]) / 100.
+                                    #G = float(kolor[2]) / 100.
+                                    #B = float(kolor[3]) / 100.
+                                    #paletaKolorow.append((R, G, B))
+                            #################################################################
+                        #else:
+                            #nr = 0
+                            #continue
+                #################################################################
+                ##  144 - Trimmed (Parametric) Surface Entity
+                #################################################################
+                #else:  # np. CATIA
+                    #if re.search("^ *144.*", daneKolory[pp]):
+                        #if nr:
+                            #nr = 0
+                            #################################################################
+                            ##  wyciagamy kolory poszczegolnych plaszczyzn
+                            #kolor = int(re.split(" *", daneKolory[pp])[3])
+                            #if kolor >= 0:  # standardowy kolor IGS
+                                #paletaKolorow.append(spisKolorow[kolor])
+                            #else:  # zdefiniowany w pliku kolor, 314 - Color Definition Entity
+                                #kolor = daneKolory[(kolor * -1) - 1]
+                                #kolor = int(re.split(" *", kolor)[2])
+                                #kolor = dodatkoweDane[kolor - 1].split(',')
                                 
-                                R = float(kolor[1]) / 100.
-                                G = float(kolor[2]) / 100.
-                                B = float(kolor[3]) / 100.
-                                paletaKolorow.append((R, G, B))
-                            ################################################################
-                        else:
-                            nr = 1
-                            continue
-            step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
-            self.objColors[filePath] = paletaKolorow
-            colFileData.write(str(paletaKolorow))
-            colFileData.close()
-        except Exception, e:
-            FreeCAD.Console.PrintWarning(u"Error 1a: {0} \n".format(e))
+                                #R = float(kolor[1]) / 100.
+                                #G = float(kolor[2]) / 100.
+                                #B = float(kolor[3]) / 100.
+                                #paletaKolorow.append((R, G, B))
+                            #################################################################
+                        #else:
+                            #nr = 1
+                            #continue
+            #step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
+            #self.objColors[filePath] = paletaKolorow
+            #colFileData.write(str(paletaKolorow))
+            #colFileData.close()
+        #except Exception, e:
+            #FreeCAD.Console.PrintWarning(u"Error 1a: {0} \n".format(e))
         
-        return step_model
+        #return step_model
     
     def setDatabase(self):
         self.__SQL__ = dataBase()
