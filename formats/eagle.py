@@ -142,7 +142,7 @@ class EaglePCB(mainPCB):
     def getElements(self):
         if len(self.elements) == 0:
             data = re.findall("<elements>(.+?)</elements>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-            for i in re.findall('<element name="(|.+?)" library="(.+?)" package="(.+?)" value="(|.+?)" x="(.+?)" y="(.+?)"( locked="(.+?)"|)( smashed="(.+?)"|)( rot="(.+?)"|)(/>|>\n(.+?)\n</element>)', data, re.MULTILINE|re.DOTALL):
+            for i in re.findall('<element name="(|.+?)" library="(.+?)" package="(.+?)" value="(|.+?)" x="(.+?)" y="(.+?)"( locked="(.+?)"|)( populate="(.+?)"|)( smashed="(.+?)"|)( rot="(.+?)"|)(/>|>\n(.+?)\n</element>)', data, re.MULTILINE|re.DOTALL):
                 name = i[0]
                 library = i[1]
                 package = i[2]
@@ -150,8 +150,9 @@ class EaglePCB(mainPCB):
                 x = float(i[4])
                 y = float(i[5])
                 locked = i[7]
-                smashed = i[9]
-                attribute = i[12].replace('/>', '')
+                populated = i[9]
+                smashed = i[11]
+                attribute = i[13].replace('/>', '')
                 
                 try:
                     rot = float(re.search('MR([0-9,.-]*)', i[11]).groups()[0])
@@ -164,11 +165,11 @@ class EaglePCB(mainPCB):
                         rot = 0.
                         side = 1  # TOP
                 
-                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
+                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
     
     def getSection(self, name):
         if name.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
+            FreeCAD.Console.PrintWarning("Incorrect parameter (Section)!\n")
             return ''
         
         try:
@@ -178,7 +179,7 @@ class EaglePCB(mainPCB):
     
     def getPolygons(self, section, layer):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
+            #FreeCAD.Console.PrintWarning("Incorrect parameter (Polygon)!\n")
             return []
         
         if not isinstance(layer, list):
@@ -193,7 +194,7 @@ class EaglePCB(mainPCB):
     
     def getRectangle(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
+            #FreeCAD.Console.PrintWarning("Incorrect parameter (Rectangle)!\n")
             return []
         
         if not isinstance(layer, list):
@@ -239,7 +240,7 @@ class EaglePCB(mainPCB):
     
     def getCircles(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
+            #FreeCAD.Console.PrintWarning("Incorrect parameter (Cirlce)!\n")
             return []
         
         if not isinstance(layer, list):
@@ -272,7 +273,7 @@ class EaglePCB(mainPCB):
             
     def getWires(self, section, layer, m=[0,0]):
         if section.strip() == "":
-            FreeCAD.Console.PrintWarning("Incorrect parameter!\n")
+            #FreeCAD.Console.PrintWarning("Incorrect parameter (Wire)!\n")
             return []
         
         if not isinstance(layer, list):
@@ -909,7 +910,7 @@ class EaglePCB(mainPCB):
             if i['side'] == 0:
                 if layerNumber in [21, 51]:  # bottom
                     szukanaWarstwa = [layerNumber + 1]
-                elif layerNumber in [22, 52]:  # bottom
+                elif layerNumber in [22, 52]:  # top
                     szukanaWarstwa = [layerNumber - 1]
             else:
                 szukanaWarstwa = [layerNumber]
