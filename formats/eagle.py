@@ -152,14 +152,14 @@ class EaglePCB(mainPCB):
                 locked = i[7]
                 populated = i[9]
                 smashed = i[11]
-                attribute = i[13].replace('/>', '')
+                attribute = i[14].replace('/>', '')
                 
                 try:
-                    rot = float(re.search('MR([0-9,.-]*)', i[11]).groups()[0])
+                    rot = float(re.search('MR([0-9,.-]*)', i[13]).groups()[0])
                     side = 0  # BOTTOM
                 except:
                     try:
-                        rot = float(re.search('R([0-9,.-]*)', i[11]).groups()[0])
+                        rot = float(re.search('R([0-9,.-]*)', i[13]).groups()[0])
                         side = 1  # TOP
                     except:
                         rot = 0.
