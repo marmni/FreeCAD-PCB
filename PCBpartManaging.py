@@ -190,7 +190,7 @@ class partsManaging(mathFunctions):
             if not koloroweElemnty:
                 step_model.Shape = Part.read(filePath)
             else:
-                active = FreeCAD.ActiveDocument.Label
+                active = FreeCAD.ActiveDocument.Name
                 step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
                 FreeCAD.setActiveDocument(active)
                 FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
