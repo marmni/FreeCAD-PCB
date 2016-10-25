@@ -88,6 +88,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
             layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
             #package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
             package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
+            descr = readStringInBracket('descr',i)
             #
             category = ''
             if ':' in package:
@@ -175,11 +176,14 @@ class KiCadv4_PCB(KiCadv3_PCB):
             
             EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
             #
-            newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
+            newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library, {}], EL_Name, EL_Value]
 
-            # model settings, the dictionary is prepare to be esaily inserted into the database
-            m = re.search(r'\(\s*model',i)
-            if m:
+            index = 0 
+            while True: 
+                m = re.search(r'\(\s*model',i)
+                if not m:
+                    break
+
                 # searching of ending ')'
                 # TODO deal with '()' inside literal strings
                 end = m.start()
@@ -193,6 +197,8 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     end+=1
 
                 m = i[m.start():end]
+                i = i[end:]
+
                 model = {}
 
                 model['path'] = os.path.splitext(re.search(r'\(\s*model\s+(\S+)', m).group(1))[0]
@@ -223,21 +229,24 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 model['rotate'] = [-float(t) for t in reversed(re.search((r'\(\s*rotate\s*\(xyz\s*'
                         '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
                         m,re.MULTILINE|re.DOTALL).groups())]
-                model['description'] = readStringInBracket('descr',i)
+                model['description'] = descr
                 model['add_socket'] = '[False, None]'
                 model['socket'] = '[False, 0.0]'
                 model['datasheet'] = ''
 
-                newPart[0].append({'model':model})
+                newPart[0][8]['model'] = model
 
-            wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #
-            if wyn[0] == 'Error':  # lista brakujacych elementow
-                partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
-                if isinstance(partNameTXT, unicode):
-                    partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-                
-                PCB_ER.append([partNameTXT, package, EL_Value[0], library])
+                wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+
+                if wyn[0] == 'Error':  # lista brakujacych elementow
+                    partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
+                    if isinstance(partNameTXT, unicode):
+                        partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
+                    
+                    PCB_ER.append([partNameTXT, package, EL_Value[0], library])
+
+                index += 1
+                newPart[0][0] = tr_value + '#' + str(index)
         ####
         return PCB_ER
 
