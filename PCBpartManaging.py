@@ -797,15 +797,29 @@ class partsManaging(mathFunctions):
                 if found:
                     [shape,colors] = self.loadPart(FreeCAD.activeDocument(),path)
 
-                    # We need to adjust offset, because FreeCAD-PCB needs object centered placement
                     at = modelInfo['at']
                     modelInfo.pop('at')
-                    at[0] += shape.BoundBox.Center.x
-                    at[1] += shape.BoundBox.Center.y
-                    at[2] += shape.BoundBox.Center.z
-                    # TODO verify that kicad also rotate at object center
                     rotate = modelInfo['rotate']
                     modelInfo.pop('rotate')
+
+                    if databaseType == 'kicad': 
+                        # This is what I think how FreeCAD-PCB places objects.
+                        # 
+                        # 1) After loading the model, it will move the object so that it centers at the origin.
+                        # 2) Rotate the object with the angles stored in the database using x, y and z as rotation 
+                        #    axis. In other word, FreeCAD-PCB stores the rotation as yaw, pitch and roll.
+                        # 3) Move the object to its final position using the translation stored in the database.
+                        #
+                        # However, kicad has no step 1), which is why we need to adjust the placement as follow.
+                        # Do a yaw, pitch, roll rotation of the object center vector. Add the resulting vector
+                        # to the translation.
+                        pos = FreeCAD.Placement(\
+                                    FreeCAD.Base.Vector(0.0,0.0,0.0), \
+                                    FreeCAD.Rotation(rotate[0], rotate[1], rotate[2]), \
+                                    FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shape.BoundBox.Center)
+                        at[0] += pos.x
+                        at[1] += pos.y
+                        at[2] += pos.z
 
                     modelSoft = [name,supSoftware[databaseType]['name']]
                     modelSoft.extend(at)
