@@ -104,7 +104,10 @@ class partsManaging(mathFunctions):
         fileData = self.partExist(newPart[0], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
         
         if fileData[0]:
-            packageData = self.__SQL__.getValues(fileData[2])
+            if fileData[2]:
+                packageData = self.__SQL__.getValues(fileData[2])
+            else:
+                packageData = {'add_socket':'[False,None]'}
             filePath = fileData[1]
             
             correctingValue_X = fileData[3][2]  # pos_X
@@ -784,50 +787,53 @@ class partsManaging(mathFunctions):
             databaseType = self.databaseType
             if databaseType == 'kicad_v4':
                 databaseType = 'kicad'
-            #
-            sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
 
-            if not sectionName[0]:
-                modelInfo = getExtensionInfo(info,'model')
-                if modelInfo is None or \
-                    not FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("autoModelAssign", True):
-                    return [False]
+            modelInfo = getExtensionInfo(info,'model')
+
+            if modelInfo and \
+                FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("autoModelAssign", True):
 
                 [found, path] = partExistPath(modelInfo['path'])
-                if not found:
-                    return [False]
+                if found:
+                    [shape,colors] = self.loadPart(FreeCAD.activeDocument(),path)
 
-                catID = getCategoryIdByName(modelInfo['category'])
-                if catID == -1:
-                    catID = newID()
-                    addCategory(modelInfo['category'],'')
+                    # We need to adjust offset, because FreeCAD-PCB needs object centered placement
+                    at = modelInfo['at']
+                    modelInfo.pop('at')
+                    at[0] += shape.BoundBox.Center.x
+                    at[1] += shape.BoundBox.Center.y
+                    at[2] += shape.BoundBox.Center.z
+                    # TODO verify that kicad also rotate at object center
+                    rotate = modelInfo['rotate']
+                    modelInfo.pop('rotate')
 
-                modelInfo['category'] = str(catID)
+                    modelSoft = [name,supSoftware[databaseType]['name']]
+                    modelSoft.extend(at)
+                    modelSoft.extend(rotate)
+                    modelInfo['soft'] = str([modelSoft])
 
-                [shape,colors] = self.loadPart(FreeCAD.activeDocument(),path)
+                    #####################################################################################
+                    ## We'd better not storing model setting extracted from PCB files, because user is 
+                    ## allow to customize model setting after importing footprints into PCB files.
+                    ## So the same footprint name may have very different model settings, which defies
+                    ## the purpose of having a database. 
+                    ######################################################################################
+                    # catID = getCategoryIdByName(modelInfo['category'])
+                    # if catID == -1:
+                    #     catID = newID()
+                    #     addCategory(modelInfo['category'],'')
+                    # modelInfo['category'] = str(catID)
+                    # self.__SQL__.addPackage(modelInfo)
+                    # 
+                    # sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
+                    # if sectionName[0]:
+                    #    return [True, path, sectionName[1], sectionName[2], sectionName[3], shape, colors]
+                    #######################################################################################
 
-                # We need to adjust offset, because FreeCAD-PCB needs object centered placement
-                at = modelInfo['at']
-                modelInfo.pop('at')
-                at[0] += shape.BoundBox.Center.x
-                at[1] += shape.BoundBox.Center.y
-                at[2] += shape.BoundBox.Center.z
-                # TODO verify that kicad also rotate at object center
-                rotate = modelInfo['rotate']
-                modelInfo.pop('rotate')
+                    return [True, path, '', modelSoft, shape, colors]; 
 
-                modelSoft = [name,supSoftware[databaseType]['name']]
-                modelSoft.extend(at)
-                modelSoft.extend(rotate)
-                modelInfo['soft'] = str([modelSoft])
-                
-                self.__SQL__.addPackage(modelInfo)
-
-                sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
-                if sectionName[0]:
-                    return [True, path, sectionName[1], sectionName[2], sectionName[3], shape, colors]
-
-            else :
+            sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
+            if sectionName[0]:
 
                 partPath = self.__SQL__.getValues(sectionName[1])
                 
