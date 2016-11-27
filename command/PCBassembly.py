@@ -166,10 +166,78 @@ class createAssembly:
             pass
         FreeCAD.ActiveDocument.recompute()
 
+def exportAssembly():
+    doc = FreeCAD.ActiveDocument
+
+    tmpobjs = []
+    objs = []
+    for i in doc.Objects:
+        if not i.ViewObject.Visibility or not hasattr(i,'Shape') or not hasattr(i,'Proxy'):
+            continue
+        if hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+            continue
+        if not i.isDerivedFrom("Sketcher::SketchObject") and len(i.Shape.Solids):
+
+            # We are trying to combining all objects into one single compound object. However,
+            # FreeCAD has a bug such that after compound, it will sometimes refuse to display
+            # any color if the compound contain some overlapped pads with holes, even though
+            # the color of all faces stored in DiffuseColor is still intact. 
+            # 
+            # The walkaround is to explode the pad object, and recombine all the solid inside
+            # using 'Part::Compound'. 
+            #
+            # Only apply this trick to layerSilkObject(pads) and layerPathObject(path) and 
+            # having holes.
+            if not doc.Board.Display or len(i.Shape.Solids)==1 or \
+                    (i.Proxy.__class__.__name__ != 'layerSilkObject' and \
+                     i.Proxy.__class__.__name__ != 'layerPathObject') :
+                objs.append(i)
+                continue
+            subobjs = []
+            for j in i.Shape.Solids:
+                tmpobj = doc.addObject('Part::Feature','obj')
+                tmpobj.Shape = j
+                tmpobj.ViewObject.ShapeColor = i.ViewObject.ShapeColor
+                tmpobjs.append(tmpobj)
+                subobjs.append(tmpobj)
+            subobj = doc.addObject('Part::Compound','obj')
+            subobj.Links = subobjs
+            objs.append(subobj)
+            tmpobjs.append(subobj)
+
+    if not len(objs):
+        FreeCAD.Console.PrintWarning('no parts found')
+        return
+    obj = doc.addObject('Part::Compound','Compound')
+    obj.Links = objs
+    doc.recompute()
+    tmpobjs.append(obj)
+
+    import random
+    newDoc = FreeCAD.newDocument(doc.Name+'_'+str(random.randrange(10000,99999)))
+
+    copy = newDoc.addObject('Part::Feature','Compound')
+    copy.Shape = obj.Shape
+    copy.ViewObject.DiffuseColor = obj.ViewObject.DiffuseColor
+    copy.ViewObject.DisplayMode = 'Shaded'
+    newDoc.recompute()
+
+    for i in objs:
+        i.ViewObject.Visibility = True
+    for i in reversed(tmpobjs):
+        doc.removeObject(i.Name)
+
+    view = FreeCADGui.getDocument(newDoc.Name).activeView()
+    view.viewAxometric()
+    view.fitAll()
 
 def updateAssembly():
     if len(FreeCADGui.Selection.getSelection()) == 0:
-        FreeCAD.Console.PrintWarning("Select assembly!\n")
+        reply = QtGui.QMessageBox.question(None, "", "No assembly selected! Do you want to export an assembly?",
+                         QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            exportAssembly()
+            return
     
     mainFile = FreeCAD.ActiveDocument.Label
     for i in FreeCADGui.Selection.getSelection():
