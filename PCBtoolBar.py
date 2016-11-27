@@ -55,7 +55,7 @@ from command.PCBexportKerkythea import exportToKerkytheaGui
 from command.PCBexportPovRay import exportObjectToPovRayGui
 from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
 from command.PCBglue import createGlueGui
-from command.PCBassembly import createAssemblyGui, updateAssembly
+from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssembly
 from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
 
@@ -147,6 +147,9 @@ class pcbToolBarView(pcbToolBarMain):
         scriptCmd_QuickAssembly2 = self.createAction(u"Update assembly", u"Update assembly", ":/data/img/asmUpdate.png")
         QtCore.QObject.connect(scriptCmd_QuickAssembly2, QtCore.SIGNAL("triggered()"), self.quickAssemblyUpdate)
         
+        scriptCmd_exportAssembly = self.createAction(u"Generate one object from the board", u"Generate one object from the board", ":/data/img/asmUpdate.png")
+        QtCore.QObject.connect(scriptCmd_exportAssembly, QtCore.SIGNAL("triggered()"), self.exportAssembly)
+
         scriptCmd_CheckForCollisions = self.createAction(u"Check for collisions", u"Check for collisions", ":/data/img/collisions.png")
         QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
         
@@ -173,6 +176,7 @@ class pcbToolBarView(pcbToolBarMain):
         self.addSeparator()
         self.addAction(scriptCmd_QuickAssembly)
         self.addAction(scriptCmd_QuickAssembly2)
+        self.addAction(scriptCmd_exportAssembly)
         self.addAction(scriptCmd_CheckForCollisions)
         #self.addAction(self.scriptCmd_HeightDisplay)
         self.addToolBar(self)
@@ -204,6 +208,9 @@ class pcbToolBarView(pcbToolBarMain):
                     aa.addPartToGroup(True, [None, None, None, None, fileData[3]], j)
                 else:
                     aa.addPartToGroup(True, [False], j)
+    
+    def exportAssembly(self):
+        exportAssembly()
 
     def quickAssembly(self):
         try:

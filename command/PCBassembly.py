@@ -233,11 +233,7 @@ def exportAssembly():
 
 def updateAssembly():
     if len(FreeCADGui.Selection.getSelection()) == 0:
-        reply = QtGui.QMessageBox.question(None, "", "No assembly selected! Do you want to export an assembly?",
-                         QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
-        if reply == QtGui.QMessageBox.Yes:
-            exportAssembly()
-            return
+        FreeCAD.Console.PrintWarning("Select assembly!\n")
     
     mainFile = FreeCAD.ActiveDocument.Label
     for i in FreeCADGui.Selection.getSelection():
