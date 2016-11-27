@@ -1392,23 +1392,26 @@ class layerSilkObject(objectWire):
                 pads.Placement.Base.z = fp.Placement.Base.z
                 fp.Shape = pads
             else:
+                holes = None
+                if FreeCAD.ActiveDocument.Board.Display:
+                    holes = []
+                    for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
+                        holes.append(Part.Face(i))
+                    if len(holes):
+                        holes = Part.makeCompound(holes)
+                    else:
+                        holes = None
+            
                 pads = []
                 for i in self.spisObiektowTXT:
-                    pads.append(self.makePolygon(i))
+                    o = self.makePolygon(i)
+                    if not holes is None:
+                        o = o.cut(holes)
+                        if not len(o.Faces):
+                            continue
+                    pads.append(o)
+
                 pads = Part.makeCompound(pads)
-                
-                if FreeCAD.ActiveDocument.Board.Display:
-                    try:
-                        holes = []
-                        for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
-                            holes.append(Part.Face(i))
-                        
-                        if len(holes):
-                            pads = pads.cut(Part.makeCompound(holes))
-                        else:
-                            pads = pads
-                    except Exception, e:
-                        FreeCAD.Console.PrintWarning("{0} \n".format(e))
                 
                 # cut to board shape
                 if self.cutToBoard:
