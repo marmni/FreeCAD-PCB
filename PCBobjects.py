@@ -1025,9 +1025,15 @@ class layerPathObject(objectWire):
         if len(self.spisObiektow):
             obiekty = []
             
-            if self.cutToBoard:
-                board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
+            holes = None
+            if FreeCAD.ActiveDocument.Board.Display:
+                holes = []
+                for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
+                    holes.append(Part.Face(i))
+                if len(holes):
+                    holes = Part.makeCompound(holes)
+                else:
+                    holes = None
             
             for i in self.spisObiektow:
                 if i[0] == 'arc':
@@ -1036,23 +1042,14 @@ class layerPathObject(objectWire):
                     curve = i[5]
                     width = i[6]
                     cap = i[7]
-
                     o = self.createArc(p1, p2, curve, width, cap)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
+
                 elif i[0] == 'circle':
                     x = i[1]
                     y = i[2]
                     r = i[3]
                     width = i[4]
-                    
                     o = self.createCircle(x, y, r, width)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
                 elif i[0] == 'line':
                     x1 = i[1]
                     y1 = i[2]
@@ -1061,25 +1058,23 @@ class layerPathObject(objectWire):
                     width = i[5]
                     
                     o = self.createLine(x1, y1, x2, y2, width)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
-            #
+                else :
+                    continue
+
+                # It is possible for some path segment to be completely cut off by 
+                # some hole. The resulting Shape will have an empty Face list. FreeCAD
+                # has trouble making compound of these empty Shapes. Hence, we shall
+                # drop those shapes here.
+                if not holes is None:
+                    o = o.cut(holes)
+                    if not len(o.Faces):
+                        continue
+                obiekty.append(o)
+
             path = Part.makeCompound(obiekty)
-            # cut to board shape
-            #if self.cutToBoard:
-                #path = cutToBoardShape(path)
-            ###################################################
-            #if FreeCAD.ActiveDocument.Board.Display:
-                #holes = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Holes.Shape.Edges)
-                ##holes = holes.extrude(FreeCAD.Base.Vector(0, 0, 0.2))
-            
-                #path = shapes.cut(holes)
-            #else:
-                #path = shapes
-            #
-            #path = path.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            if self.cutToBoard:
+                path = cutToBoardShape(path)
+            path = path.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
             path.Placement.Base.z = fp.Placement.Base.z
             fp.Shape = path
             
@@ -1420,6 +1415,7 @@ class layerSilkObject(objectWire):
                     pads = cutToBoardShape(pads)
                 ###################################################
                 pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+
                 pads.Placement.Base.z = fp.Placement.Base.z
                 fp.Shape = pads
     
