@@ -169,10 +169,13 @@ class partsManaging(mathFunctions):
         # check if 3D model exist
         #################################################################
         #################################################################
-        fileData = self.partExist(newPart[0][1], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
+        fileData = self.partExist(newPart[0], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
         
         if fileData[0]:
-            packageData = self.__SQL__.getValues(fileData[2])
+            if fileData[2]:
+                packageData = self.__SQL__.getValues(fileData[2])
+            else:
+                packageData = {'add_socket':'[False,None]'}
             filePath = fileData[1]
             
             correctingValue_X = fileData[3][2]  # pos_X
@@ -181,6 +184,7 @@ class partsManaging(mathFunctions):
             correctingValue_RX = fileData[3][5]  # pos_RX
             correctingValue_RY = fileData[3][6]  # pos_RY
             correctingValue_RZ = fileData[3][7]  # pos_RZ
+            
             ################################################################
             # DODANIE OBIEKTU NA PLANSZE
             ################################################################
@@ -854,11 +858,48 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.read(getFromSettings_databasePath())
 
-    def partExist(self, name, model, showDial=True):
+    def partExist(self, info, model, showDial=True):
         try:
+            name = info[1]
+            
             databaseType = self.databaseType
             if databaseType == 'kicad_v4':
                 databaseType = 'kicad'
+            #
+            modelInfo = getExtensionInfo(info,'model')
+            if modelInfo:  # kicad users
+                [found, path] = partExistPath(modelInfo['path'])
+                if found:
+                    at = modelInfo['at']
+                    modelInfo.pop('at')
+                    rotate = modelInfo['rotate']
+                    modelInfo.pop('rotate')
+
+                    #if databaseType == 'kicad': 
+                        # This is what I think how FreeCAD-PCB places objects.
+                        # 
+                        # 1) After loading the model, it will move the object so that it centers at the origin.
+                        # 2) Rotate the object with the angles stored in the database using x, y and z as rotation 
+                        #    axis. In other word, FreeCAD-PCB stores the rotation as yaw, pitch and roll.
+                        # 3) Move the object to its final position using the translation stored in the database.
+                        #
+                        # However, kicad has no step 1), which is why we need to adjust the placement as follow.
+                        # Do a yaw, pitch, roll rotation of the object center vector. Add the resulting vector
+                        # to the translation.
+                        #pos = FreeCAD.Placement(\
+                                    #FreeCAD.Base.Vector(0.0,0.0,0.0), \
+                                    #FreeCAD.Rotation(rotate[0], rotate[1], rotate[2]), \
+                                    #FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shape.BoundBox.Center)
+                        #at[0] += pos.x
+                        #at[1] += pos.y
+                        #at[2] += pos.z
+
+                    modelSoft = [name,supSoftware[databaseType]['name']]
+                    modelSoft.extend(at)
+                    modelSoft.extend(rotate)
+                    modelInfo['soft'] = str([modelSoft])
+
+                    return [True, path, '', modelSoft, -1]; 
             #
             sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
             if sectionName[0]:
@@ -932,6 +973,13 @@ def partExistPath(filePos):
     #
     return [False, False]
 
+
+def getExtensionInfo(info,name):
+    if len(info)==9 and \
+        isinstance(info[8],dict) and \
+        name in info[8] :
+        return info[8][name]
+    return None
 
 
 class modelTypes(QtGui.QDialog):

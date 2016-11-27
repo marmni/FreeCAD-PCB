@@ -55,6 +55,12 @@ class dialogMAIN(dialogMAIN_FORM):
         ##
         self.generateLayers()
         self.spisWarstw.sortItems(1)
+        #
+        self.kicadModels = QtGui.QCheckBox(u"Load kicad models (if there are any")
+
+        lay = QtGui.QHBoxLayout()
+        lay.addWidget(self.kicadModels)
+        self.lay.addLayout(lay, 12, 0, 1, 6)
     
     def getBoardThickness(self):
         return float(re.findall(r'\(thickness (.+?)\)', self.projektBRD)[0])
@@ -78,7 +84,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
         #
         self.borderLayerNumber = 44
     
-    def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
+    def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ, loadExternalModels):
         self.__SQL__.reloadList()
         #
         PCB_ER = []
@@ -99,13 +105,13 @@ class KiCadv4_PCB(KiCadv3_PCB):
             package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
             package = re.sub('locked|placed|pla', '', package).split(':')[-1]
             package = package.replace('"', '').strip()
-            #3D package from KiCad
-            try:
-                package3D = package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                if package3D and self.partExist(os.path.basename(package3D), "", False):
-                    package = os.path.basename(package3D)
-            except:
-                pass
+            ##3D package from KiCad
+            #try:
+                #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                #if package3D and self.partExist(os.path.basename(package3D), "", False):
+                    #package = os.path.basename(package3D)
+            #except:
+                #pass
             #
             library = package
             
@@ -182,7 +188,85 @@ class KiCadv4_PCB(KiCadv3_PCB):
             
             EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
             #
-            newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
+            newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library, {}], EL_Name, EL_Value]
+            
+            #  Support loading of kicad parts with multiple model
+            #  @realthunder / @marmni
+            #  3D package from KiCad
+            
+            if loadExternalModels:
+                try:
+                    package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                    
+                    while True: 
+                        m = re.search(r'\(\s*model',i)
+                        if not m:
+                            break
+
+                        # searching of ending ')'
+                        # TODO deal with '()' inside literal strings
+                        end = m.start()
+                        wynik = ''
+                        licznik = 0
+                        txt = ''
+                        start = 0
+                        #
+                        txt_1 = 0
+                        
+                        for c in i[m.start():]:
+                            if c in ['"', "'"] and txt_1 == 0:
+                                txt_1 = 1
+                            elif c in ['"', "'"] and txt_1 == 1:
+                                txt_1 = 0
+                            
+                            
+                            if txt_1 == 0:
+                                if c == '(':
+                                    licznik += 1
+                                    start = 1
+                                elif c == ')':
+                                    licznik -= 1
+                            
+                            txt += c
+                            end+=1
+                            
+                            if licznik == 0 and start == 1:
+                                wynik += txt.strip()
+                                break
+                        
+                        i = i[end:]
+                        
+                        # 3D models
+                        model = {}
+                        model['path'] = os.path.splitext(re.search(r'\(\s*model\s+(\S+)', wynik).group(1))[0]
+
+                        # Placement shall be adjusted according to the model bounding box.
+                        # Delay that till the actual import for performance
+                        model['at'] = [float(t)*25.4 for t in re.search((r'\(\s*at\s*\(xyz\s*'
+                                '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
+                                wynik,re.MULTILINE|re.DOTALL).groups()]
+                        model['at'][1] *= -1
+
+                        # KiCad uses RX,RY,RZ, but FreeCAD.Rotation() needs Yaw-Pitch-Row
+                        # Errrr! my head is spinning!
+                        model['rotate'] = [-float(t) for t in reversed(re.search((r'\(\s*rotate\s*\(xyz\s*'
+                                '([0-9\.-]+)\s+([0-9\.-]+)\s+([0-9\.-]+)'),
+                                wynik,re.MULTILINE|re.DOTALL).groups())]
+                        
+                        newPart[0][8]['model'] = model  # new 3D model
+                        wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+                        #
+                        if wyn[0] == 'Error':  # lista brakujacych elementow
+                            partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
+                            if isinstance(partNameTXT, unicode):
+                                partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
+                            
+                            PCB_ER.append([partNameTXT, package, EL_Value[0], library])
+                except Exception, e:
+                    pass
+                else:
+                    continue
+            
             wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             #
             if wyn[0] == 'Error':  # lista brakujacych elementow
@@ -206,7 +290,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
         self.generateHoles(self.getHoles(types), doc, self.dialogMAIN.holesMin.value(), self.dialogMAIN.holesMax.value())
         #
         if self.dialogMAIN.plytkaPCB_elementy.isChecked():
-            partsError = self.getParts(self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value())
+            partsError = self.getParts(self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value(), self.dialogMAIN.kicadModels.isChecked())
             if self.dialogMAIN.plytkaPCB_plikER.isChecked():
                 self.generateErrorReport(partsError, filename)
         ##  dodatkowe warstwy
