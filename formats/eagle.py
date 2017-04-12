@@ -146,6 +146,7 @@ class EaglePCB(mainPCB):
                 name = i[0]
                 library = i[1]
                 package = i[2]
+                freecad_package = package
                 value = i[3]
                 x = float(i[4])
                 y = float(i[5])
@@ -153,6 +154,15 @@ class EaglePCB(mainPCB):
                 populated = i[9]
                 smashed = i[11]
                 attribute = i[14].replace('/>', '')
+                
+                # <uros@isotel.eu> fix to get a FREECAD attribute out, it's overall all ugly since original
+                # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
+                try:
+                    for attr in minidom.parseString( "<element>" + i[14] ).getElementsByTagName('attribute'):                        
+                        if attr.getAttribute('name') == 'FREECAD':
+                            freecad_package = attr.getAttribute('value')
+                except:
+                    pass
                 
                 try:
                     rot = float(re.search('MR([0-9,.-]*)', i[13]).groups()[0])
@@ -165,7 +175,8 @@ class EaglePCB(mainPCB):
                         rot = 0.
                         side = 1  # TOP
                 
-                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
+                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute, "freecad_package" : freecad_package})
+                #self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
     
     def getSection(self, name):
         if name.strip() == "":
@@ -576,7 +587,10 @@ class EaglePCB(mainPCB):
                         j[0] = 'VALUE'
                         EL_Value = j
             
-            newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
+            #newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
+            #wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+            # <uros@isotel.eu> modified package here and 7 lines below
+            newPart = [[i['name'], i['freecad_package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
             wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             #
             if wyn[0] == 'Error':  # lista brakujacych elementow
@@ -584,7 +598,8 @@ class EaglePCB(mainPCB):
                 if isinstance(partNameTXT, unicode):
                     partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                 
-                PCB_ER.append([partNameTXT, i['package'], i['value'], i['library']])
+                #PCB_ER.append([partNameTXT, i['package'], i['value'], i['library']])
+                PCB_ER.append([partNameTXT, i['freecad_package'], i['value'], i['library']])
         ####
         return PCB_ER
 
