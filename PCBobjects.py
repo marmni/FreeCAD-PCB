@@ -1344,6 +1344,9 @@ class layerSilkObject(objectWire):
                 x = i[1]
                 y = i[2]
                 data.append(self.makePoint(x, y))
+            elif i[0] == 'skip':
+                FreeCAD.Console.PrintWarning("It is not possible to generate pad ({0}). Skipped.\n".format(i[1]))
+                continue
             #elif i[0] == 'arcV2':
                 #p1 = i[1]
                 #p2 = i[2]
@@ -1353,6 +1356,9 @@ class layerSilkObject(objectWire):
                 
                 #data.append(self.makeArc_v2(p1, p2, curve, width, cap))
         #
+        if data == []:
+            return False
+        
         mainObj = Part.Shape(data)
         mainObj = Part.Wire(mainObj.Edges)
         
@@ -1385,6 +1391,9 @@ class layerSilkObject(objectWire):
                 pads = []
                 for i in self.spisObiektowTXT:
                     data = self.makePolygon(i)
+                    if not data:
+                        continue
+                    
                     if self.cutToBoard:
                         data = board.common(data)
                     if 'PCBcenterDrill' in self.Type:
@@ -1448,10 +1457,13 @@ class layerSilkObject(objectWire):
     # shapes
     ################
     def addRectangle(self, x1, y1, x2, y2):
-        self.addLine(x1, y1, x2, y1)
-        self.addLine(x2, y1, x2, y2)
-        self.addLine(x2, y2, x1, y2)
-        self.addLine(x1, y2, x1, y1)
+        if ([x1, y1] == [0, 0] and [x2, y2] == [0, 0]) or (x1 == x2 and y1 == y2):
+            self.spisObiektowTXT[-1]['objects'].append(['skip', "0 size point detected instead rectangle [[{0}, {1}], [{2}, {3}]]".format(x1, y1, x2, y2)])
+        else:
+            self.addLine(x1, y1, x2, y1)
+            self.addLine(x2, y1, x2, y2)
+            self.addLine(x2, y2, x1, y2)
+            self.addLine(x1, y2, x1, y1)
     
     def addOctagon(self, x, y, diameter, width=0):
         dane = self.generateOctagon(x, y, diameter, width)
