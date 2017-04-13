@@ -158,11 +158,18 @@ class EaglePCB(mainPCB):
                 # <uros@isotel.eu> fix to get a FREECAD attribute out, it's overall all ugly since original
                 # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
                 try:
-                    for attr in minidom.parseString( "<element>" + i[14] ).getElementsByTagName('attribute'):                        
+                    for attr in minidom.parseString( "<element>" + i[14] ).getElementsByTagName('attribute'):
                         if attr.getAttribute('name') == 'FREECAD':
-                            freecad_package = attr.getAttribute('value')
-                except:
-                    pass
+                            if attr.getAttribute('value').strip() == "":
+                                FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(name))
+                            else:
+                                if self.partExist(['', attr.getAttribute('value').strip()], '')[0]:
+                                    FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(name, attr.getAttribute('value').strip(), package))
+                                    freecad_package = attr.getAttribute('value').strip()
+                                else:
+                                    FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(name, attr.getAttribute('value').strip()))
+                except Exception, e:
+                    FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
                 
                 try:
                     rot = float(re.search('MR([0-9,.-]*)', i[13]).groups()[0])
