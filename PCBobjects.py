@@ -1199,7 +1199,10 @@ class layerSilkObject(objectWire):
         self.spisObiektowTXT[-1]['objects'].append(['drillCenter', xs, ys, r1, r2])
     
     def addCircle(self, xs, ys, r, w=0):
-        self.spisObiektowTXT[-1]['objects'].append(['circle', xs, ys, r, w])
+        if r == 0:
+            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+        else:
+            self.spisObiektowTXT[-1]['objects'].append(['circle', xs, ys, r, w])
     
     #def addArc(self, x, y, r, startAngle, stopAngle):
         #self.spisObiektowTXT[-1]['objects'].append(['arc', x, y, r, startAngle, stopAngle])
@@ -1473,6 +1476,10 @@ class layerSilkObject(objectWire):
             self.addLine(x1, y1, x2, y2)
     
     def addPadLong(self, x, y, dx, dy, perc, typ=0):
+        if dx == 0 or dy == 0:
+            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+            return
+        
         curve = 90.
         if typ == 0:  # %
             if perc > 100.:
@@ -1525,6 +1532,10 @@ class layerSilkObject(objectWire):
             self.addArc3P(p8, p12, p1)
     
     def addPadOffset(self, x, y, R, e):
+        if R == 0:
+            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+            return
+        
         self.addLine(x, y + R, x + R + e / 2, y + R)
         self.addLine(x, y - R, x + R + e / 2, y - R)
         
