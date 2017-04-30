@@ -515,7 +515,7 @@ class partsManaging(mathFunctions):
         ######
         result.append(step_model)
         self.addPartToGroup(groupParts, fileData, step_model)
-        self.updateView()
+        #self.updateView()
         return result
     
     def addPartToGroup(self, groupParts, fileData, step_model):
