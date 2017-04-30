@@ -84,8 +84,8 @@ class updateWizardWidget(QtGui.QWidget):
         self.groupParts = QtGui.QCheckBox(u'Group parts')
         self.groupParts.setChecked(freecadSettings.GetBool("groupParts", False))
         
-        #self.loadModelColors = QtGui.QCheckBox(u'Colorize elements')
-        #self.loadModelColors.setChecked(True)
+        self.plytkaPCB_elementyKolory = QtGui.QCheckBox(u"Colorize elements")
+        self.plytkaPCB_elementyKolory.setChecked(freecadSettings.GetBool("partsColorize", True))
         
         packagesFrame = QtGui.QGroupBox(u'Packages:')
         packagesFrameLay = QtGui.QGridLayout(packagesFrame)
@@ -98,7 +98,7 @@ class updateWizardWidget(QtGui.QWidget):
         lay.addWidget(packagesFrame)
         lay.addWidget(self.adjustParts)
         lay.addWidget(self.groupParts)
-        #lay.addWidget(self.loadModelColors)
+        lay.addWidget(self.plytkaPCB_elementyKolory)
         lay.setStretch(1, 10)
         self.setLayout(lay)
         #
@@ -194,7 +194,7 @@ class updateParts(partsManaging):
                 self.databaseType = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
                 for j in doc.Objects:
                     if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"] and not j.KeepPosition  and j.Package in packages:
-                        koloroweElemnty = True
+                        koloroweElemnty = self.form.plytkaPCB_elementyKolory.isChecked()
                         adjustParts = self.form.adjustParts.isChecked()
                         groupParts = self.form.groupParts.isChecked()
                         
