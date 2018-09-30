@@ -66,7 +66,8 @@ class addModel(QtGui.QWidget, partsManaging):
         self.package = modelsList()
         self.package.checkItems = False
         self.package.sql = self.__SQL__
-        
+        self.package.reloadList()
+     
         self.side = QtGui.QComboBox()
         self.side.addItems(['TOP', 'BOTTOM'])
         
@@ -244,13 +245,17 @@ class addModel(QtGui.QWidget, partsManaging):
             self.listaBibliotek.clear()
             if str(self.package.currentItem().data(0, QtCore.Qt.UserRole + 1)) == 'C':
                 return
-
-            package = self.__SQL__.getValues(self.package.currentItem().data(0, QtCore.Qt.UserRole))
-            data = eval(package["soft"])
-            for i in range(len(data)):
-                self.listaBibliotek.addItem(u"{0} ({1})".format(data[i][1], data[i][0]))
-                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, data[i][0], QtCore.Qt.UserRole)  # model name
-                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, str(data[i][1]).lower(), QtCore.Qt.UserRole + 1)  # soft name
+            
+            modelData = self.__SQL__.getModelByID(self.package.currentItem().data(0, QtCore.Qt.UserRole))
+            if not modelData[0]:
+                return
+            
+            modelData = self.__SQL__.convertToTable(modelData[1])
+            modelData = self.__SQL__.packagesDataToDictionary(modelData)
+            for i in modelData['software']:
+                self.listaBibliotek.addItem(u"{0} ({1})".format(i['software'], i['name']))
+                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, i['name'], QtCore.Qt.UserRole)  # model name
+                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, str(i['software']).lower(), QtCore.Qt.UserRole + 1)  # soft name
             self.listaBibliotek.setCurrentIndex(0)
         except:
             pass

@@ -117,7 +117,7 @@ class partObject(partsObject):
             for i in fp.OutList:
                 i.X = self.odbijWspolrzedne(i.X.Value, fp.X.Value)
                 i.Proxy.reverseSide(i)
-        except Exception, e:
+        except Exception as e:
             #FreeCAD.Console.PrintWarning("4. {0}\n".format(e))
             pass
 
@@ -133,7 +133,7 @@ class partObject(partsObject):
                     fp.Placement.Base.z = fp.Placement.Base.z - (fp.Socket.Value - self.oldSocket)
                 
                 self.oldSocket = fp.Socket.Value
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
         
@@ -155,7 +155,7 @@ class partObject(partsObject):
                 i.X = fp.X.Value - (self.oldX - i.X.Value)
                 
             self.oldX = fp.X.Value
-        except Exception, e:
+        except Exception as e:
             #FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
             pass
             
@@ -168,7 +168,7 @@ class partObject(partsObject):
                 i.Y = fp.Y.Value - (self.oldY - i.Y.Value)
 
             self.oldY = fp.Y.Value
-        except Exception, e:
+        except Exception as e:
             #FreeCAD.Console.PrintWarning("2. {0}\n".format(e))
             pass
         
@@ -229,7 +229,7 @@ class partObject(partsObject):
                 
                 #fp.Placement.Base.z = fp.Placement.Base.z + socketH
                 #self.updatePosition_Z(fp, getPCBheight()[1])
-        except Exception, e:
+        except Exception as e:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass
 
@@ -353,7 +353,7 @@ class viewProviderPartObject:
         #***************************************************************
         return '''
 /* XPM */
-static char * C:\Users\mariusz\Desktop\logo_xpm[] = {
+static char * C:\\Users\\mariusz\\Desktop\\logo_xpm[] = {
 "62 40 12 1",
 " 	c None",
 ".	c #717171",
@@ -407,7 +407,7 @@ static char * C:\Users\mariusz\Desktop\logo_xpm[] = {
 "                                                              ",
 "                                                              ",
 "                                                              "};
-            '''
+'''
 
 
 class viewProviderPartObject_E:
@@ -483,7 +483,7 @@ class viewProviderPartObject_E:
         #***************************************************************
         return """
 /* XPM */
-static char * C:\Users\mariusz\Downloads\Desktop\logo2_xpm[] = {
+static char * C:\\Users\\mariusz\\Downloads\\Desktop\\logo2_xpm[] = {
 "62 40 9 1",
 " 	c None",
 ".	c #717171",
@@ -571,8 +571,8 @@ class objectWire(mathFunctions):
             wir.append(Part.Arc(FreeCAD.Base.Vector(xT_4, yT_4, 0), FreeCAD.Base.Vector(xT_6, yT_6, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
             ##
             if cap == 'flat':
-                wir.append(Part.Line(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
-                wir.append(Part.Line(FreeCAD.Base.Vector(xT_2, yT_2, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
+                wir.append(Part.LineSegment(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
+                wir.append(Part.LineSegment(FreeCAD.Base.Vector(xT_2, yT_2, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
             else:
                 #wir.append(Part.Line(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
                 #wir.append(Part.Line(FreeCAD.Base.Vector(xT_2, yT_2, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
@@ -800,7 +800,7 @@ class objectWire(mathFunctions):
             ###mainObj = [Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(x3, y3, 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)).toShape()]
             ###return Part.Wire(mainObj)
 
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
 
         
@@ -824,8 +824,8 @@ class objectWire(mathFunctions):
         
         # create wire
         wir = []
-        wir.append(Part.Line(FreeCAD.Base.Vector(0 - r, 0, 0), FreeCAD.Base.Vector(0 - r, dlugosc, 0)))
-        wir.append(Part.Line(FreeCAD.Base.Vector(0 + r, 0, 0), FreeCAD.Base.Vector(0 + r, dlugosc, 0)))
+        wir.append(Part.LineSegment(FreeCAD.Base.Vector(0 - r, 0, 0), FreeCAD.Base.Vector(0 - r, dlugosc, 0)))
+        wir.append(Part.LineSegment(FreeCAD.Base.Vector(0 + r, 0, 0), FreeCAD.Base.Vector(0 + r, dlugosc, 0)))
 
         p1 = [0 - r, 0]
         p2 = [0, 0 - r]
@@ -1099,93 +1099,91 @@ class layerPathObject(objectWire):
         self.generuj(fp)
 
 
-class viewProviderLayerPathObject:
-    def __init__(self, obj):
-        ''' Set this object to the proxy object of the actual view provider '''
-        obj.Proxy = self
+#class viewProviderLayerPathObject:
+    #def __init__(self, obj):
+        #''' Set this object to the proxy object of the actual view provider '''
+        #obj.Proxy = self
         
-    def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        return
+    #def attach(self, obj):
+        #''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        #return
 
-    def updateData(self, fp, prop):
-        ''' If a property of the handled feature has changed we have the chance to handle this here '''
-        return
+    #def updateData(self, fp, prop):
+        #''' If a property of the handled feature has changed we have the chance to handle this here '''
+        #return
 
-    def getDisplayModes(self, obj):
-        ''' Return a list of display modes. '''
-        modes = []
-        return modes
+    #def getDisplayModes(self, obj):
+        #''' Return a list of display modes. '''
+        #modes = []
+        #return modes
 
-    def getDefaultDisplayMode(self):
-        ''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
-        return "Wire Frame"
+    #def getDefaultDisplayMode(self):
+        #''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
+        #return "Wire Frame"
 
-    def setDisplayMode(self, mode):
-        ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
-        '''
-        return mode
+    #def setDisplayMode(self, mode):
+        #''' Map the display mode defined in attach with those defined in getDisplayModes.
+        #Since they have the same names nothing needs to be done. This method is optinal.
+        #'''
+        #return mode
 
-    def onChanged(self, vp, prop):
-        vp.setEditorMode("LineColor", 2)
-        vp.setEditorMode("DrawStyle", 2)
-        vp.setEditorMode("LineWidth", 2)
-        vp.setEditorMode("PointColor", 2)
-        vp.setEditorMode("PointSize", 2)
-        vp.setEditorMode("Deviation", 2)
-        vp.setEditorMode("Lighting", 2)
-        vp.setEditorMode("Transparency", 2)
-        vp.setEditorMode("BoundingBox", 2)
-        if hasattr(vp, "AngularDeflection"):
-            vp.setEditorMode("AngularDeflection", 2)
+    #def onChanged(self, vp, prop):
+        #vp.setEditorMode("LineColor", 2)
+        #vp.setEditorMode("DrawStyle", 2)
+        #vp.setEditorMode("LineWidth", 2)
+        #vp.setEditorMode("PointColor", 2)
+        #vp.setEditorMode("PointSize", 2)
+        #vp.setEditorMode("Deviation", 2)
+        #vp.setEditorMode("Lighting", 2)
+        #vp.setEditorMode("Transparency", 2)
+        #vp.setEditorMode("BoundingBox", 2)
+        #if hasattr(vp, "AngularDeflection"):
+            #vp.setEditorMode("AngularDeflection", 2)
         
-        if prop == "ShapeColor":
-            vp.LineColor = vp.ShapeColor
-            vp.PointColor = vp.ShapeColor
+        #if prop == "ShapeColor":
+            #vp.LineColor = vp.ShapeColor
+            #vp.PointColor = vp.ShapeColor
 
-    def getIcon(self):
-        ''' Return the icon in XMP format which will appear in the tree view. This method is optional
-        and if not defined a default icon is shown.
-        '''
-        #***************************************************************
-        #   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
-        #   License:    Creative Commons Attribution-Noncommercial 3.0
-        #   Iconset:    Mono Icon Set
-        #***************************************************************
-        return ":/data/img/layers_TI.svg"
+    #def getIcon(self):
+        #''' Return the icon in XMP format which will appear in the tree view. This method is optional
+        #and if not defined a default icon is shown.
+        #'''
+        ##***************************************************************
+        ##   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
+        ##   License:    Creative Commons Attribution-Noncommercial 3.0
+        ##   Iconset:    Mono Icon Set
+        ##***************************************************************
+        #return ":/data/img/layers_TI.svg"
 
-    def __getstate__(self):
-        ''' When saving the document this object gets stored using Python's cPickle module.
-        Since we have some un-pickable here -- the Coin stuff -- we must define this method
-        to return a tuple of all pickable objects or None.
-        '''
-        return None
+    #def __getstate__(self):
+        #''' When saving the document this object gets stored using Python's cPickle module.
+        #Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        #to return a tuple of all pickable objects or None.
+        #'''
+        #return None
 
-    def __setstate__(self, state):
-        ''' When restoring the pickled object from document we have the chance to set some
-        internals here. Since no data were pickled nothing needs to be done here.
-        '''
-        return None
+    #def __setstate__(self, state):
+        #''' When restoring the pickled object from document we have the chance to set some
+        #internals here. Since no data were pickled nothing needs to be done here.
+        #'''
+        #return None
 #####################################
 #####################################
 #####################################
-
 
 class layerSilkObject(objectWire):
-
     def __init__(self, obj, typeL):
         #obj.addProperty("App::PropertyLinkSub", "Holes", "Holes", "Reference to volume of part").Holes = (FreeCAD.ActiveDocument.Board, 'Holes')
-        
         self.spisObiektow = []
-        self.Type = typeL
+        self.Type = ['layer'] + typeL
         obj.Proxy = self
         self.holes = False
         self.cutToBoard = False
         
         self.defHeight = 35
         self.spisObiektowTXT = []
-    
+        self.side = 1  # 1-top  0-bottom
+
     ################
     ################
     
@@ -1198,12 +1196,28 @@ class layerSilkObject(objectWire):
     def addDrillCenter(self, xs, ys, r1, r2):
         self.spisObiektowTXT[-1]['objects'].append(['drillCenter', xs, ys, r1, r2])
     
+    def createCircle2(self, x, y, r):
+        return Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r)
+    
+    def circleCutHole(self, xs, ys, r):
+        self.spisObiektowTXT[-1] = self.cutHole(self.spisObiektowTXT[-1], [xs, ys, r])
+    
     def addCircle(self, xs, ys, r, w=0):
         if r == 0:
-            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+             self.spisObiektowTXT.append(None)
+             return
         else:
-            self.spisObiektowTXT[-1]['objects'].append(['circle', xs, ys, r, w])
-    
+            if w > 0:
+                object_1 = Part.Circle(FreeCAD.Vector(xs, ys), FreeCAD.Vector(0, 0, 1), r + w / 2.)
+            else:
+                object_1 = Part.Circle(FreeCAD.Vector(xs, ys), FreeCAD.Vector(0, 0, 1), r)
+                
+            mainObj = Part.Shape([object_1])
+            mainObj = Part.Wire(mainObj.Edges)
+            #if w > 0:
+                #mainObj = self.cutHole(mainObj, [xs, ys, r - w / 2.])
+            self.spisObiektowTXT.append(mainObj)
+
     #def addArc(self, x, y, r, startAngle, stopAngle):
         #self.spisObiektowTXT[-1]['objects'].append(['arc', x, y, r, startAngle, stopAngle])
     
@@ -1243,51 +1257,36 @@ class layerSilkObject(objectWire):
         return midpoint
     
     def setFace(self, param=True):
-        self.spisObiektowTXT[-1]['param']['face'] = param
+        self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1])
     
     def setChangeSide(self, xs, ys, layer):
-        self.spisObiektowTXT[-1]['side'] = {'side': True, 'xs': xs, 'ys': ys, 'layer': layer}
-        
-    def changeSide(self, mainObj, data):
-        if data['layer'] == 0:
-            return mainObj.rotate(FreeCAD.Vector(data['xs'], data['ys'], 0), FreeCAD.Vector(0, 1, 0), 180)
+        if layer == 0:
+            self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 1, 0), 180)
 
     def addHole(self, x, y, r):
         self.spisObiektowTXT[-1]['holes'].append([x, y, r])
     
     def addRotation(self, xs, ys, angle):
-        self.spisObiektowTXT[-1]['rotations'].append([xs, ys, angle])
+        self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 0, 1), angle)
 
-    def rotateObj(self, mainObj, data):
-        return mainObj.rotate(FreeCAD.Vector(data[0], data[1], 0), FreeCAD.Vector(0, 0, 1), data[2])
-    
     def addPlacement(self, point, rot, center):
-        self.spisObiektowTXT[-1]['placement'] = {'shift': True, 'center': center, 'angle': rot, 'point': point}
+        pos_1 = FreeCAD.Base.Vector(point[0], point[1], point[2])
+        center = FreeCAD.Base.Vector(center[0], center[1], center[2])
+        rot = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), rot)
         
-    def createObject(self):
-        self.spisObiektowTXT.append({
-            'rotations': [],
-            'side': {'side': False, 'xs': 0, 'ys': 0, 'layer': 0},
-            'holes': [],
-            'objects': [],
-            'param': {'face': False},
-            'placement': {'shift': False, 'center': [], 'angle': 0, 'point': []}
-        })
-    
+        self.spisObiektowTXT[-1].Placement = FreeCAD.Base.Placement(pos_1, rot, center)
+
     def createElipse(self, x, y, r1, r2):
         if r1 > r2:
             return Part.Ellipse(FreeCAD.Vector(x, y, 0), r1, r2)
         else:
             return Part.Ellipse(FreeCAD.Vector(x, y, 0), r2, r1)
-            
-    def createCircle2(self, x, y, r):
-        return Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r)
-
+    
     def createLine2(self, x1, y1, x2, y2):
         if not [x1, y1] == [x2, y2]:
-            return Part.Line(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2, y2, 0))
+            return Part.LineSegment(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2, y2, 0))
         else:
-            return Part.Line(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2 + 0.000001, y2 + 0.000001, 0))
+            return Part.LineSegment(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2 + 0.000001, y2 + 0.000001, 0))
     
     def makePoint(self, x, y):
         return Part.Point(FreeCAD.Base.Vector(x, y, 0))
@@ -1297,26 +1296,26 @@ class layerSilkObject(objectWire):
         holes = []
         
         for i in obj['objects']:
-            if i[0] == 'circle':
-                xs = i[1]
-                ys = i[2]
-                r = i[3]
-                w = i[4]
+            #if i[0] == 'circle':
+                #xs = i[1]
+                #ys = i[2]
+                #r = i[3]
+                #w = i[4]
                 
-                if w > 0:
-                    data.append(self.createCircle2(xs, ys, r + w / 2.))
-                    obj['holes'].append([xs, ys, r - w / 2.])
-                else:
-                    data.append(self.createCircle2(xs, ys, r))
-            elif i[0] == 'drillCenter':
-                xs = i[1]
-                ys = i[2]
-                r1 = i[3]
-                r2 = i[4]
+                #if w > 0:
+                    #data.append(self.createCircle2(xs, ys, r + w / 2.))
+                    #obj['holes'].append([xs, ys, r - w / 2.])
+                #else:
+                    #data.append(self.createCircle2(xs, ys, r))
+            #elif i[0] == 'drillCenter':
+                #xs = i[1]
+                #ys = i[2]
+                #r1 = i[3]
+                #r2 = i[4]
                 
-                data.append(self.createCircle2(xs, ys, r1))
-                obj['holes'].append([xs, ys, r2])
-            elif i[0] == 'elipse':
+                #data.append(self.createCircle2(xs, ys, r1))
+                #obj['holes'].append([xs, ys, r2])
+            if i[0] == 'elipse':
                 x = i[1]
                 y = i[2]
                 r1 = i[3]
@@ -1330,19 +1329,19 @@ class layerSilkObject(objectWire):
                     data.append(self.createElipse(x, y, r1 + w / 2., r2 + w / 2.))
                 else:
                     data.append(self.createElipse(x, y, r1, r2))
-            elif i[0] == 'line':
-                x1 = i[1]
-                y1 = i[2]
-                x2 = i[3]
-                y2 = i[4]
+            #elif i[0] == 'line':
+                #x1 = i[1]
+                #y1 = i[2]
+                #x2 = i[3]
+                #y2 = i[4]
                 
-                data.append(self.createLine2(x1, y1, x2, y2))
-            elif i[0] == 'arc3P':
-                p1 = i[1]
-                p2 = i[2]
-                p3 = i[3]
+                #data.append(self.createLine2(x1, y1, x2, y2))
+            #elif i[0] == 'arc3P':
+                #p1 = i[1]
+                #p2 = i[2]
+                #p3 = i[3]
                 
-                data.append(self.createArc3P(p1, p2, p3))
+                #data.append(self.createArc3P(p1, p2, p3))
             elif i[0] == 'point':
                 x = i[1]
                 y = i[2]
@@ -1386,54 +1385,95 @@ class layerSilkObject(objectWire):
     
     def generuj(self, fp):
         if len(self.spisObiektowTXT):
-            if 'tSilk' in self.Type or 'bSilk' in self.Type or 'tDocu' in self.Type or 'bDocu' in self.Type or 'PCBcenterDrill' in self.Type:
-                if self.cutToBoard:
-                    board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                    board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
+            #if self.cutToBoard:
+                #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
+                #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
+            
+            #pads = []
+            #for i in self.spisObiektowTXT:
+                #data = self.makePolygon(i)
                 
-                pads = []
-                for i in self.spisObiektowTXT:
-                    data = self.makePolygon(i)
-                    if not data:
-                        continue
+                #if not data:
+                    #continue
+                
+                #pads.append(data)
+                
+                #if self.cutToBoard:
+                    #data = board.common(data)
+            pads = Part.makeCompound(self.spisObiektowTXT)
+            pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            
+            pads.Placement.Base.z = fp.Placement.Base.z
+            fp.Shape = pads
+        
+        #if len(self.spisObiektowTXT):
+            #if 'tSilk' in self.Type or 'bSilk' in self.Type or 'tDocu' in self.Type or 'bDocu' in self.Type or 'PCBcenterDrill' in self.Type:
+                #if self.cutToBoard:
+                    #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
+                    #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
+                
+                #pads = []
+                #for i in self.spisObiektowTXT:
+                    #data = self.makePolygon(i)
+                    #if not data:
+                        #continue
                     
-                    if self.cutToBoard:
-                        data = board.common(data)
-                    if 'PCBcenterDrill' in self.Type:
-                        data = data.extrude(FreeCAD.Base.Vector(0, 0, getPCBheight()[1]))
-                    else:
-                        data = data.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    pads.append(data)
+                    #if self.cutToBoard:
+                        #data = board.common(data)
+                    
+                    #if 'PCBcenterDrill' in self.Type:
+                        #data = data.extrude(FreeCAD.Base.Vector(0, 0, getPCBheight()[1]))
+                    #else:
+                        #data = data.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                    #pads.append(data)
                 
-                pads = Part.makeCompound(pads)
-                pads.Placement.Base.z = fp.Placement.Base.z
-                fp.Shape = pads
-            else:
-                pads = []
-                for i in self.spisObiektowTXT:
-                    pads.append(self.makePolygon(i))
-                pads = Part.makeCompound(pads)
+                #pads = Part.makeCompound(pads)
+                #pads.Placement.Base.z = fp.Placement.Base.z
+                #fp.Shape = pads
+            #else:
+                #pads = []
+                #for i in self.spisObiektowTXT:
+                    #pads.append(self.makePolygon(i))
+                #pads = Part.makeCompound(pads)
                 
-                if FreeCAD.ActiveDocument.Board.Display:
-                    try:
-                        holes = []
-                        for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
-                            holes.append(Part.Face(i))
+                #if FreeCAD.ActiveDocument.Board.Display:
+                    #try:
+                        #holes = []
+                        #for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
+                            #holes.append(Part.Face(i))
                         
-                        if len(holes):
-                            pads = pads.cut(Part.makeCompound(holes))
-                        else:
-                            pads = pads
-                    except Exception, e:
-                        FreeCAD.Console.PrintWarning("{0} \n".format(e))
+                        #if len(holes):
+                            #pads = pads.cut(Part.makeCompound(holes))
+                        #else:
+                            #pads = pads
+                    #except Exception as e:
+                        #FreeCAD.Console.PrintWarning("{0} \n".format(e))
                 
-                # cut to board shape
-                if self.cutToBoard:
-                    pads = cutToBoardShape(pads)
-                ###################################################
-                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                pads.Placement.Base.z = fp.Placement.Base.z
-                fp.Shape = pads
+                ## cut to board shape
+                #if self.cutToBoard:
+                    #pads = cutToBoardShape(pads)
+                ####################################################
+                #pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                #pads.Placement.Base.z = fp.Placement.Base.z
+                #fp.Shape = pads
+    
+    ################
+    # shapes
+    ################
+    def addRectangle(self, x1, y1, x2, y2):
+        if x1 == x2 and y1 == y2:
+            self.spisObiektowTXT.append(None)
+            return
+            #self.spisObiektowTXT[-1]['objects'].append(['skip', "point [{0}, {1}] detected instead rectangle".format(x1, y1)])
+        else:
+            object_1 = self.createLine2(x1, y1, x2, y1)
+            object_2 = self.createLine2(x2, y1, x2, y2)
+            object_3 = self.createLine2(x2, y2, x1, y2)
+            object_4 = self.createLine2(x1, y2, x1, y1)
+            
+            mainObj = Part.Shape([object_1, object_2, object_3, object_4])
+            mainObj = Part.Wire(mainObj.Edges)
+            self.spisObiektowTXT.append(mainObj)
     
     def generateOctagon(self, x, y, height, width=0):
         if width == 0:
@@ -1456,29 +1496,23 @@ class layerSilkObject(objectWire):
                 [x - w_pP, y + h_pP - h_zP, 0, x - w_pP, y + h_pP - h_zP - h_aP, 0],
                 [x - w_pP, y + h_pP - h_zP - h_aP, 0, x - w_pP + w_zP, y - h_pP, 0]]
     
-    ################
-    # shapes
-    ################
-    def addRectangle(self, x1, y1, x2, y2):
-        if x1 == x2 and y1 == y2:
-            self.spisObiektowTXT[-1]['objects'].append(['skip', "point [{0}, {1}] detected instead rectangle".format(x1, y1)])
-        else:
-            self.addLine(x1, y1, x2, y1)
-            self.addLine(x2, y1, x2, y2)
-            self.addLine(x2, y2, x1, y2)
-            self.addLine(x1, y2, x1, y1)
-    
     def addOctagon(self, x, y, diameter, width=0):
-        dane = self.generateOctagon(x, y, diameter, width)
+        objects = []
         
-        for i in dane:
+        for i in self.generateOctagon(x, y, diameter, width):
             (x1, y1, z1, x2, y2, z2) = i
-            self.addLine(x1, y1, x2, y2)
+            objects.append(self.createLine2(x1, y1, x2, y2))
+        
+        mainObj = Part.Shape(objects)
+        mainObj = Part.Wire(mainObj.Edges)
+        self.spisObiektowTXT.append(mainObj)
     
     def addPadLong(self, x, y, dx, dy, perc, typ=0):
         if dx == 0 or dy == 0:
-            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+            self.spisObiektowTXT.append(None)
             return
+        
+        objects = []
         
         curve = 90.
         if typ == 0:  # %
@@ -1504,50 +1538,58 @@ class layerSilkObject(objectWire):
         punkty = []
 
         if p1 != p2:
-            self.addLine(p1[0], p1[1], p2[0], p2[1])
+            objects.append(self.createLine2(p1[0], p1[1], p2[0], p2[1]))
 
         if p2 != p3:
             p9 = self.arcMidPoint(p2, p3, curve)
-            self.addArc3P(p2, p9, p3)
+            objects.append(self.createArc3P(p2, p9, p3))
             
         if p3 != p4:
-            self.addLine(p3[0], p3[1], p4[0], p4[1])
+            objects.append(self.createLine2(p3[0], p3[1], p4[0], p4[1]))
 
         if p4 != p5:
             p10 = self.arcMidPoint(p4, p5, curve)
-            self.addArc3P(p4, p10, p5)
+            objects.append(self.createArc3P(p4, p10, p5))
             
         if p5 != p6:
-            self.addLine(p5[0], p5[1], p6[0], p6[1])
+            objects.append(self.createLine2(p5[0], p5[1], p6[0], p6[1]))
 
         if p6 != p7:
             p11 = self.arcMidPoint(p6, p7, curve)
-            self.addArc3P(p6, p11, p7)
+            objects.append(self.createArc3P(p6, p11, p7))
 
         if p7 != p8:
-            self.addLine(p7[0], p7[1], p8[0], p8[1])
+            objects.append(self.createLine2(p7[0], p7[1], p8[0], p8[1]))
 
         if p8 != p1:
             p12 = self.arcMidPoint(p8, p1, curve)
-            self.addArc3P(p8, p12, p1)
+            objects.append(self.createArc3P(p8, p12, p1))
+        
+        mainObj = Part.Shape(objects)
+        mainObj = Part.Wire(mainObj.Edges)
+        self.spisObiektowTXT.append(mainObj)
     
     def addPadOffset(self, x, y, R, e):
         if R == 0:
-            self.spisObiektowTXT[-1]['objects'].append(['skip', "radius == 0"])
+            self.spisObiektowTXT.append(None)
             return
         
-        self.addLine(x, y + R, x + R + e / 2, y + R)
-        self.addLine(x, y - R, x + R + e / 2, y - R)
+        object_1 = self.createLine2(x, y + R, x + R + e / 2, y + R)
+        object_2 = self.createLine2(x, y - R, x + R + e / 2, y - R)
         
         p1 = [x + R + e / 2, y + R]
         p2 = [x + R + e / 2, y - R]
         p3 = [x + R + e, y]
-        self.addArc3P(p1, p3, p2)
+        object_3 = self.createArc3P(p1, p3, p2)
         
         p1 = [x, y + R]
         p2 = [x, y - R]
         p3 = [x - R, y]
-        self.addArc3P(p1, p3, p2)
+        object_4 = self.createArc3P(p1, p3, p2)
+        
+        mainObj = Part.Shape([object_1, object_2, object_3, object_4])
+        mainObj = Part.Wire(mainObj.Edges)
+        self.spisObiektowTXT.append(mainObj)
     
     def addTrapeze(self, p1, p2, xRD, yRD):
         [x1, y1] = p1
@@ -1559,16 +1601,26 @@ class layerSilkObject(objectWire):
         self.addLine(x1 + xRD, y2 + yRD, x1 - xRD, y1 - yRD)
     
     def addPolygon(self, polygon):
+        objects = []
+        
         for i in polygon:
             if i[0] == 'Line':
-                self.addLine(i[1], i[2], i[3], i[4])
+                objects.append(self.createLine2(i[1], i[2], i[3], i[4]))
             elif i[0] == 'Arc3P':
                 p1 = [i[1], i[2]]
                 p2 = [i[3], i[4]]
                 curve = i[5]
                 
                 p3 = self.arcMidPoint(p2, p1, curve)
-                self.addArc3P(p1, p3, p2)
+                objects.append(self.createArc3P(p1, p3, p2))
+        
+        if objects == []:
+            self.spisObiektowTXT.append(None)
+            return
+            
+        mainObj = Part.Shape(objects)
+        mainObj = Part.Wire(mainObj.Edges)
+        self.spisObiektowTXT.append(mainObj)
     
     def addArcWidth(self, p1, p2, curve, width=0.02, cap='round'):
         try:
@@ -1591,14 +1643,14 @@ class layerSilkObject(objectWire):
             wir = []
             ## outer arc
             [xT_3, yT_3] = self.arcMidPoint([xT_1, yT_1], [xT_2, yT_2], curve)
-            self.addArc3P([xT_1, yT_1], [xT_3, yT_3], [xT_2, yT_2])
+            object_1 = self.createArc3P([xT_1, yT_1], [xT_3, yT_3], [xT_2, yT_2])
             ## inner arc
             [xT_6, yT_6] = self.arcMidPoint([xT_4, yT_4], [xT_5, yT_5], curve)
-            self.addArc3P([xT_4, yT_4], [xT_6, yT_6], [xT_5, yT_5])
+            object_2 = self.createArc3P([xT_4, yT_4], [xT_6, yT_6], [xT_5, yT_5])
             ##
             if cap == 'flat':
-                self.addLine(xT_1, yT_1, xT_4, yT_4)
-                self.addLine(xT_2, yT_2, xT_5, yT_5)
+                object_3 = self.createLine2(xT_1, yT_1, xT_4, yT_4)
+                object_4 = self.createLine2(xT_2, yT_2, xT_5, yT_5)
             else:
                 #start
                 if xs - p1[0] == 0:  # vertical line
@@ -1640,7 +1692,7 @@ class layerSilkObject(objectWire):
                                 else:
                                     [xT_7, yT_7] = self.arcMidPoint([xT_1, yT_1], [xT_4, yT_4], 180)
                 
-                self.addArc3P([xT_1, yT_1], [xT_7, yT_7], [xT_4, yT_4])
+                object_3 = self.createArc3P([xT_1, yT_1], [xT_7, yT_7], [xT_4, yT_4])
                 #end
                 #b = (ys - p2[1]) / (xs - p2[0])
                 
@@ -1667,8 +1719,14 @@ class layerSilkObject(objectWire):
                         else:
                             [xT_8, yT_8] = self.arcMidPoint([xT_2, yT_2], [xT_5, yT_5], -180)
                 
-                self.addArc3P([xT_2, yT_2], [xT_8, yT_8], [xT_5, yT_5])
-        except Exception, e:
+                object_4 = self.createArc3P([xT_2, yT_2], [xT_8, yT_8], [xT_5, yT_5])
+            #
+            mainObj = Part.Shape([object_1, object_3, object_2, object_4])
+            mainObj = Part.Wire(mainObj.Edges)
+            self.spisObiektowTXT.append(mainObj)
+            #self.addPlacement([x1, y1, 0], kat, [0, 0, 0])
+            #return mainObj
+        except Exception as e:
             FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
     
     def addLineWidth(self, x1, y1, x2, y2, width=0, style=''):
@@ -1699,20 +1757,27 @@ class layerSilkObject(objectWire):
         r = width / 2.
         
         # create wire
-        self.addLine(0 - r, 0, 0 - r, dlugosc)
-        self.addLine(0 + r, 0, 0 + r, dlugosc)
+        line_1 = self.createLine2(0 - r, 0, 0 - r, dlugosc)
+        line_2 = self.createLine2(0 + r, 0, 0 + r, dlugosc)
         
         p1 = [0 - r, 0]
         p2 = [0, 0 - r]
         p3 = [0 + r, 0]
-        self.addArc3P(p1, p2, p3)
+        arc_1 = self.createArc3P(p1, p2, p3)
         
         p1 = [0 - r, dlugosc]
         p2 = [0, dlugosc + r]
         p3 = [0 + r, dlugosc]
-        self.addArc3P(p1, p2, p3)
+        arc_2 = self.createArc3P(p1, p2, p3)
         #
+        #self.addPlacement([x1, y1, 0], kat, [0, 0, 0])
+        
+        #
+        mainObj = Part.Shape([line_1,  arc_1, line_2,arc_2])
+        mainObj = Part.Wire(mainObj.Edges)
+        self.spisObiektowTXT.append(mainObj)
         self.addPlacement([x1, y1, 0], kat, [0, 0, 0])
+        #return mainObj
 
     #def addObject(self, mainObj):
         #self.spisObiektow.append(mainObj)
@@ -1939,14 +2004,17 @@ class layerSilkObject(objectWire):
         self.generuj(fp)
         
     def updatePosition_Z(self, fp, dummy=None):
-        thickness = getPCBheight()[1]
-
-        if 'tSilk' in self.Type or 'tDocu' in self.Type or 'tPad' in self.Type:
-            fp.Placement.Base.z = thickness
-        elif 'PCBcenterDrill' in self.Type:
-            pass
+        if self.side:  # top side
+            fp.Placement.Base.z = getPCBheight()[1] + self.defHeight / 1000.
         else:
-            fp.Placement.Base.z = -self.defHeight  / 1000.
+            fp.Placement.Base.z = -self.defHeight / 1000.
+
+        #if 'tSilk' in self.Type or 'tDocu' in self.Type or 'tPad' in self.Type:
+            #fp.Placement.Base.z = thickness
+        #elif 'PCBcenterDrill' in self.Type:
+            #pass
+        #else:
+            #fp.Placement.Base.z = -self.defHeight  / 1000.
 
     def onChanged(self, fp, prop):
         pass
@@ -1956,13 +2024,16 @@ class layerSilkObject(objectWire):
         #self.generuj(fp)
         
     def __getstate__(self):
-        return [self.Type, self.cutToBoard, self.spisObiektowTXT, self.defHeight]
+        return [self.Type, self.cutToBoard, self.defHeight, self.holes, self.side]
+        #return [self.Type, self.cutToBoard, self.spisObiektowTXT, self.defHeight, self.holes, self.side]
         
     def __setstate__(self, state):
         self.Type = state[0]
         self.cutToBoard = state[1]
-        self.spisObiektowTXT = state[2]
-        self.defHeight = state[3]
+        self.defHeight = state[2]
+        self.holes = state[3]
+        self.side = state[4]
+        #self.spisObiektowTXT = eval(state[5])
 
 
 class viewProviderLayerSilkObject:
@@ -1978,20 +2049,8 @@ class viewProviderLayerSilkObject:
         ''' If a property of the handled feature has changed we have the chance to handle this here '''
         return
 
-    def getDisplayModes(self, obj):
-        ''' Return a list of display modes. '''
-        modes = []
-        return modes
-
     def getDefaultDisplayMode(self):
-        ''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
-        return "Wire Frame"
-
-    def setDisplayMode(self, mode):
-        ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
-        '''
-        return mode
+        return "Shaded"
 
     def onChanged(self, vp, prop):
         vp.setEditorMode("LineColor", 2)
@@ -2053,9 +2112,9 @@ class constraintAreaObject:
         obj.Proxy = self
         
     def updatePosition_Z(self, fp, dummy=None):
-        if 'topSide' in self.Type:
+        if self.Type.startswith('t'):
             self.z = getPCBheight()[1]
-        elif 'bothSide' in self.Type:  # gorna oraz dolna warstwa
+        elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
             self.z = -0.5
             self.layerHeight = getPCBheight()[1] + 1.0
         else:  # bottomSide
@@ -2065,11 +2124,11 @@ class constraintAreaObject:
         self.createGeometry(fp)
 
     def setLayerSide(self):
-        if 'topSide' in self.Type:
+        if self.Type.startswith('t'):
             self.layerReversed = False
             self.layerHeight = 0.5
             self.z = getPCBheight()[1]
-        elif 'bothSide' in self.Type:  # gorna oraz dolna warstwa
+        elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
             self.layerReversed = False
             self.layerHeight = getPCBheight()[1] + 1.0
             self.z = -0.5

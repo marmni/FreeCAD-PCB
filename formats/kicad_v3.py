@@ -27,20 +27,23 @@
 
 import FreeCAD
 import Sketcher
-import __builtin__
+import builtins
 import Part
 import re
 from math import sqrt
 import os
-
+#
 from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
 from formats.PCBmainForms import *
 from command.PCBgroups import *
+from formats.dialogMAIN_FORM import dialogMAIN_FORM
+from PCBfunctions import mathFunctions
+from PCBconf import kicadColorsDefinition
 
 
 def setProjectFile(filename):
-    projektBRD = __builtin__.open(filename, "r").read()[1:]
+    projektBRD = builtins.open(filename, "r").read()[1:]
     wynik = ''
     licznik = 0
     txt = ''
@@ -84,9 +87,9 @@ class dialogMAIN(dialogMAIN_FORM):
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ##
-        self.generateLayers()
+        self.generateLayers([28])
         self.spisWarstw.sortItems(1)
-    
+        
     def getBoardThickness(self):
         return float(re.findall(r'\(thickness (.+?)\)', self.projektBRD)[0])
         
@@ -95,22 +98,49 @@ class dialogMAIN(dialogMAIN_FORM):
         
         layers = re.search(r'\[start\]\(layers(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL).group(0)
         for i in re.findall(r'\((.*?) (.*?) .*?\)', layers):
-            dane[int(i[0])] = i[1]
+            dane[int(i[0])] = {"name": i[1], "color": None}
         
+        ####################
+        # EXTRA LAYERS
+        ####################
+        # measures
+        dane[106] = {"name": softLayers["kicad"][106]["name"], "color": softLayers["kicad"][106]["color"]}
+        # pad
+        dane[107] = {"name": softLayers["kicad"][107]["name"], "color": softLayers["kicad"][107]["color"]}
+        dane[108] = {"name": softLayers["kicad"][108]["name"], "color": softLayers["kicad"][108]["color"]}
+        ####################
+        ####################
         return dane
 
 
-class KiCadv3_PCB(mainPCB):
-    def __init__(self, filename):
-        mainPCB.__init__(self, None)
-        
-        self.dialogMAIN = dialogMAIN(filename)
+class KiCadv3_PCB(mathFunctions):
+    def __init__(self, filename, parent):
+        self.fileName = filename
+        self.dialogMAIN = dialogMAIN(self.fileName)
         self.databaseType = "kicad"
+        self.parent = parent
+        #
         self.spisWarstw = {}
+        self.elements = []
         self.borderLayerNumber = 28
-
-    def setProject(self, filename):
-        self.projektBRD = setProjectFile(filename)
+    
+    def Draft2Sketch(self, elem, sketch):
+        return (DraftGeomUtils.geom(elem.toShape().Edges[0], sketch.Placement))
+        
+    def filterHoles(self, r, Hmin, Hmax):
+        if Hmin == 0 and Hmax == 0:
+            return True
+        elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
+            return True
+        elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
+            return True
+        elif Hmin <= r * 2 <= Hmax:
+            return True
+        else:
+            return False
+    
+    def setProject(self):
+        self.projektBRD = setProjectFile(self.fileName)
         # layers
         layers = re.search(r'\[start\]\(layers(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL).group(0)
         for i in re.findall(r'\((.*?) (.*?) .*?\)', layers):
@@ -135,250 +165,105 @@ class KiCadv3_PCB(mainPCB):
             y3 = float(y3) * (-1)
             
             if x1 > x2:
-                wymiary.append([x2, y2, x1, y1, x3, y3])
+                wymiary.append([x2, y2, x1, y1, x3, y3, ''])
             else:
-                wymiary.append([x1, y1, x2, y2, x3, y3])
+                wymiary.append([x1, y1, x2, y2, x3, y3, ''])
         #
         return wymiary
     
-    def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
-        self.__SQL__.reloadList()
-        #
-        PCB_ER = []
-        #
-        for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
-            [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
-            layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
-            ##
-            #package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
-            #package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
-            #if ':' in package:
-                #package = package.replace('"', '').split(':')[-1]
-            #else:
-                #if '"' in package:
-                    #package = package.replace('"', '')
-                #else:
-                    #package = package
-            package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
-            package = re.sub('locked|placed|pla', '', package).split(':')[-1]
-            package = package.replace('"', '').strip()
-            #3D package from KiCad
-            try:
-                package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                if package3D and self.partExist(os.path.basename(package3D), "", False):
-                    package = os.path.basename(package3D)
-            except:
-                pass
-            #
-            library = package
-            
-            x = float(x)
-            y = float(y) * (-1)
-            if rot == '':
-                rot = 0.0
-            else:
-                rot = float(rot)
-            
-            if self.spisWarstw[layer] == 15:  # top
-                side = "TOP"
-                mirror = 'None'
-            else:
-                side = "BOTTOM"
-                #rot = (rot + 180) * (-1)
-                if rot < 180:
-                    rot = (180 - rot)
-                else:
-                    rot = int(rot % 180) * (-1)
-                mirror = 'Local Y axis'
-            ####
-            # textReferencere
-            textReferencere = re.search(r'\(fp_text reference\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
-            [tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
-            tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
-            tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
-            tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
-            tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
-            #
-            tr_x = float(tr_x)
-            tr_y = float(tr_y) * (-1)
-            if tr_rot == '':
-                tr_rot = rot
-            else:
-                tr_rot = float(tr_rot)
-            
-            if tr_fontSize == '':
-                tr_fontSize = 0.7
-            else:
-                tr_fontSize = float(tr_fontSize.split()[1])
-            
-            if tr_visibility == 'hide':
-                tr_visibility = False
-            else:
-                tr_visibility = True
-            
-            EL_Name = [tr_value, tr_x + x, tr_y + y, tr_fontSize, tr_rot, side, "center", False, mirror, '', True]
-            ####
-            # textValue
-            textValue = re.search(r'\(fp_text value\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
-            [tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
-            tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
-            tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
-            tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
-            tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
-            #
-            tv_x = float(tv_x)
-            tv_y = float(tv_y) * (-1)
-            if tv_rot == '':
-                tv_rot = rot
-            else:
-                tv_rot = float(tv_rot)
-            
-            if tv_fontSize == '':
-                tv_fontSize = 0.7
-            else:
-                tv_fontSize = float(tv_fontSize.split()[1])
-            
-            if tv_visibility == 'hide':
-                tv_visibility = False
-            else:
-                tv_visibility = True
-            
-            EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
-            #
-            newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
-            wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #
-            if wyn[0] == 'Error':  # lista brakujacych elementow
-                partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
-                if isinstance(partNameTXT, unicode):
-                    partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-                
-                PCB_ER.append([partNameTXT, package, EL_Value[0], library])
-        ####
-        return PCB_ER
-    
     def getGlue(self, layerNumber):
-        layer = re.escape(self.getLayerName(layerNumber))
         glue = {}
         # lines
-        for i in self.getLine(layer, self.projektBRD, "gr_line"):
+        for i in self.getLine(layerNumber[1], self.projektBRD, "gr_line"):
             if not i['width'] in glue.keys():
                 glue[i['width']] = []
             
             glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
         # circles
-        for i in self.getCircle(layer, self.projektBRD, "gr_circle"):
+        for i in self.getCircle(layerNumber[1], self.projektBRD, "gr_circle"):
             if not i['width'] in glue.keys():
                 glue[i['width']] = []
             
             glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
         # arcs
-        for i in self.getArc(layer, self.projektBRD, "gr_arc"):
+        for i in self.getArc(layerNumber[1], self.projektBRD, "gr_arc"):
             if not i['width'] in glue.keys():
                 glue[i['width']] = []
             
             glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], True])
         ##
         return glue
-    
-    def getPaths(self, layerNumber):
-        wires = []
-        signal = []
-        warst = re.escape(self.getLayerName(layerNumber))
-        #
-        for i in re.findall(r'\[start\]\(segment\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(width\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)(.*?)\[stop\]'.format(warst), self.projektBRD, re.MULTILINE|re.DOTALL):
-            x1 = float(i[0])
-            y1 = float(i[1]) * (-1)
-            x2 = float(i[2])
-            y2 = float(i[3]) * (-1)
-            width = float(i[4])
-            
-            if [x1, y1] != [x2, y2]:
-                wires.append(['line', x1, y1, x2, y2, width])
-        ####
-        wires.append(signal)
-        return wires
-    
-    def getPads(self, doc, layerNumber, grp, layerName, layerColor, defHeight):
-        layerName = "{0}_{1}".format(layerName, layerNumber)
-        #layerSide = PCBlayers[softLayers["kicad"][layerNumber][1]][0]
-        layerType = PCBlayers[softLayers[self.databaseType][layerNumber][1]][3]
-        ####
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.holes = self.showHoles()
-        layerNew.defHeight = defHeight
-        ####
+        
+    def getPads(self, layerNew, layerNumber, layerSide):
         # via
         via_drill = float(self.getSettings('via_drill'))
 
         for i in re.findall(r'\(via\s+\(at\s+(.*?)\s+(.*?)\)\s+\(size\s+(.*?)\)\s+(\(drill\s+(.*?)\)|)', self.projektBRD):
             x = float(i[0])
             y = float(i[1]) * (-1)
-            diameter = float(i[2]) / 2.
+            diameter = float(i[2])
 
             if i[4] == '':
                 drill = via_drill / 2.
             else:
                 drill = float(i[4]) / 2.
             
-            layerNew.createObject()
-            layerNew.addCircle(x, y, diameter)
+            layerNew.addCircle(x, y, diameter / 2.)
             layerNew.setFace()
         # pad
-        for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
-            [X1, Y1, ROT] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
-            #
-            X1 = float(X1)
-            Y1 = float(Y1) * (-1)
-            if ROT == '':
-                ROT = 0.0
-            else:
-                ROT = float(ROT)
-            #
-            for j in self.getPadsList(i):
-                pType = j['padType']
-                pShape = j['padShape']
-                xs = j['x'] + X1
-                ys = j['y'] + Y1
-                dx = j['dx']
-                dy = j['dy']
-                hType = j['holeType']
-                drill = j['r']
-                xOF = j['xOF']
-                yOF = j['yOF']
+        self.getElements()
+        #
+        for i in self.elements:
+            for j in self.getPadsList(i['data']):
+                xs = j['x'] + i['x']
+                ys = j['y'] + i['y']
                 numerWarstwy = j['layers'].split(' ')
                 
                 rot_2 = j['rot']
-                if ROT != 0:
-                    rot_2 -= ROT
-                #
-                # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 19
+                if i['rot'] != 0:
+                    rot_2 -= i['rot']
+                
+                # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
                 # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
-                # kicad_pcb v4 TOP:         self.getLayerName(0) in numerWarstwy and layerNumber == 108
-                # kicad_pcb v4 BOTTOM:      self.getLayerName(31) in numerWarstwy and layerNumber == 107
+                # kicad_pcb v4 TOP:         self.getLayerName(0) in numerWarstwy and layerNumber == 107
+                # kicad_pcb v4 BOTTOM:      self.getLayerName(31) in numerWarstwy and layerNumber == 108
                 dodaj = False
-                if (self.getLayerName(15) in numerWarstwy and layerNumber == 19) or (self.getLayerName(0) in numerWarstwy and layerNumber == 108):
+                if self.databaseType == "kicad" and ((self.getLayerName(15) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(0) in numerWarstwy and layerNumber[0] == 108)):
                     dodaj = True
-                elif (self.getLayerName(0) in numerWarstwy and layerNumber == 18) or (self.getLayerName(31) in numerWarstwy and layerNumber == 107):
+                elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
                     dodaj = True
                 elif '*.Cu' in numerWarstwy:
                     dodaj = True
                 #####
                 #####
                 if dodaj:
-                    if pShape == 'rect':
-                        x1 = xs - dx / 2. + xOF
-                        y1 = ys - dy / 2. + yOF
-                        x2 = xs + dx / 2. + xOF
-                        y2 = ys + dy / 2. + yOF
+                    if j['padShape'] == 'rect':
+                        x1 = xs - j['dx'] / 2. + j['xOF']
+                        y1 = ys - j['dy'] / 2. + j['yOF']
+                        x2 = xs + j['dx'] / 2. + j['xOF']
+                        y2 = ys + j['dy'] / 2. + j['yOF']
                         
-                        layerNew.createObject()
                         layerNew.addRectangle(x1, y1, x2, y2)
                         layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(X1, Y1, ROT)
+                        layerNew.addRotation(i['x'], i['y'], i['rot'])
                         layerNew.setFace()
-                    elif pShape == 'trapezoid':
+                    elif j['padShape'] == 'circle':
+                        layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
+                        layerNew.addRotation(xs, ys, rot_2)
+                        layerNew.addRotation(i['x'], i['y'], i['rot'])
+                        layerNew.setFace()
+                    elif j['padShape'] == 'oval':
+                        if j['dx'] == j['dy']:
+                            layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setFace()
+                        else:
+                            layerNew.addPadLong(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2., j['dy'] / 2., 100)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setFace()
+                    elif j['padShape'] == 'trapezoid':
                         if j[8].strip() == '':
                             xRD = 0
                             yRD = 0
@@ -387,44 +272,16 @@ class KiCadv3_PCB(mainPCB):
                             yRD = float(rect_delta[0]) / 2.
                             xRD = float(rect_delta[1]) / 2.
                         
-                        x1 = xs - dx / 2. + xOF
-                        y1 = ys - dy / 2. + yOF
-                        x2 = xs + dx / 2. + xOF
-                        y2 = ys + dy / 2. + yOF
+                        x1 = xs - j['dx'] / 2. + j['xOF']
+                        y1 = ys - j['dy'] / 2. + j['yOF']
+                        x2 = xs + j['dx'] / 2. + j['xOF']
+                        y2 = ys + j['dy'] / 2. + j['yOF']
                         
-                        layerNew.createObject()
                         layerNew.addTrapeze([x1, y1], [x2, y2], xRD, yRD)
                         layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(X1, Y1, ROT)
+                        layerNew.addRotation(i['x'], i['y'], i['rot'])
                         layerNew.setFace()
-                    elif pShape == 'oval':
-                        if dx == dy:
-                            layerNew.createObject()
-                            layerNew.addCircle(xs + xOF, ys + yOF, dx / 2.)
-                            layerNew.addRotation(xs, ys, rot_2)
-                            layerNew.addRotation(X1, Y1, ROT)
-                            layerNew.setFace()
-                        else:
-                            layerNew.createObject()
-                            layerNew.addPadLong(xs + xOF, ys + yOF, dx / 2., dy / 2., 100)
-                            layerNew.addRotation(xs, ys, rot_2)
-                            layerNew.addRotation(X1, Y1, ROT)
-                            layerNew.setFace()
-                    elif pShape == 'circle':
-                        layerNew.createObject()
-                        layerNew.addCircle(xs + xOF, ys + yOF, dx / 2.)
-                        layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(X1, Y1, ROT)
-                        layerNew.setFace()
-        ###
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        grp.addObject(layerS)
-        #
-        doc.recompute()
-    
+
     def getPadsList(self, model):
         pads = []
         #
@@ -487,25 +344,21 @@ class KiCadv3_PCB(mainPCB):
         #
         return pads
 
-
-    def getHoles(self, types):
-        ''' holes/vias '''
-        holes = []
-        ####
+    def getHoles(self, holesObject, types, Hmin, Hmax):
         # vias
         if types['V']:
             via_drill = float(self.getSettings('via_drill'))
-            
             for i in re.findall(r'\(via\s+\(at\s+(.*?)\s+(.*?)\)\s+\(size\s+.*?\)\s+(\(drill\s+(.*?)\)|)', self.projektBRD):
                 x = float(i[0])
                 y = float(i[1]) * (-1)
 
                 if i[3] == '':
-                    drill = via_drill / 2.
+                    r = via_drill / 2.
                 else:
-                    drill = float(i[3]) / 2.
-                    
-                holes.append([x, y, drill])
+                    r = float(i[3]) / 2.
+                
+                if self.filterHoles(r, Hmin, Hmax):
+                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # pads
         if types['P']:
             for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -523,45 +376,54 @@ class KiCadv3_PCB(mainPCB):
                         if j['holeType'] == "circle":
                             [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
                             
-                            holes.append([xR, yR, j['r']])
+                            if self.filterHoles(j['r'], Hmin, Hmax):
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), j['r']))
                         else:
-                            r1 = float(j['r'].strip().split(' ')[0]) / 2.
-                            r2 = float(j['r'].strip().split(' ')[-1]) / 2.
-
-                            if r1 == r2:  # circle
-                                holes.append([xR, yR, r1])
+                            dx = float(j['r'].strip().split(' ')[0])
+                            dy = float(j['r'].strip().split(' ')[-1])
+                            
+                            if dx == dy:  # circle
+                                if self.filterHoles(r1, Hmin, Hmax):
+                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), w / 2.))
                             else:  # oval
-                                x = j['x'] + X1
-                                y = j['y'] + Y1
+                                x = float(j['x']) + X1
+                                y = float(j['y']) * (-1) + Y1
+                                curve = 90.
                                 
-                                if r1 > r2:
-                                    x1 = x - r1 + r2
-                                    y1 = y + r2
-                                    x2 = x + r1 - r2
-                                    y2 = y - r2
+                                if dx > dy:
+                                    e = (dy * 50 / 100.) / 2.
+                                    x1 = x - dx / 2. + e
+                                    y1 = y + dy / 2.
+                                    x2 = x + dx / 2. - e
+                                    y2 = y - dy / 2.
+                                    
+                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y1, 0)))
+                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y2, 0), FreeCAD.Vector(x2, y2, 0)))
+                                    
+                                    [x3, y3] = self.arcMidPoint([x1, y1], [x1, y2], 90)
+                                    arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x1, y2, 0.0))
+                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    
+                                    [x3, y3] = self.arcMidPoint([x2, y1], [x2, y2], -90)
+                                    arc = Part.Arc(FreeCAD.Vector(x2, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
                                 else:
-                                    x1 = x - r2 + r1
-                                    y1 = y + r1
-                                    x2 = x + r2 - r1
-                                    y2 = y - r1
-                                
-                                rot_2 = j['rot']
-                                if ROT != 0:
-                                    rot_2 -= ROT
-                                
-                                p1 = self.obrocPunkt2([x1, y1], [x, y], rot_2)
-                                p2 = self.obrocPunkt2([x2, y1], [x, y], rot_2)
-                                p3 = self.obrocPunkt2([x1, y2], [x, y], rot_2)
-                                p4 = self.obrocPunkt2([x2, y2], [x, y], rot_2)
-                                
-                                p1 = self.obrocPunkt2(p1, [X1, Y1], ROT)
-                                p2 = self.obrocPunkt2(p2, [X1, Y1], ROT)
-                                p3 = self.obrocPunkt2(p3, [X1, Y1], ROT)
-                                p4 = self.obrocPunkt2(p4, [X1, Y1], ROT)
-                                
-                                holes.append([xR, yR, r1, r2, p1, p2, p3, p4])
-        ####
-        return holes
+                                    e = (dx * 50 / 100.) / 2.
+                                    x1 = x - dx / 2.
+                                    y1 = y + dy / 2. - e
+                                    x2 = x + dx / 2.
+                                    y2 = y - dy / 2. + e
+                                    
+                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x1, y2, 0)))
+                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x2, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+                                    
+                                    [x3, y3] = self.arcMidPoint([x1, y1], [x2, y1], -90)
+                                    arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y1, 0.0))
+                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    
+                                    [x3, y3] = self.arcMidPoint([x1, y2], [x2, y2], 90)
+                                    arc = Part.Arc(FreeCAD.Vector(x1, y2, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
     
     def getLine(self, layer, source, oType, m=[0,0]):
         data = []
@@ -670,21 +532,20 @@ class KiCadv3_PCB(mainPCB):
         #
         return data
 
-    def getPCB(self):
-        PCB = []
-        wygenerujPada = True
-        ###
+    def getPCB(self, borderObject):
         # lines
         for i in self.getLine(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_line'):
-            PCB.append(['Line', i['x1'], i['y1'], i['x2'], i['y2']])
+            borderObject.addGeometry(Part.Line(FreeCAD.Vector(i['x1'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y2'], 0)))
         # circles
         for i in self.getCircle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_circle'):
-            PCB.append(['Circle', i['x'], i['y'], i['r']])
+            borderObject.addGeometry(Part.Circle(FreeCAD.Vector(i['x'], i['y']), FreeCAD.Vector(0, 0, 1), i['r']))
         # arc
         for i in self.getArc(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_arc'):
-            PCB.append(['Arc', i['x1'], i['y1'], i['x2'], i['y2'], i['curve']])
-            wygenerujPada = False
-        # obj
+            [x3, y3] = self.arcMidPoint([i['x2'], i['y2']], [i['x1'], i['y1']], i['curve'])
+            arc = Part.Arc(FreeCAD.Vector(i['x2'], i['y2'], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(i['x1'], i['y1'], 0.0))
+            borderObject.addGeometry(self.Draft2Sketch(arc, borderObject))
+        ############
+        ###### obj
         lType = re.escape(self.getLayerName(self.borderLayerNumber))
         
         for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -699,74 +560,35 @@ class KiCadv3_PCB(mainPCB):
             else:
                 ROT = float(ROT)
             
-            if self.databaseType == "kicad":
+            if self.databaseType == "kicad":  # kicad v3
                 if self.spisWarstw[layer] == 15:  # top
                     side = 1
                 else:
                     side = 0
-            else:  # eagle v4
+            else:  # kicad v4
                 if self.spisWarstw[layer] == 0:  # top
                     side = 1
                 else:
                     side = 0
-            
             # line
             for i in self.getLine(lType, j, 'fp_line', [X1, Y1]):
                 [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
                 [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
-                #if side == 0:
-                    #y1 = self.odbijWspolrzedne(y1, Y1)
-                    #y2 = self.odbijWspolrzedne(y2, Y1)
-                
-                PCB.append(['Line', x1, y1, x2, y2])
+                borderObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
             # circle
             for i in self.getCircle(lType, j, 'fp_circle', [X1, Y1]):
                 [x, y] = self.obrocPunkt2([i['x'], i['y']], [X1, Y1], ROT)
-                #if side == 0:
-                    #y = self.odbijWspolrzedne(y, Y1)
-                
-                PCB.append(['Circle', x, y, i['r']])
+
+                borderObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), i['r']))
             # arc
             for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
                 [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
                 [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
-                #if side == 0:
-                    #y1 = self.odbijWspolrzedne(y1, Y1)
-                    #y2 = self.odbijWspolrzedne(y2, Y1)
                 
-                curve = i['curve']
-                #if side == 0:
-                    #curve *= -1
+                [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], i['curve'])
+                arc = Part.Arc(FreeCAD.Vector(x2, y2, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x1, y1, 0.0))
+                borderObject.addGeometry(self.Draft2Sketch(arc, borderObject))
                 
-                PCB.append(['Arc', x1, y1, x2, y2, curve])
-            # oval holes
-            #for i in self.getPadsList(j):
-                #if i['holeType'] == "oval":
-                    #FreeCAD.Console.PrintWarning("{0} \n".format(i['r'].split(' ')))
-                    #dx = float(i['r'].strip().split(' ')[0]) / 2.
-                    #dy = float(i['r'].strip().split(' ')[-1]) / 2.
-                    #xs = i['x'] + X1
-                    #ys = i['y'] + Y1
-                    
-                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys + dy], [X1, Y1], ROT)
-                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys + dy], [X1, Y1], ROT)
-                    #PCB.append(['Line', x1, y1, x2, y2])
-                    
-                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys - dy], [X1, Y1], ROT)
-                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys - dy], [X1, Y1], ROT)
-                    #PCB.append(['Line', x1, y1, x2, y2])
-                    
-                    #[x1, y1] = self.obrocPunkt2([xs - dx + dy , ys + dy], [X1, Y1], ROT)
-                    #[x2, y2] = self.obrocPunkt2([xs - dx + dy , ys - dy], [X1, Y1], ROT)
-                    #PCB.append(['Arc', x1, y1, x2, y2, -180])
-                    
-                    #[x1, y1] = self.obrocPunkt2([xs + dx - dy , ys + dy], [X1, Y1], ROT)
-                    #[x2, y2] = self.obrocPunkt2([xs + dx - dy , ys - dy], [X1, Y1], ROT)
-                    #PCB.append(['Arc', x1, y1, x2, y2, 180])
-                    
-        ###
-        return [PCB, wygenerujPada]
-
     def getLayerName(self, value):
         for i, j in self.spisWarstw.items():
             if j == value:
@@ -876,117 +698,317 @@ class KiCadv3_PCB(mainPCB):
                 areas[-1][-1].append(['Line', x1, y1, x2, y2])
         #
         return areas
-
-    def getSilkLayer(self, doc, layerNumber, grp, layerName, layerColor, defHeight):
-        layerName = "{0}_{1}".format(layerName, layerNumber)
-        layerSide = PCBlayers[softLayers[self.databaseType][layerNumber][1]][0]
-        lType = re.escape(self.getLayerName(layerNumber))
-        layerType = PCBlayers[softLayers[self.databaseType][layerNumber][1]][3]
-        #
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.defHeight = defHeight
-        ##
-        # lines
-        for i in self.getLine(lType, self.projektBRD, 'gr_line'):
-            layerNew.createObject()
-            layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
-            layerNew.setFace()
-        # circles
-        for i in self.getCircle(lType, self.projektBRD, 'gr_circle'):
-            layerNew.createObject()
-            layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
-            layerNew.setFace()
-        # arc
-        for i in self.getArc(lType, self.projektBRD, 'gr_arc'):
-            layerNew.createObject()
-            layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
-            layerNew.setFace()
-        # obj
-        for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
-            [X1, Y1, ROT] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', j).groups()
-            
-            X1 = float(X1)
-            Y1 = float(Y1) * (-1)
-            
-            if ROT == '':
-                ROT = 0.0
-            else:
-                ROT = float(ROT)
-            
-            # line
-            for i in self.getLine(lType, j, 'fp_line', [X1, Y1]):
-                layerNew.createObject()
-                layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
-                layerNew.addRotation(X1, Y1, ROT)
-                layerNew.setFace()
-            # circle
-            for i in self.getCircle(lType, j, 'fp_circle', [X1, Y1]):
-                layerNew.createObject()
-                layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
-                layerNew.addRotation(X1, Y1, ROT)
-                layerNew.setFace()
-            # arc
-            for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
-                layerNew.createObject()
-                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
-                layerNew.addRotation(X1, Y1, ROT)
-                layerNew.setFace()
-        ##
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        grp.addObject(layerS)
-        #
-        doc.recompute()
     
-    def generate(self, doc, groupBRD, filename):
-        board = self.getPCB()
-        if len(board[0]):
-            self.generatePCB(board, doc, groupBRD, self.dialogMAIN.gruboscPlytki.value())
+    def defineFunction(self, layerNumber):
+        if layerNumber in [107, 108]:  # pady
+            return "pads"
+        elif layerNumber in [0, 15]:  # paths
+            return "paths"
+        elif layerNumber == 106:  # MEASURES
+            return "measures"
+        elif layerNumber in [32, 33]:  # glue
+            return "glue"
+        elif layerNumber in [900, 901, 902, 903, 904]:  # ConstraintAreas
+            return "constraint"
         else:
-            FreeCAD.Console.PrintWarning('No PCB border detected!\n')
-            return False
-        # holes/vias/pads
-        types = {'H':self.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.dialogMAIN.plytkaPCB_otworyP.isChecked()}
-        self.generateHoles(self.getHoles(types), doc, self.dialogMAIN.holesMin.value(), self.dialogMAIN.holesMax.value())
+            return "silk"
+
+    def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
+        if parent:
+            X = parent['x']
+            Y = parent['y']
+            oType = 'fp_'
+        else:
+            X = 0
+            Y = 0
+            oType = 'gr_'
+
+        # linie/luki
+        if display[0]:
+            for i in self.getLine(layerNumber, dane, oType + 'line', [X, Y]):
+                layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+                
+            for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
+                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+        # okregi
+        if display[1]:
+            for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
+                layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+                
+                if i['width'] > 0:
+                    layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
+
+    def getPaths(self, layerNew, layerNumber, display):
+        for i in re.findall(r'\[start\]\(segment\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(width\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)(.*?)\[stop\]'.format(layerNumber[1]), self.projektBRD, re.MULTILINE|re.DOTALL):
+            x1 = float(i[0])
+            y1 = float(i[1]) * (-1)
+            x2 = float(i[2])
+            y2 = float(i[3]) * (-1)
+            width = float(i[4])
+            
+            if [x1, y1] != [x2, y2]:
+                layerNew.addLineWidth(x1, y1, x2, y2, width)
+                layerNew.setFace()
+    
+    def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
+        self.addStandardShapes(self.projektBRD, layerNew, layerNumber[1], display)
+    
+    def getSilkLayerModels(self, layerNew, layerNumber):
+        self.getElements()
         #
-        if self.dialogMAIN.plytkaPCB_elementy.isChecked():
-            partsError = self.getParts(self.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.dialogMAIN.adjustParts.isChecked(), self.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.dialogMAIN.partMinX.value(), self.dialogMAIN.partMinY.value(), self.dialogMAIN.partMinZ.value())
-            if self.dialogMAIN.plytkaPCB_plikER.isChecked():
-                self.generateErrorReport(partsError, filename)
-        ##  dodatkowe warstwy
-        grp = createGroup_Layers()
-        grp_2 = createGroup_Areas()
-        for i in range(self.dialogMAIN.spisWarstw.rowCount()):
-            if self.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
-                ID = int(self.dialogMAIN.spisWarstw.item(i, 1).text())
-                name = str(self.dialogMAIN.spisWarstw.item(i, 4).text())
+        for i in self.elements:
+            if i['side'] == 0:  # bottom side - get mirror
                 try:
-                    color = self.dialogMAIN.spisWarstw.cellWidget(i, 2).getColor()
+                    if softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]:
+                        szukanaWarstwa = self.getLayerName(softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"])
+                    else:
+                        szukanaWarstwa = layerNumber[1]
                 except:
-                    color = None
-                try:
-                    transp = self.dialogMAIN.spisWarstw.cellWidget(i, 3).value()
-                except:
-                    transp = None
-                    
-                if ID == 47:  # MEASURES
-                    self.addDimensions(self.getDimensions(), doc, grp, name, self.dialogMAIN.gruboscPlytki.value(), color)
-                elif ID in [20, 21]:
-                    self.getSilkLayer(doc, ID, grp, name, color, transp)
-                elif ID in [16, 17]:  # glue
-                    self.generateGlue(self.getGlue(ID), doc, grp, name, color, ID)
-                elif ID in [19, 18]:  # pady
-                    self.getPads(doc, ID, grp, name, color, transp)
-                elif ID in [0, 15]:  # paths
-                    self.generatePaths(self.getPaths(ID), doc, grp, name, color, ID, transp)
-                elif ID == 1:  # annotations
-                    self.addAnnotations(self.getAnnotations(), doc, color)
-                elif ID == 106:  # MEASURES
-                    self.addDimensions(self.getDimensions(), doc, grp, name, self.dialogMAIN.gruboscPlytki.value(), color)
+                    szukanaWarstwa = layerNumber[1]
+            else:
+                szukanaWarstwa = layerNumber[1]
+            ####
+            self.addStandardShapes(i['data'], layerNew, szukanaWarstwa, parent=i)
+        
+    def getElements(self):
+        if len(self.elements) == 0:
+            for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+                [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
+                layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
+                
+                name = re.search(r'\(fp_text reference\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+                name = re.search(r'^(".+?"|.+?)\s', name).groups()[0].replace('"', '')
+                value = re.search(r'\(fp_text value\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+                value  = re.search(r'^(".+?"|.+?)\s', value).groups()[0].replace('"', '')
+                
+                x = float(x)
+                y = float(y) * (-1)
+                
+                package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
+                package = re.sub('locked|placed|pla', '', package).split(':')[-1]
+                package = package.replace('"', '').strip()
+                ##3D package from KiCad
+                #try:
+                    #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                    #if package3D and self.partExist(os.path.basename(package3D), "", False):
+                        #package = os.path.basename(package3D)
+                #except:
+                    #pass
+                ##
+                library = package
+                #
+                if rot == '':
+                    rot = 0.0
                 else:
-                    self.generateConstraintAreas(self.getConstraintAreas(ID), doc, ID, grp_2, name, color, transp)
+                    rot = float(rot)
+                
+                if (self.databaseType == "kicad" and self.spisWarstw[layer] == 15) or (self.databaseType == "kicad_v4" and self.spisWarstw[layer] == 0):  # top
+                    side = 1  # TOP
+                    mirror = 'None'
+                else:
+                    side = 0  # BOTTOM
+                    #rot = (rot + 180) * (-1)
+                    if rot < 180:
+                        rot = (180 - rot)
+                    else:
+                        rot = int(rot % 180) * (-1)
+                    mirror = 'Local Y axis'
+                
+                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'rot': rot, 'side': side, 'data': i, 'mirror': mirror})
+    
+    def getParts(self):
+        self.getElements()
+        parts = []
+        ###########
+        for i in self.elements:
+            if i['side'] == 1:
+                side = "TOP"
+            else:
+                side = "BOTTOM"
+            ###########
+            # textReferencere
+            textReferencere = re.search(r'\(fp_text reference\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
+            [tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
+            tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
+            tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
+            tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
+            tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
+            #
+            tr_x = float(tr_x)
+            tr_y = float(tr_y) * (-1)
+            if tr_rot == '':
+                tr_rot = i['rot']
+            else:
+                tr_rot = float(tr_rot)
+            
+            if tr_fontSize == '':
+                tr_fontSize = 0.7
+            else:
+                tr_fontSize = float(tr_fontSize.split()[1])
+            
+            if tr_visibility == 'hide':
+                tr_visibility = False
+            else:
+                tr_visibility = True
+            
+            EL_Name = [tr_value, tr_x + i['x'], tr_y + i['y'], tr_fontSize, tr_rot, side, "center", False, i['mirror'], '', True]
+            ###########
+            # textValue
+            textValue = re.search(r'\(fp_text value\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
+            [tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
+            tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
+            tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
+            tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
+            tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
+            #
+            tv_x = float(tv_x)
+            tv_y = float(tv_y) * (-1)
+            if tv_rot == '':
+                tv_rot = i['rot']
+            else:
+                tv_rot = float(tv_rot)
+            
+            if tv_fontSize == '':
+                tv_fontSize = 0.7
+            else:
+                tv_fontSize = float(tv_fontSize.split()[1])
+            
+            if tv_visibility == 'hide':
+                tv_visibility = False
+            else:
+                tv_visibility = True
+            
+            EL_Value = [tv_value, tv_x + i['x'], tv_y + i['y'], tv_fontSize, tv_rot, side, "center", False, i['mirror'], '', tv_visibility]
+            ###########
+            ###########
+            newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
+            parts.append(newPart)
+        ###########
+        return parts
+    
+    
+    #def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
+        #PCB_ER = []
         ##
-        return doc
+        #for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+            #[x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
+            #layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
+            ###
+            ##package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
+            ##package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
+            ##if ':' in package:
+                ##package = package.replace('"', '').split(':')[-1]
+            ##else:
+                ##if '"' in package:
+                    ##package = package.replace('"', '')
+                ##else:
+                    ##package = package
+            #package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
+            #package = re.sub('locked|placed|pla', '', package).split(':')[-1]
+            #package = package.replace('"', '').strip()
+            ##3D package from KiCad
+            #try:
+                #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                #if package3D and self.partExist(os.path.basename(package3D), "", False):
+                    #package = os.path.basename(package3D)
+            #except:
+                #pass
+            ##
+            #library = package
+            
+            #x = float(x)
+            #y = float(y) * (-1)
+            #if rot == '':
+                #rot = 0.0
+            #else:
+                #rot = float(rot)
+            
+            #if self.spisWarstw[layer] == 15:  # top
+                #side = "TOP"
+                #mirror = 'None'
+            #else:
+                #side = "BOTTOM"
+                ##rot = (rot + 180) * (-1)
+                #if rot < 180:
+                    #rot = (180 - rot)
+                #else:
+                    #rot = int(rot % 180) * (-1)
+                #mirror = 'Local Y axis'
+            #####
+            ## textReferencere
+            #textReferencere = re.search(r'\(fp_text reference\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+            #[tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
+            #tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
+            #tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
+            #tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
+            #tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
+            ##
+            #tr_x = float(tr_x)
+            #tr_y = float(tr_y) * (-1)
+            #if tr_rot == '':
+                #tr_rot = rot
+            #else:
+                #tr_rot = float(tr_rot)
+            
+            #if tr_fontSize == '':
+                #tr_fontSize = 0.7
+            #else:
+                #tr_fontSize = float(tr_fontSize.split()[1])
+            
+            #if tr_visibility == 'hide':
+                #tr_visibility = False
+            #else:
+                #tr_visibility = True
+            
+            #EL_Name = [tr_value, tr_x + x, tr_y + y, tr_fontSize, tr_rot, side, "center", False, mirror, '', True]
+            #####
+            ## textValue
+            #textValue = re.search(r'\(fp_text value\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+            #[tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
+            #tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
+            #tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
+            #tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
+            #tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
+            ##
+            #tv_x = float(tv_x)
+            #tv_y = float(tv_y) * (-1)
+            #if tv_rot == '':
+                #tv_rot = rot
+            #else:
+                #tv_rot = float(tv_rot)
+            
+            #if tv_fontSize == '':
+                #tv_fontSize = 0.7
+            #else:
+                #tv_fontSize = float(tv_fontSize.split()[1])
+            
+            #if tv_visibility == 'hide':
+                #tv_visibility = False
+            #else:
+                #tv_visibility = True
+            
+            #EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
+            ##
+            #newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
+            #wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+            ##
+            #if wyn[0] == 'Error':  # lista brakujacych elementow
+                #partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
+                #if isinstance(partNameTXT, str):
+                    #partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
+                
+                #PCB_ER.append([partNameTXT, package, EL_Value[0], library])
+        #####
+        #return PCB_ER

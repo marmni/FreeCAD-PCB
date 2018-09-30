@@ -138,7 +138,7 @@ class exportDrillingMap:
             exportClass.outline = getBoardOutline()
             [exportClass.pcbMin_X, exportClass.pcbMin_Y, exportClass.pcbXLength, exportClass.pcbYLength] = getPCBsize()
             exportClass.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def getHoles(self):

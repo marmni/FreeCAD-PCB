@@ -49,7 +49,7 @@ def createDrillcenter(size, color):
             if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and 'PCBcenterDrill' in i.Proxy.Type:
                 obj = i
                 break
-    except Exception, e:
+    except Exception as e:
         FreeCAD.Console.PrintWarning(str(e) + "\n")
     #
     try:
@@ -61,7 +61,7 @@ def createDrillcenter(size, color):
             layerNew = obj.Proxy
             #
             layerNew.spisObiektowTXT = []
-    except Exception, e:
+    except Exception as e:
         FreeCAD.Console.PrintWarning(str(e) + "\n")
     #
     for j in doc.Objects:
@@ -81,7 +81,7 @@ def createDrillcenter(size, color):
                         layerNew.addDrillCenter(x, y, r1, r2)
                         layerNew.setFace()
                 break
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(str(e) + "\n")
     #######
     layerNew.generuj(layerS)

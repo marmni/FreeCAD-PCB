@@ -127,7 +127,7 @@ Units used = "mm"
             export.export()
             
             super(createCentroid_Gui, self).accept()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def zmianaSciezkiF(self):
@@ -277,7 +277,7 @@ class exportBOM_Gui(QtGui.QDialog):
                 export.units = 'inch' 
 
             export.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
         #super(exportBOM_Gui, self).accept()
@@ -375,7 +375,7 @@ class exportBOM:
                 exportClass.zeroPoint_X = self.zeroPoint_X
                 exportClass.zeroPoint_Y = self.zeroPoint_Y
             exportClass.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def getParts(self):
@@ -581,7 +581,7 @@ class txt(exportFileMain):
                             self.files.write(str(self.parts[i][j][k]['side']).ljust(kolumny[7] + 10))
                             self.files.write(str(len(self.parts[i][j].keys())))
                             self.files.write("\n")
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
 
 

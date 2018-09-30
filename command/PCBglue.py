@@ -116,7 +116,10 @@ class createGlueGui(QtGui.QWidget):
             glue.flat = eval(self.flat.currentText())
             glue.color = self.pcbColor.getColor()
             glue.transparent = self.transparent.value()
-            glue.side = self.side.currentText()
+            if self.side.currentText() == "TOP":
+                glue.side = 1
+            else:
+                glue.side = 0
             glue.generate()
             
             return True
@@ -130,7 +133,7 @@ class createGlue:
         self.width = 0.2
         self.height = 1
         self.flat = False
-        self.side = 'TOP'
+        self.side = 1
         #self.color = 
         self.transparent = 0
     
@@ -142,7 +145,7 @@ class createGlue:
         #
         grp = createGroup_Glue()
         
-        if self.side == 'TOP':
+        if self.side == 1:  # top
             typeL = PCBlayers["tGlue"][3]
         else:
             typeL  = PCBlayers["bGlue"][3]

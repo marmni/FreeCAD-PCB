@@ -70,7 +70,7 @@ def getBoardOutline():
                             j.Border.Geometry[k]
                         ])
                 break
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
     
     return outline
@@ -142,7 +142,7 @@ def getGlue():
                             j.Proxy.Type,
                             j.Width.Value
                         ])
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(str(e) + "\n")
                 
     return outline
@@ -168,7 +168,7 @@ def getDimensions():
                         [xM, yM, zM], 
                         j.Distance
                     ])
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(str(e) + "\n")
                 
     return data
@@ -197,7 +197,7 @@ def getAnnotations():
                     j.ViewObject.Mirror, 
                     j.ViewObject.Spin
                 ])
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(str(e) + "\n")
                 
     return data

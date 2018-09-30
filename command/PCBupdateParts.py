@@ -65,14 +65,14 @@ class updateWizardWidget(QtGui.QWidget):
         self.listaElementow = updateObjectTable()
 
         przSelectAllT = QtGui.QPushButton('')
-        przSelectAllT.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        #przSelectAllT.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         przSelectAllT.setFlat(True)
         przSelectAllT.setIcon(QtGui.QIcon(":/data/img/checkbox_checked_16x16.png"))
         przSelectAllT.setToolTip('Select all')
         self.connect(przSelectAllT, QtCore.SIGNAL('pressed ()'), self.selectAllObj)
         
         przSelectAllTF = QtGui.QPushButton('')
-        przSelectAllTF.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        #przSelectAllTF.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         przSelectAllTF.setFlat(True)
         przSelectAllTF.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
         przSelectAllTF.setToolTip('Deselect all')

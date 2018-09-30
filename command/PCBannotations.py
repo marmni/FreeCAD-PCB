@@ -89,7 +89,7 @@ class createAnnotation:
     def setName(self, value):
         self.defaultLabel = self.defaultName = value
         
-        if isinstance(self.defaultName, unicode):
+        if isinstance(self.defaultName, str):
             self.defaultName = unicodedata.normalize('NFKD', self.defaultName).encode('ascii', 'ignore')
         
     def generate(self):
@@ -591,9 +591,9 @@ class viewProviderPCBannotation:
         
         if obj.Object.Proxy.mode == 'anno':
             for nr in range(len(text)):
-                #if not isinstance(text[nr], unicode):
+                #if not isinstance(text[nr], str):
                     #text[nr] = unicode(text[nr], 'utf-8')
-                if isinstance(text[nr], unicode):
+                if isinstance(text[nr], str):
                     text[nr] = unicodedata.normalize('NFKD', text[nr]).encode('ascii', 'ignore')
         else:
             text = [unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')]

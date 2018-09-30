@@ -62,15 +62,6 @@ class createAssemblyGui(QtGui.QWidget):
         self.pozZ = QtGui.QDoubleSpinBox()
         self.pozZ.setRange(-1000, 1000)
         self.pozZ.setSuffix(" mm")
-        self.pozRX = QtGui.QDoubleSpinBox()
-        self.pozRX.setRange(-1000, 1000)
-        self.pozRX.setSuffix(" deg")
-        self.pozRY = QtGui.QDoubleSpinBox()
-        self.pozRY.setRange(-1000, 1000)
-        self.pozRY.setSuffix(" deg")
-        self.pozRZ = QtGui.QDoubleSpinBox()
-        self.pozRZ.setRange(-1000, 1000)
-        self.pozRZ.setSuffix(" deg")
         ukladWspolrzednych = QtGui.QLabel("")
         ukladWspolrzednych.setPixmap(QtGui.QPixmap(":/data/img/uklad.png"))
         
@@ -83,12 +74,6 @@ class createAssemblyGui(QtGui.QWidget):
         layWspolrzedne.addWidget(self.pozY, 1, 2, 1, 1, QtCore.Qt.AlignTop)
         layWspolrzedne.addWidget(QtGui.QLabel("Z"), 2, 1, 1, 1, QtCore.Qt.AlignRight)
         layWspolrzedne.addWidget(self.pozZ, 2, 2, 1, 1, QtCore.Qt.AlignTop)
-        layWspolrzedne.addWidget(QtGui.QLabel("RX"), 3, 1, 1, 1, QtCore.Qt.AlignRight)
-        layWspolrzedne.addWidget(self.pozRX, 3, 2, 1, 1, QtCore.Qt.AlignTop)
-        layWspolrzedne.addWidget(QtGui.QLabel("RY"), 4, 1, 1, 1, QtCore.Qt.AlignRight)
-        layWspolrzedne.addWidget(self.pozRY, 4, 2, 1, 1, QtCore.Qt.AlignTop)
-        layWspolrzedne.addWidget(QtGui.QLabel("RZ"), 5, 1, 1, 1, QtCore.Qt.AlignRight)
-        layWspolrzedne.addWidget(self.pozRZ, 5, 2, 1, 1, QtCore.Qt.AlignTop)
         layWspolrzedne.setRowStretch(6, 10)
         layWspolrzedne.setColumnStretch(2, 10)
         
@@ -117,9 +102,6 @@ class createAssemblyGui(QtGui.QWidget):
             asm.x = self.pozX.value()
             asm.y = self.pozY.value()
             asm.z = self.pozZ.value()
-            asm.rx = self.pozRX.value()
-            asm.ry = self.pozRY.value()
-            asm.rz = self.pozRZ.value()
             asm.create()
             
             return True
@@ -133,9 +115,6 @@ class createAssembly:
         self.x = 0
         self.y = 0
         self.z = 0
-        self.rx = 0
-        self.ry = 0
-        self.rz = 0
     
     def create(self):
         if self.fileName == '' :
@@ -145,108 +124,111 @@ class createAssembly:
             FreeCAD.Console.PrintWarning("Wrong file format!\n")
             return
         ##
+        comp = FreeCAD.ActiveDocument.addObject('App::Part','Part')
+        comp.Label = "Assembly_" + os.path.basename(self.fileName).split('.')[0]
+        comp.Placement = FreeCAD.Placement(FreeCAD.Base.Vector(self.x, self.y, self.z), FreeCAD.Rotation(FreeCAD.Base.Vector(0,0,1),0))
+        
         mainFile = FreeCAD.ActiveDocument.Label
         #
         a = FreeCAD.ActiveDocument.addObject("App::DocumentObjectGroupPython", "{0}".format(os.path.basename(self.fileName).split('.')[0]))
         mainAssemblyObject(a)
         a.File = self.fileName
-        a.X = self.x
-        a.Y = self.y
-        a.Z = self.z
-        a.RX = self.rx
-        a.RY = self.ry
-        a.RZ = self.rz
         viewProviderMainAssemblyObject(a.ViewObject)
+        comp.addObject(a)
         #
-        try:
-            FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
-            FreeCADGui.ActiveDocument.activeView().viewAxometric()
-            FreeCADGui.ActiveDocument.activeView().fitAll()
-        except:
-            pass
+        #try:
+            #FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
+            #FreeCADGui.ActiveDocument.activeView().viewAxometric()
+            #FreeCADGui.ActiveDocument.activeView().fitAll()
+        #except:
+            #pass
+
         FreeCAD.ActiveDocument.recompute()
 
+
 def exportAssembly():
-    doc = FreeCAD.ActiveDocument
+    pass
+    #doc = FreeCAD.ActiveDocument
 
-    tmpobjs = []
-    objs = []
-    for i in doc.Objects:
-        if not i.ViewObject.Visibility or not hasattr(i,'Shape') or not hasattr(i,'Proxy'):
-            continue
-        if hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
-            continue
-        if not i.isDerivedFrom("Sketcher::SketchObject") and len(i.Shape.Solids):
+    #tmpobjs = []
+    #objs = []
+    #for i in doc.Objects:
+        #if not i.ViewObject.Visibility or not hasattr(i,'Shape') or not hasattr(i,'Proxy'):
+            #continue
+        #if hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+            #continue
+        #if not i.isDerivedFrom("Sketcher::SketchObject") and len(i.Shape.Solids):
 
-            # We are trying to combining all objects into one single compound object. However,
-            # FreeCAD has a bug such that after compound, it will sometimes refuse to display
-            # any color if the compound contain some overlapped pads with holes, even though
-            # the color of all faces stored in DiffuseColor is still intact. 
-            # 
-            # The walkaround is to explode the pad object, and recombine all the solid inside
-            # using 'Part::Compound'. 
-            #
-            # Only apply this trick to layerSilkObject(pads) and layerPathObject(path) and 
-            # having holes.
-            if not doc.Board.Display or len(i.Shape.Solids)==1 or \
-                    (i.Proxy.__class__.__name__ != 'layerSilkObject' and \
-                     i.Proxy.__class__.__name__ != 'layerPathObject') :
-                objs.append(i)
-                continue
-            subobjs = []
-            for j in i.Shape.Solids:
-                tmpobj = doc.addObject('Part::Feature','obj')
-                tmpobj.Shape = j
-                tmpobj.ViewObject.ShapeColor = i.ViewObject.ShapeColor
-                tmpobjs.append(tmpobj)
-                subobjs.append(tmpobj)
-            subobj = doc.addObject('Part::Compound','obj')
-            subobj.Links = subobjs
-            objs.append(subobj)
-            tmpobjs.append(subobj)
+            ## We are trying to combining all objects into one single compound object. However,
+            ## FreeCAD has a bug such that after compound, it will sometimes refuse to display
+            ## any color if the compound contain some overlapped pads with holes, even though
+            ## the color of all faces stored in DiffuseColor is still intact. 
+            ## 
+            ## The walkaround is to explode the pad object, and recombine all the solid inside
+            ## using 'Part::Compound'. 
+            ##
+            ## Only apply this trick to layerSilkObject(pads) and layerPathObject(path) and 
+            ## having holes.
+            #if not doc.Board.Display or len(i.Shape.Solids)==1 or \
+                    #(i.Proxy.__class__.__name__ != 'layerSilkObject' and \
+                     #i.Proxy.__class__.__name__ != 'layerPathObject') :
+                #objs.append(i)
+                #continue
+            #subobjs = []
+            #for j in i.Shape.Solids:
+                #tmpobj = doc.addObject('Part::Feature','obj')
+                #tmpobj.Shape = j
+                #tmpobj.ViewObject.ShapeColor = i.ViewObject.ShapeColor
+                #tmpobjs.append(tmpobj)
+                #subobjs.append(tmpobj)
+            #subobj = doc.addObject('Part::Compound','obj')
+            #subobj.Links = subobjs
+            #objs.append(subobj)
+            #tmpobjs.append(subobj)
 
-    if not len(objs):
-        FreeCAD.Console.PrintWarning('no parts found')
-        return
-    obj = doc.addObject('Part::Compound','Compound')
-    obj.Links = objs
-    doc.recompute()
-    tmpobjs.append(obj)
+    #if not len(objs):
+        #FreeCAD.Console.PrintWarning('no parts found')
+        #return
+    #obj = doc.addObject('Part::Compound','Compound')
+    #obj.Links = objs
+    #doc.recompute()
+    #tmpobjs.append(obj)
 
-    import random
-    newDoc = FreeCAD.newDocument(doc.Name+'_'+str(random.randrange(10000,99999)))
+    #import random
+    #newDoc = FreeCAD.newDocument(doc.Name+'_'+str(random.randrange(10000,99999)))
 
-    copy = newDoc.addObject('Part::Feature','Compound')
-    copy.Shape = obj.Shape
-    copy.ViewObject.DiffuseColor = obj.ViewObject.DiffuseColor
-    copy.ViewObject.DisplayMode = 'Shaded'
-    newDoc.recompute()
+    #copy = newDoc.addObject('Part::Feature','Compound')
+    #copy.Shape = obj.Shape
+    #copy.ViewObject.DiffuseColor = obj.ViewObject.DiffuseColor
+    #copy.ViewObject.DisplayMode = 'Shaded'
+    #newDoc.recompute()
 
-    for i in objs:
-        i.ViewObject.Visibility = True
-    for i in reversed(tmpobjs):
-        doc.removeObject(i.Name)
+    #for i in objs:
+        #i.ViewObject.Visibility = True
+    #for i in reversed(tmpobjs):
+        #doc.removeObject(i.Name)
 
-    view = FreeCADGui.getDocument(newDoc.Name).activeView()
-    view.viewAxometric()
-    view.fitAll()
+    #view = FreeCADGui.getDocument(newDoc.Name).activeView()
+    #view.viewAxometric()
+    #view.fitAll()
 
 def updateAssembly():
-    if len(FreeCADGui.Selection.getSelection()) == 0:
-        FreeCAD.Console.PrintWarning("Select assembly!\n")
+    pass
+    #if len(FreeCADGui.Selection.getSelection()) == 0:
+        #FreeCAD.Console.PrintWarning("Select assembly!\n")
     
-    mainFile = FreeCAD.ActiveDocument.Label
-    for i in FreeCADGui.Selection.getSelection():
-        if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'assemblyMain':
-            i.Proxy.updateParts(i)
-            i.Proxy.updateRotation(i)
-    #
-    FreeCAD.setActiveDocument(mainFile)
-    FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
+    #mainFile = FreeCAD.ActiveDocument.Label
+    #for i in FreeCADGui.Selection.getSelection():
+        #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'assemblyMain':
+            #i.Proxy.updateParts(i)
+            #i.Proxy.updateRotation(i)
+    ##
+    #FreeCAD.setActiveDocument(mainFile)
+    #FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
     
-    FreeCADGui.ActiveDocument.activeView().viewAxometric()
-    FreeCADGui.ActiveDocument.activeView().fitAll()
-    FreeCAD.ActiveDocument.recompute()
+    #FreeCADGui.ActiveDocument.activeView().viewAxometric()
+    #FreeCADGui.ActiveDocument.activeView().fitAll()
+    #FreeCAD.ActiveDocument.recompute()
     
 def checkFile(fileName):
     if fileName.startswith('./'):
@@ -254,7 +236,7 @@ def checkFile(fileName):
     
     try:
         return [FreeCAD.open(fileName), True]
-    except Exception, e: # file is already open
+    except Exception as e: # file is already open
         for i in FreeCAD.listDocuments().values():
             if i.FileName == fileName:
                 return [FreeCAD.getDocument(i.Label), False]
@@ -273,7 +255,7 @@ class childAssemblyObject:
         #
         self.rotZ = 0
         self.rotX = 0
-        self.rotY = 0 # side
+        self.rotY = 0
         self.offsetX = 0
         self.offsetY = 0
         self.offsetZ = 0
@@ -286,6 +268,10 @@ class childAssemblyObject:
 
     def updateRotation(self, obj, rot, center):
         try:
+            #FreeCAD.Console.PrintWarning("RX: {0}\n".format(self.rotX))
+            #FreeCAD.Console.PrintWarning("RY: {0}\n".format(self.rotY))
+            #FreeCAD.Console.PrintWarning("RZ: {0}\n\n\n".format(self.rotZ))
+            
             sX = -self.offsetX 
             sY = -self.offsetY
             sZ = -self.offsetZ
@@ -294,26 +280,29 @@ class childAssemblyObject:
             y = center[1] + self.offsetY
             z = center[2] + self.offsetZ
             
-            pla = FreeCAD.Placement(FreeCAD.Base.Vector(x, y, z), FreeCAD.Rotation(rot[0], rot[1], rot[2]), FreeCAD.Base.Vector(sX, sY, sZ))
+            rotX = rot[0]
+            rotY = rot[1]
+            rotZ = rot[2]
+            
+            pla = FreeCAD.Placement(FreeCAD.Base.Vector(x, y, z), FreeCAD.Rotation(rotX, rotY, rotZ), FreeCAD.Base.Vector(sX, sY, sZ))
             obj.Placement = pla
             
-            # rotate object -> ROT property; Z value
+            # rotate object
             rot = FreeCAD.Rotation(FreeCAD.Vector(0,0,1), self.rotZ)
             pos = FreeCAD.Base.Vector(0, 0, 0)
             nP = FreeCAD.Placement(pos, rot, pos)
             obj.Placement = obj.Placement.multiply(nP)
-            # change side
+            
             rot = FreeCAD.Rotation(FreeCAD.Vector(0,1,0), self.rotY)
             pos = FreeCAD.Base.Vector(0, 0, 0)
             nP = FreeCAD.Placement(pos, rot, pos)
             obj.Placement = obj.Placement.multiply(nP)
-            #
+            
             rot = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), self.rotX)
             pos = FreeCAD.Base.Vector(0, 0, 0)
             nP = FreeCAD.Placement(pos, rot, pos)
             obj.Placement = obj.Placement.multiply(nP)
-            
-        except Exception, e:
+        except Exception as e:
             pass
             #FreeCAD.Console.PrintWarning("rot. {0} \n".format(e))
 
@@ -339,15 +328,7 @@ class mainAssemblyObject:
         
         obj.addProperty("App::PropertyFile", "File", "Base", "File").File = ""
         #obj.addProperty("App::PropertyPlacement", "Placement", "Base", "Placement")
-        obj.addProperty("App::PropertyDistance", "X", "PCB", "X").X = 0
-        obj.addProperty("App::PropertyDistance", "Y", "PCB", "Y").Y = 0
-        obj.addProperty("App::PropertyDistance", "Z", "PCB", "Z").Z = 0
-        obj.addProperty("App::PropertyAngle", "RX", "PCB", "RX").RX = 0
-        obj.addProperty("App::PropertyAngle", "RY", "PCB", "RY").RY = 0
-        obj.addProperty("App::PropertyAngle", "RZ", "PCB", "RZ").RZ = 0
         
-        self.center = [0, 0 ,0]
-
     def execute(self, obj):
         pass
     
@@ -366,43 +347,78 @@ class mainAssemblyObject:
             try:
                 for i in obj.OutList:
                     FreeCAD.ActiveDocument.removeObject(i.Name)
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning("7. {0} \n".format(e))
             # load new parts
             newFile = checkFile(obj.File)
             if not newFile[0]:
                 return
             #
-            center = Part.makeCompound([i.Shape for i in newFile[0].Objects if hasattr(i, "Shape")]).BoundBox.Center
-            self.center = [center[0], center[1], center[2]]
+            #center = Part.makeCompound([i.Shape for i in newFile[0].Objects if hasattr(i, "Shape")]).BoundBox.Center
+            #self.center = [center[0], center[1], center[2]]
             #
-            for i in newFile[0].Objects:
+            visibleObjects = [i for i in newFile[0].Objects if i.ViewObject.Visibility and not i.__class__.__name__ in ['GeoFeature']]
+            allGroupExtension = [i for i in visibleObjects if i.__class__.__name__ == 'GroupExtension' and not hasattr(i, "Proxy")]
+            
+            for i in allGroupExtension:
                 if not i.ViewObject.Visibility:
                     continue
                 
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
-                    continue
+                a = mainFile.copyObject(i, True)
+                #obj.addObject(mainFile.getObject(i.Name))
                 
-                if hasattr(i, "Shape") and not i.isDerivedFrom("Sketcher::SketchObject"):
-                    try:
-                        child = mainFile.addObject("Part::FeaturePython", "{0}".format(i.Label))
-                        childAssemblyObject(child)
-                        child.Shape = i.Shape
-                        viewProviderChildAssemblyObject(child.ViewObject)
-                        child.ViewObject.DiffuseColor = i.ViewObject.DiffuseColor
+                for j in i.Group:
+                    visibleObjects.remove(j)
+                visibleObjects.remove(i)
+            
+            for i in visibleObjects:
+                obj.addObject(mainFile.copyObject(i, True))
+            
+            ##FreeCAD.Console.PrintWarning("{0} \n".format(allGroupExtension))
+            
+            
+            
+            ##for i in newFile[0].Objects:
+                ##if not i.ViewObject.Visibility:
+                    ##continue
+            #for i in newFile[0].Objects:
+                #if not i.ViewObject.Visibility:
+                    #continue
+                
+                #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+                    #continue
+                
+                #if hasattr(i, "Shape"):
+                    #obj.addObject(mainFile.copyObject(i, False))
+                
+            #for i in newFile[0].Objects:
+                #if not i.ViewObject.Visibility:
+                    #continue
+                
+                #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+                    #continue
+                   
+                #if hasattr(i, "Shape") and not i.isDerivedFrom("Sketcher::SketchObject"):
+                    #try:
+                        #child = mainFile.addObject("Part::FeaturePython", "{0}".format(i.Label))
+                        #childAssemblyObject(child)
+                        #child.Shape = i.Shape
+                        #viewProviderChildAssemblyObject(child.ViewObject)
+                        #child.ViewObject.DiffuseColor = i.ViewObject.DiffuseColor
                         
-                        child.Proxy.rotZ = i.Placement.Rotation.toEuler()[0]
-                        child.Proxy.rotY = i.Placement.Rotation.toEuler()[1]
-                        child.Proxy.rotX = i.Placement.Rotation.toEuler()[2]
+                        ##FreeCAD.Console.PrintWarning("rot: {0}\n\n\n".format(i.Placement.Rotation.toEuler()))
                         
-                        #
-                        obj.addObject(child)
-                        child.Proxy.offsetX = child.Placement.Base.x - self.center[0]
-                        child.Proxy.offsetY = child.Placement.Base.y - self.center[1]
-                        child.Proxy.offsetZ = child.Placement.Base.z - self.center[2]
+                        #child.Proxy.rotZ = i.Placement.Rotation.toEuler()[0]
+                        #child.Proxy.rotY = i.Placement.Rotation.toEuler()[1]
+                        #child.Proxy.rotX = i.Placement.Rotation.toEuler()[2]
+                        ##
+                        #obj.addObject(child)
+                        #child.Proxy.offsetX = child.Placement.Base.x - self.center[0]
+                        #child.Proxy.offsetY = child.Placement.Base.y - self.center[1]
+                        #child.Proxy.offsetZ = child.Placement.Base.z - self.center[2]
                         
-                    except Exception, e:
-                        FreeCAD.Console.PrintWarning("1. {0} \n".format(e))
+                    #except Exception as e:
+                        #FreeCAD.Console.PrintWarning("1. {0} \n".format(e))
             if newFile[1]:
                 FreeCAD.closeDocument(newFile[0].Label)
             FreeCAD.setActiveDocument(mainFile.Label)
@@ -410,23 +426,12 @@ class mainAssemblyObject:
             
             FreeCADGui.ActiveDocument.activeView().viewAxometric()
             FreeCADGui.ActiveDocument.activeView().fitAll()
-
-    def updateRotation(self, fp):
-        try:
-            center =  [fp.X.Value, fp.Y.Value, fp.Z.Value]
-           
-            for i in fp.OutList:
-                i.Proxy.updateRotation(i, [fp.RZ.Value, fp.RY.Value, fp.RX.Value], center)
-        except Exception, e:
-            pass
-            #FreeCAD.Console.PrintWarning("3. {0} \n".format(e))
-        
+            FreeCAD.ActiveDocument.recompute()
+            
     def onChanged(self, fp, prop):
         try:
             if prop == "File":
                 self.updateParts(fp)
-            elif prop in ['X', 'Y', 'Z', 'RX', 'RY', 'RZ']:
-                self.updateRotation(fp)
         except:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass
@@ -470,6 +475,16 @@ class viewProviderMainAssemblyObject:
         and if not defined a default icon is shown.
         '''
         return ":/data/img/asmMain.png"
+
+
+
+
+
+
+
+
+
+
 
 
 class viewProviderChildAssemblyObject:

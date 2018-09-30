@@ -34,7 +34,7 @@ from math import sin, cos, degrees
 from xml.dom import minidom
 from PySide import QtCore, QtGui
 import json
-import __builtin__
+import builtins
 from collections import OrderedDict
 import datetime
 #
@@ -75,7 +75,7 @@ class exportPCB_Gui(QtGui.QWizard):
             self.exportType.export(str(self.pathToFile.text()))
             
             FreeCAD.Console.PrintWarning('End \n')
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
             FreeCAD.Console.PrintWarning('STOP \n')
     
@@ -247,7 +247,7 @@ class exportPCB:
                             j.Holes.Geometry[k].Center.y
                         ])
                     break
-                except Exception, e:
+                except Exception as e:
                     FreeCAD.Console.PrintWarning(str(e) + "\n")
         
         return data
@@ -931,7 +931,7 @@ board_file 2.0 "FreeCAD-PCB" {0} 1
                         #
                         num += 1
                     break
-                except Exception, e:
+                except Exception as e:
                     FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
         #
         self.files.write('.END_BOARD_OUTLINE\n')
@@ -1117,7 +1117,7 @@ BOARD_FILE 3.0 "FreeCAD-PCB" {0} 1
                         #
                         num += 1
                     break
-                except Exception, e:
+                except Exception as e:
                     FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
         #
         self.files.write('.END_BOARD_OUTLINE\n')

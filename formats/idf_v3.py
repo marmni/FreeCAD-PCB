@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import re
 
 from PCBobjects import *
@@ -53,7 +53,7 @@ class dialogMAIN(dialogMAIN_FORM):
         self.packageByDecal.setChecked(freecadSettings.GetBool("pcbDecals", True))
         self.lay.addWidget(self.packageByDecal, 9, 2, 1, 3)
         #
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r', '')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\r', '')
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ##
@@ -142,8 +142,6 @@ class IDFv3_PCB(mainPCB):
         return [PCB, wygenerujPada]
     
     def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ, decal):
-        self.__SQL__.reloadList()
-        ##
         PCB_ER = []
         try:
             elementy = re.search(r'\.PLACEMENT\n(.*?)\.END_PLACEMENT\n', self.projektBRD, re.DOTALL).groups()[0]
@@ -172,7 +170,7 @@ class IDFv3_PCB(mainPCB):
                 #
                 if wyn[0] == 'Error':  # lista brakujacych elementow
                     partNameTXT = partNameTXT_label = self.generateNewLabel(name)
-                    if isinstance(partNameTXT, unicode):
+                    if isinstance(partNameTXT, str):
                         partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                     
                     PCB_ER.append([partNameTXT, package, value, library])
@@ -301,7 +299,7 @@ class IDFv3_PCB(mainPCB):
         return holes
 
     def setProject(self, filename):
-        self.projektBRD = __builtin__.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
+        self.projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
         self.mnoznik = getUnitsDefinition(self.projektBRD)
 
     def generate(self, doc, groupBRD, filename):

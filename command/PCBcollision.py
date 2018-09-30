@@ -141,7 +141,7 @@ class checkCollisionsGui(QtGui.QWidget):
             self.root.addChild(fileContents)
             FreeCADGui.ActiveDocument.ActiveView.getSceneGraph().addChild(self.root)
             
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("No collision detected.\n")
             return True
     
@@ -199,7 +199,7 @@ class checkCollisionsGui(QtGui.QWidget):
     def onExit(self):
         try:
             os.remove(self.tmpFile[1])
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
         for i, j in self.transaprency.items():

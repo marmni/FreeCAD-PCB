@@ -69,7 +69,7 @@ def createConstraintArea(obj, typeCA):
             #grp.Object.Group.append(a)
             
             return a
-    except Exception ,e:
+    except Exception as e:
         FreeCAD.Console.PrintWarning("{0} \n".format(e))
 
 

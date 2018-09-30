@@ -33,15 +33,13 @@ __title__="FreeCAD Printed Circuit Board Workbench - Init file"
 __author__ = "marmni <marmni@onet.eu>"
 __url__ = ["http://www.freecadweb.org"]
 
-
 # ICONS
 # drill-icon.png -> http://www.fatcow.com/free-icons
 
 # Database backup
-# Database uload
+# Database upload
 # http://creativecommons.org/licenses/by/3.0/
 # <div>Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0">CC BY 3.0</a></div>
-
 
 class PCB(Workbench):
     MenuText = "Printed Circuit Board"
@@ -114,6 +112,8 @@ class PCB(Workbench):
         "                 "};"""
 
     def Initialize(self):
+        PCBcheckFreeCADVersion.setDefaultValues()
+        
         import PCBtoolBar, PCBrc, PCBcommands
         import SketcherGui
         
@@ -148,7 +148,7 @@ class PCB(Workbench):
             FreeCADGui.pcbToolBarView.Activated()
         if hasattr(FreeCADGui,"sketcherToolBar"):
             FreeCADGui.sketcherToolBar.Activated()
-
+        
     def Deactivated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):
             FreeCADGui.pcbToolBar.Deactivated()
@@ -173,11 +173,10 @@ class PCB(Workbench):
 
 
 Gui.addWorkbench(PCB())
-#FreeCAD.addImportType("Eagle BRD file format (*.brd)", "brd")
-#FreeCAD.addImportType("gEDA PCB file format (*.pcb)", "brd")
-#FreeCAD.addImportType("FreePCB FPC file format (*.fpc)", "brd")
-#FreeCAD.addImportType("Razen RZP file format (*.rzp)", "brd")
-#FreeCAD.addImportType("FidoCadJ FCD file format (*.fcd)", "brd")
-#FreeCAD.addImportType("KiCad PCB file format (*.kicad_pcb)", "brd")
-#FreeCAD.addImportType("IDF EMN file format (*.emn)", "brd")
-FreeCAD.addImportType("PCB file formats (*.brd *.pcb *.fpc *.rzp *.fcd *.kicad_pcb *.idf *.emn *.bdf *.idb *.HYP)", "PCBbrd")
+import PCBcheckFreeCADVersion
+result = PCBcheckFreeCADVersion.checkCompatibility()
+if result[0]:
+    FreeCAD.addImportType("PCB file formats (*.brd *.pcb *.fpc *.rzp *.fcd *.kicad_pcb *.idf *.emn *.bdf *.idb *.HYP)", "PCBbrd")
+else:
+    FreeCAD.Console.PrintWarning("PCB Workbench: {0}\n".format(result[1]))
+    

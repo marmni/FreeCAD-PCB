@@ -187,27 +187,39 @@ class pcbToolBarView(pcbToolBarMain):
                 if hasattr(j, "Proxy") and hasattr(j.Proxy, "cutToBoard"):
                     j.Proxy.cutToBoard = not j.Proxy.cutToBoard
                     j.Proxy.generuj(j)
-            except Exception ,e:
+            except Exception as e:
                 pass
                 #FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def ungroupParts(self):
         for j in FreeCAD.activeDocument().Objects:
-            if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                aa = partsManaging()
-                aa.addPartToGroup(False, [], j)
+            try:
+                if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    aa = partsManaging()
+                    aa.addPartToGroup(False, 0, j)
+            except:
+                pass
     
     def groupParts(self):
         for j in FreeCAD.activeDocument().Objects:
-            if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                aa = partsManaging()
-                aa.setDatabase()
-                fileData = aa.__SQL__.findPackage(j.Package, '*')
-                
-                if fileData[0] == True:
-                    aa.addPartToGroup(True, [None, None, None, None, fileData[3]], j)
-                else:
-                    aa.addPartToGroup(True, [False], j)
+            try:
+                if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    aa = partsManaging()
+                    aa.setDatabase()
+                    fileData = aa.__SQL__.findPackage(j.Package, "*")
+                    
+                    if fileData:
+                        model = aa.__SQL__.getModelByID(fileData.modelID)
+                        category = aa.__SQL__.getCategoryByID(model[1].categoryID)
+                        
+                        if category.id != -1:
+                            aa.addPartToGroup(True, category.id, j)
+                        else:
+                            aa.addPartToGroup(True, 0, j)
+                    else:
+                        aa.addPartToGroup(True, 0, j)
+            except:
+                pass
     
     def exportAssembly(self):
         exportAssembly()
@@ -216,21 +228,21 @@ class pcbToolBarView(pcbToolBarMain):
         try:
             if FreeCAD.activeDocument():
                 FreeCADGui.Control.showDialog(createAssemblyGui())
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def quickAssemblyUpdate(self):
         try:
             if FreeCAD.activeDocument():
                 updateAssembly()
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def checkForCollisionsF(self):
         try:
             if FreeCAD.activeDocument():
                 FreeCADGui.Control.showDialog(checkCollisionsGui())
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportToKerkytheaF(self):
@@ -533,7 +545,7 @@ class pcbToolBar(pcbToolBarMain):
             try:
                 form = createDrillcenter_Gui()
                 FreeCADGui.Control.showDialog(form)
-            except Exception ,e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportDrillingMap(self):
@@ -772,7 +784,10 @@ class pcbToolBar(pcbToolBarMain):
 
     def assignModels(self):
         ''' assign 3d models to packages '''
-        dodajElement().exec_()
+        try:
+            dodajElement().exec_()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
 
     def updateModels(self):
         ''' update 3d models of packages '''

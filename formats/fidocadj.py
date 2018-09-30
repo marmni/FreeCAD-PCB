@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import glob
 import re
 import os
@@ -44,7 +44,7 @@ class dialogMAIN(dialogMAIN_FORM):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "fidocadj"
         
-        self.projektBRD = __builtin__.open(filename, "r").read().replace("\r", "")
+        self.projektBRD = builtins.open(filename, "r").read().replace("\r", "")
         self.layersNames = {}
         self.getLayersNames()
         ####
@@ -255,11 +255,9 @@ class FidoCadJ_PCB(mainPCB):
     ##############################
     
     def setProject(self, filename):
-        self.projektBRD = __builtin__.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
+        self.projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
         
     def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
-        self.__SQL__.reloadList()
-        ##
         PCB_ER = []
         
         elementy = re.findall(r'MC ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) (.+?)\.(.*)(\nFCJ\n)?(TY [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ \* .*\n)?(TY [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ [0-9]+ \* .*\n)?', self.projektBRD)
@@ -299,7 +297,7 @@ class FidoCadJ_PCB(mainPCB):
             #
             if wyn[0] == 'Error':  # lista brakujacych elementow
                 partNameTXT = partNameTXT_label = self.generateNewLabel(name)
-                if isinstance(partNameTXT, unicode):
+                if isinstance(partNameTXT, str):
                     partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                 
                 PCB_ER.append([partNameTXT, package, value, library])
@@ -412,7 +410,7 @@ class FidoCadJ_PCB(mainPCB):
                             #docname = i.split('/')[1].split('.')[0]
                             #if docname.lower() == libName:
                             return plikJAR.read(i).replace("\r\n", "\n").replace("\r", "\n")
-                except Exception, e:
+                except Exception as e:
                     FreeCAD.Console.PrintWarning(str(e) + "\n")
                     return False
             else:

@@ -241,7 +241,7 @@ class viewProviderWireSEPointObject:
         #***************************************************************
         return """
 /* XPM */
-static char * C:\Users\mariusz\Desktop\logo_xpm[] = {
+static char * C:\\Users\\mariusz\\Desktop\\logo_xpm[] = {
 "62 40 12 1",
 " 	c None",
 ".	c #717171",
@@ -395,7 +395,7 @@ class viewProviderWirePointObject:
         #***************************************************************
         return """
 /* XPM */
-static char * C:\Users\mariusz\Desktop\logo_xpm[] = {
+static char * C:\\Users\\mariusz\\Desktop\\logo_xpm[] = {
 "62 40 12 1",
 " 	c None",
 ".	c #717171",

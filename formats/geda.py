@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import re
 from math import radians
 
@@ -41,7 +41,7 @@ class dialogMAIN(dialogMAIN_FORM):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "geda"
         
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\n', ' ')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\n', ' ')
         self.layersNames = {}
         self.getLayersNames()
         #        
@@ -108,7 +108,7 @@ class gEDA_PCB(mainPCB):
 
     def setProject(self, filename):
         '''Load project from file'''
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r\n', '\n')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\r\n', '\n')
         ##############
         try:
             re.search('PCB\s*\(.+? (.+?) (.+?)\)', self.projektBRD).groups()

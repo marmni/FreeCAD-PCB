@@ -326,7 +326,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
             export.export()
             
             super(exportHolesReport_Gui, self).accept()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def zmianaSciezkiF(self):
@@ -420,7 +420,7 @@ class exportHoles:
                 exportClass.zeroPointDrilling_Y = self.zeroPointDrilling_Y
             
             exportClass.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def getHoles(self):

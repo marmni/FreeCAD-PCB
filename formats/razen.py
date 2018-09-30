@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import json
 import os
 from math import sqrt, atan2
@@ -68,9 +68,9 @@ class Razen_PCB(mainPCB):
         
         for lib in libPath:
             try:
-                plikPart = __builtin__.open(os.path.join(os.path.join(os.path.join(lib, library), package), 'design.rzp'), "r")  # main lib file
+                plikPart = builtins.open(os.path.join(os.path.join(os.path.join(lib, library), package), 'design.rzp'), "r")  # main lib file
                 plikPart = json.load(plikPart)
-                plikPart = __builtin__.open(os.path.join(os.path.join(os.path.join(lib, library), package), plikPart['layout']), "r")  # footprints file
+                plikPart = builtins.open(os.path.join(os.path.join(os.path.join(lib, library), package), plikPart['layout']), "r")  # footprints file
                 return json.load(plikPart)
             except:
                 continue
@@ -78,7 +78,7 @@ class Razen_PCB(mainPCB):
 
     def setProject(self, filename):
         if str(filename).endswith('.rzp'):
-            projektBRD = __builtin__.open(filename, "r")
+            projektBRD = builtins.open(filename, "r")
             projektBRD = json.load(projektBRD)
             
             docname = os.path.dirname(filename)
@@ -86,7 +86,7 @@ class Razen_PCB(mainPCB):
             
             filename = os.path.join(docname, projektPCB)
             
-        projektBRD = __builtin__.open(filename, "r")
+        projektBRD = builtins.open(filename, "r")
         self.projektBRD = json.load(projektBRD)
         
         try:
@@ -95,8 +95,6 @@ class Razen_PCB(mainPCB):
             self.fileVersion = False
     
     def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
-        self.__SQL__.reloadList()
-        #
         PCB_ER = []
         #
         for i in self.projektBRD["elts"]:
@@ -145,7 +143,7 @@ class Razen_PCB(mainPCB):
                                         EL_Value[2] = self.setUnit(j["pos"][1], fileVersion) * (-1) + y
                                         EL_Value[3] = j["size"] * 1
                                         EL_Value[4] = j["angle"] * (-1) + rot
-                            except Exception, e:
+                            except Exception as e:
                                 FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
                     #
                     newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
@@ -153,11 +151,11 @@ class Razen_PCB(mainPCB):
                     #
                     if wyn[0] == 'Error':  # lista brakujacych elementow
                         partNameTXT = partNameTXT_label = self.generateNewLabel(name)
-                        if isinstance(partNameTXT, unicode):
+                        if isinstance(partNameTXT, str):
                             partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                         
                         PCB_ER.append([partNameTXT, package, value, library])
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
         #######
         return PCB_ER
@@ -192,7 +190,7 @@ class Razen_PCB(mainPCB):
                     font = str(i['font'])
 
                     adnotacje.append([txt, x, y, size, rot, side, align, spin, mirror, font])
-            except Exception, e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning(str(e) + "\n")
                 pass
         #
@@ -432,7 +430,7 @@ class Razen_PCB(mainPCB):
                                 layerNew.setChangeSide(X1, Y1, warst)
                                 layerNew.addRotation(X1, Y1, ROT)
                                 layerNew.setFace()
-                    except Exception ,e:
+                    except Exception as e:
                         FreeCAD.Console.PrintWarning("{0} \n".format(e))
         ###
         layerNew.generuj(layerS)
@@ -559,10 +557,10 @@ class Razen_PCB(mainPCB):
                                     layerNew.addRotation(X1, Y1, ROT)
                                     layerNew.setChangeSide(X1, Y1, warst)
                                     layerNew.setFace()
-                            except Exception, e:
+                            except Exception as e:
                                 FreeCAD.Console.PrintWarning(str(e) + "1\n")
                                 pass
-                except Exception, e:
+                except Exception as e:
                     FreeCAD.Console.PrintWarning(str(e) + "2\n")
                     pass
         #####
@@ -779,7 +777,7 @@ class Razen_PCB(mainPCB):
                                 
                                 PCB.append(['Arc', x1, y1, x2, y2, curve])
                                 wygenerujPada = False
-                        except Exception, e:
+                        except Exception as e:
                             FreeCAD.Console.PrintWarning(str(e) + "1\n")
                             pass
         #
