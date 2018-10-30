@@ -983,120 +983,120 @@ class viewProviderLayerPolygonObject:
 
 
 
-class layerPathObject(objectWire):
-    def __init__(self, obj, typeL):
-        self.spisObiektow = []
+#class layerPathObject(objectWire):
+    #def __init__(self, obj, typeL):
+        #self.spisObiektow = []
         
-        self.Type = typeL
-        obj.Proxy = self
-        self.holes = False
-        self.obj = obj
-        self.defHeight = 0.035
-        self.cutToBoard = False
+        #self.Type = typeL
+        #obj.Proxy = self
+        #self.holes = False
+        #self.obj = obj
+        #self.defHeight = 0.035
+        #self.cutToBoard = False
         
-    def changeColor(self):
-        import random
-        FreeCAD.Console.PrintWarning(u"{0} \n".format(self.signals))
+    #def changeColor(self):
+        #import random
+        #FreeCAD.Console.PrintWarning(u"{0} \n".format(self.signals))
         
-        col = []
-        for i in self.signals:
-            R = random.uniform(0, 1)
-            G = random.uniform(0, 1)
-            B = random.uniform(0, 1)
-            for j in i:
-                col.append((R, G, B, 0.0))
+        #col = []
+        #for i in self.signals:
+            #R = random.uniform(0, 1)
+            #G = random.uniform(0, 1)
+            #B = random.uniform(0, 1)
+            #for j in i:
+                #col.append((R, G, B, 0.0))
             
             
-        self.obj.ViewObject.DiffuseColor = col
-        self.obj.ViewObject.update()
+        #self.obj.ViewObject.DiffuseColor = col
+        #self.obj.ViewObject.update()
         
-    def updatePosition_Z(self, fp, dummy=None):
-        if 'tPath' in self.Type:
-            thickness = getPCBheight()[1]
+    #def updatePosition_Z(self, fp, dummy=None):
+        #if 'tPath' in self.Type:
+            #thickness = getPCBheight()[1]
             
-            fp.Placement.Base.z = thickness
-        else:
-            fp.Placement.Base.z = -self.defHeight / 1000.
+            #fp.Placement.Base.z = thickness
+        #else:
+            #fp.Placement.Base.z = -self.defHeight / 1000.
             
-    def updateHoles(self, fp):
-        self.generuj(fp)
+    #def updateHoles(self, fp):
+        #self.generuj(fp)
 
-    def generuj(self, fp):
-        if len(self.spisObiektow):
-            obiekty = []
+    #def generuj(self, fp):
+        #if len(self.spisObiektow):
+            #obiekty = []
             
-            if self.cutToBoard:
-                board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
-            
-            for i in self.spisObiektow:
-                if i[0] == 'arc':
-                    p1 = [i[1], i[2]]
-                    p2 = [i[3], i[4]]
-                    curve = i[5]
-                    width = i[6]
-                    cap = i[7]
-
-                    o = self.createArc(p1, p2, curve, width, cap)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
-                elif i[0] == 'circle':
-                    x = i[1]
-                    y = i[2]
-                    r = i[3]
-                    width = i[4]
-                    
-                    o = self.createCircle(x, y, r, width)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
-                elif i[0] == 'line':
-                    x1 = i[1]
-                    y1 = i[2]
-                    x2 = i[3]
-                    y2 = i[4]
-                    width = i[5]
-                    
-                    o = self.createLine(x1, y1, x2, y2, width)
-                    if self.cutToBoard:
-                        o = board.common(o)
-                    o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    obiekty.append(o)
-            #
-            path = Part.makeCompound(obiekty)
-            # cut to board shape
             #if self.cutToBoard:
-                #path = cutToBoardShape(path)
-            ###################################################
-            #if FreeCAD.ActiveDocument.Board.Display:
-                #holes = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Holes.Shape.Edges)
-                ##holes = holes.extrude(FreeCAD.Base.Vector(0, 0, 0.2))
+                #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
+                #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
             
-                #path = shapes.cut(holes)
-            #else:
-                #path = shapes
-            #
-            #path = path.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-            path.Placement.Base.z = fp.Placement.Base.z
-            fp.Shape = path
+            #for i in self.spisObiektow:
+                #if i[0] == 'arc':
+                    #p1 = [i[1], i[2]]
+                    #p2 = [i[3], i[4]]
+                    #curve = i[5]
+                    #width = i[6]
+                    #cap = i[7]
+
+                    #o = self.createArc(p1, p2, curve, width, cap)
+                    #if self.cutToBoard:
+                        #o = board.common(o)
+                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                    #obiekty.append(o)
+                #elif i[0] == 'circle':
+                    #x = i[1]
+                    #y = i[2]
+                    #r = i[3]
+                    #width = i[4]
+                    
+                    #o = self.createCircle(x, y, r, width)
+                    #if self.cutToBoard:
+                        #o = board.common(o)
+                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                    #obiekty.append(o)
+                #elif i[0] == 'line':
+                    #x1 = i[1]
+                    #y1 = i[2]
+                    #x2 = i[3]
+                    #y2 = i[4]
+                    #width = i[5]
+                    
+                    #o = self.createLine(x1, y1, x2, y2, width)
+                    #if self.cutToBoard:
+                        #o = board.common(o)
+                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                    #obiekty.append(o)
+            ##
+            #path = Part.makeCompound(obiekty)
+            ## cut to board shape
+            ##if self.cutToBoard:
+                ##path = cutToBoardShape(path)
+            ####################################################
+            ##if FreeCAD.ActiveDocument.Board.Display:
+                ##holes = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Holes.Shape.Edges)
+                ###holes = holes.extrude(FreeCAD.Base.Vector(0, 0, 0.2))
             
-    def onChanged(self, fp, prop):
-        pass
+                ##path = shapes.cut(holes)
+            ##else:
+                ##path = shapes
+            ##
+            ##path = path.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            #path.Placement.Base.z = fp.Placement.Base.z
+            #fp.Shape = path
+            
+    #def onChanged(self, fp, prop):
+        #pass
     
-    def __getstate__(self):
-        return [self.Type, self.cutToBoard, str(self.spisObiektow), self.defHeight]
+    #def __getstate__(self):
+        #return [self.Type, self.cutToBoard, str(self.spisObiektow), self.defHeight]
         
-    def __setstate__(self, state):
-        self.Type = state[0]
-        self.cutToBoard = state[1]
-        self.spisObiektow = eval(state[2])
-        self.defHeight = state[3]
+    #def __setstate__(self, state):
+        #self.Type = state[0]
+        #self.cutToBoard = state[1]
+        #self.spisObiektow = eval(state[2])
+        #self.defHeight = state[3]
         
-    def execute(self, fp):
-        self.generuj(fp)
+    #def execute(self, fp):
+        #self.generuj(fp)
 
 
 #class viewProviderLayerPathObject:
@@ -1728,7 +1728,7 @@ class layerSilkObject(objectWire):
             #return mainObj
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
-    
+            
     def addLineWidth(self, x1, y1, x2, y2, width=0, style=''):
         if style in ["longdash", "shortdash"]:
             lineStyle = style

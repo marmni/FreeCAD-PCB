@@ -396,26 +396,6 @@ class EaglePCB(mathFunctions):
     # MAIN FUNCTIONS
     ##############################
     
-    def getGlue(self, layerNumber):
-        glue = {}
-        # line/arc
-        for i in self.getWires(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
-            if not i['width'] in glue.keys():
-                glue[i['width']] = []
-            
-            if not i['curve']:
-                glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
-            else:
-                glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], i['cap']])
-        # circle
-        for i in self.getCircles(self.projektBRD.getElementsByTagName("plain")[0], layerNumber[0]):
-            if not i['width'] in glue.keys():
-                glue[i['width']] = []
-            
-            glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
-        #
-        return glue
-        
     def defineFunction(self, layerNumber):
         if layerNumber in [17, 18]:  # pady
             return "pads"
@@ -675,6 +655,39 @@ class EaglePCB(mathFunctions):
             areas.append(['polygon', self.getPolygon(i)])
         #
         return areas
+    
+    def getGlue(self, layerNumber):
+        glue = {}
+        # line/arc
+        for i in self.getWires(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
+            
+            if not i['curve']:
+                glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
+            else:
+                glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], i['cap']])
+        # circle
+        for i in self.getCircles(self.projektBRD.getElementsByTagName("plain")[0], layerNumber[0]):
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
+            
+            glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
+        ## rectangle
+        #for i in self.getRectangle(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
+            #if not 1 in glue.keys():
+                #glue[1] = []
+            
+            #glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y1']])
+            #glue[i['width']].append(['line', i['x2'], i['y1'], i['x2'], i['y2']])
+            #glue[i['width']].append(['line', i['x2'], i['y2'], i['x1'], i['y2']])
+            #glue[i['width']].append(['line', i['x1'], i['y2'], i['x1'], i['y1']])
+            
+            #glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
+            #glue[i['width']].append(['line', i['x1'], i['y2'], i['x2'], i['y1']])
+            
+        #
+        return glue
     
     def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
         if parent:

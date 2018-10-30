@@ -41,12 +41,10 @@ import time
 import PCBconf
 from PCBpartManaging import partsManaging
 from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1
-from PCBobjects import layerPolygonObject, viewProviderLayerPolygonObject, layerPathObject, constraintAreaObject, viewProviderConstraintAreaObject
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
 from command.PCBglue import createGlue
-from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
 
 from formats.eagle import EaglePCB
@@ -189,59 +187,6 @@ class mainPCB(partsManaging):
         if self.wersjaFormatu.dialogMAIN.plytkaPCB_plikER.isChecked() and len(errors):
             self.generateErrorReport(errors, self.projektBRDName)
     
-    def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
-        for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
-            ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
-            ser.ViewObject.Visibility = False
-            for k in j:
-                if k[0] == 'line':
-                    ser.addGeometry(Part.LineSegment(FreeCAD.Vector(k[1], k[2], 0), FreeCAD.Vector(k[3], k[4], 0)))
-                elif k[0] == 'circle':
-                    ser.addGeometry(Part.Circle(FreeCAD.Vector(k[1], k[2]), FreeCAD.Vector(0, 0, 1), k[3]))
-                elif k[0] == 'arc':
-                    x1 = k[1]
-                    y1 = k[2]
-                    x2 = k[3]
-                    y2 = k[4]
-                    [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], k[5])
-                    
-                    arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                    ser.addGeometry(self.Draft2Sketch(arc, ser))
-            #
-            glue = createGlue()
-            glue.base = ser
-            glue.width = i
-            glue.side = layerSide
-            glue.color = layerColor
-            glue.generate()
-        
-    def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
-        layerName = "{0}".format(layerName)
-        grp = doc.addObject("App::DocumentObjectGroup", layerName)
-        
-        for i in self.wersjaFormatu.getDimensions():
-            x1 = i[0]
-            y1 = i[1]
-            x2 = i[2]
-            y2 = i[3]
-            x3 = i[4]
-            y3 = i[5]
-            dtype = i[6]
-            
-            if dtype in ["angle"]:
-                continue
-            
-            dim = Draft.makeDimension(FreeCAD.Vector(x1, y1, gruboscPlytki), FreeCAD.Vector(x2, y2, gruboscPlytki), FreeCAD.Vector(x3, y3, gruboscPlytki))
-            dim.ViewObject.LineColor = layerColor
-            dim.ViewObject.LineWidth = 1.00
-            dim.ViewObject.ExtLines = 0.00
-            dim.ViewObject.FontSize = 2.00
-            dim.ViewObject.ArrowSize = '0.5 mm'
-            dim.ViewObject.ArrowType = "Arrow"
-            grp.addObject(dim)
-        
-        layerGRP.addObject(grp)
-    
     def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant):
         layerName = "{0}_{1}".format(layerNameO, layerNumber)
         #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
@@ -272,7 +217,60 @@ class mainPCB(partsManaging):
         #
         doc.recompute()
         #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
+    
+    def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
+        for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
+            ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
+            ser.ViewObject.Visibility = False
+            for k in j:
+                if k[0] == 'line':
+                    ser.addGeometry(Part.LineSegment(FreeCAD.Vector(k[1], k[2], 0), FreeCAD.Vector(k[3], k[4], 0)))
+                elif k[0] == 'circle':
+                    ser.addGeometry(Part.Circle(FreeCAD.Vector(k[1], k[2]), FreeCAD.Vector(0, 0, 1), k[3]))
+                elif k[0] == 'arc':
+                    x1 = k[1]
+                    y1 = k[2]
+                    x2 = k[3]
+                    y2 = k[4]
+                    [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], k[5])
+                    
+                    arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                    ser.addGeometry(self.Draft2Sketch(arc, ser))
+            #
+            glue = createGlue()
+            glue.base = ser
+            glue.width = i
+            glue.side = layerSide
+            glue.color = layerColor
+            glue.generate()
 
+    def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
+        layerName = "{0}".format(layerName)
+        grp = doc.addObject("App::DocumentObjectGroup", layerName)
+        
+        for i in self.wersjaFormatu.getDimensions():
+            x1 = i[0]
+            y1 = i[1]
+            x2 = i[2]
+            y2 = i[3]
+            x3 = i[4]
+            y3 = i[5]
+            dtype = i[6]
+            
+            if dtype in ["angle"]:
+                continue
+            
+            dim = Draft.makeDimension(FreeCAD.Vector(x1, y1, gruboscPlytki), FreeCAD.Vector(x2, y2, gruboscPlytki), FreeCAD.Vector(x3, y3, gruboscPlytki))
+            dim.ViewObject.LineColor = layerColor
+            dim.ViewObject.LineWidth = 1.00
+            dim.ViewObject.ExtLines = 0.00
+            dim.ViewObject.FontSize = 2.00
+            dim.ViewObject.ArrowSize = '0.5 mm'
+            dim.ViewObject.ArrowType = "Arrow"
+            grp.addObject(dim)
+        
+        layerGRP.addObject(grp)
+    
     def generatePCB(self, doc, groupBRD, gruboscPlytki):
         self.printInfo('\nGenerate board: ')
         
