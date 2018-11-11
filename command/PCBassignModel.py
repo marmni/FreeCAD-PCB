@@ -162,7 +162,8 @@ class pathChooser(QtGui.QTreeView):
     
     def selectionChanged(self, item1, item2):
         item = self.selectedIndexes()
-        self.parent.setNewPath(item[0].model().filePath(item[0]))
+        if len(item):
+            self.parent.setNewPath(item[0].model().filePath(item[0]))
         
         return super(pathChooser, self).selectionChanged(item1, item2)
 
@@ -266,8 +267,8 @@ class addNewPath(QtGui.QDialog):
                 pathsToModels = partPaths
             
             for i in pathsToModels:
-                if i in path:
-                    self.addItem(path.replace(os.path.join(i, ''), ''))  # relative path
+                if i.replace('\\', '/') in path.replace('\\', '/'):
+                    self.addItem(path.replace('\\', '/').replace(i.replace('\\', '/'), '')[1:])  # relative path
                     return
             #
             self.addItem(path) # absolute path

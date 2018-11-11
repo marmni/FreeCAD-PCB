@@ -265,8 +265,8 @@ class dataBase:
                 engine = create_engine('sqlite:///{0}'.format(newPath))
             else:
                 from PCBfunctions import getFromSettings_databasePath
-                
                 engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath()))  # relative path
+                
             Base.metadata.create_all(engine)
             Session = sessionmaker(bind=engine)
             self.session = Session()
@@ -322,7 +322,7 @@ class dataBase:
             if software == "*":
                 query = self.session.query(Packages).filter(Packages.name == name)
             else:
-                query = self.session.query(Packages).filter(Packages.name == name and Packages.software == software)
+                query = self.session.query(Packages).filter(Packages.software == software, Packages.name == name)
                 
             if query.count() == 0:
                 return False
