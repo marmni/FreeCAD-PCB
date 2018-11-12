@@ -1073,8 +1073,13 @@ class dodajElement(QtGui.QDialog):
                 self.reloadList()
     
     def addCategory(self):
+        if self.modelsList.currentItem() and self.modelsList.currentItem().data(0, QtCore.Qt.UserRole + 1) == 'C':
+            defParent = self.modelsList.currentItem().text(0)
+        else:
+            defParent = 'None'
+        
         dial = addCategoryGui()
-        dial.loadCategories(self.sql.getAllcategories())
+        dial.loadCategories(self.sql.getAllcategories(), defParent)
         
         if dial.exec_():
             if str(dial.categoryName.text()).strip() == '':
@@ -1296,6 +1301,7 @@ class dodajElement(QtGui.QDialog):
         # adjust name/value
         ########################
         self.modelAdjust = modelAdjustTable()
+        self.modelAdjust.setDisabled(True)
         self.modelAdjust.addRow("Name")
         self.modelAdjust.addRow("Value")
         

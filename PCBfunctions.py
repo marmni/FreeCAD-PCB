@@ -266,10 +266,38 @@ class importScriptCopy(QtGui.QDialog):
         #loadingGif.start()
         self.loadingWidget.hide()
     
+    def showLoading(self):
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        #
+        x = self.width() / 2. - 50
+        y = self.height() / 2. - 200
+        self.loadingWidget.move(x, y)
+        self.loadingWidget.show()
+        #
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        
+    def hideLoading(self):
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        #
+        self.loadingWidget.hide()
+        #
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
     
-    def importChilds(self, parentItem, parentID, socketsID):
-        for i in range(0, parentItem.childCount()):
-            itemMain = parentItem.child(i)
+    def importChilds(self, parentItem, parentID, socketsID, topItem=False):
+        if topItem:
+            childsList = parentItem.topLevelItemCount()
+        else:
+            childsList = parentItem.childCount()
+        
+        for i in range(0, childsList):
+            if topItem:
+                itemMain = self.categoriesTable.topLevelItem(i)
+            else:
+                itemMain = parentItem.child(i)
             
             if itemMain.checkState(0) and itemMain.data(0, QtCore.Qt.UserRole) in ['IC', 'C']:  # categories
                 categoryName = itemMain.text(0)
@@ -346,48 +374,12 @@ class importScriptCopy(QtGui.QDialog):
                         ####
         return socketsID
         
-    def showLoading(self):
-        time.sleep(0.05)
-        QtGui.QApplication.processEvents()
-        #
-        x = self.width() / 2. - 50
-        y = self.height() / 2. - 200
-        self.loadingWidget.move(x, y)
-        self.loadingWidget.show()
-        #
-        time.sleep(0.05)
-        QtGui.QApplication.processEvents()
-        
-    def hideLoading(self):
-        time.sleep(0.05)
-        QtGui.QApplication.processEvents()
-        #
-        self.loadingWidget.hide()
-        #
-        time.sleep(0.05)
-        QtGui.QApplication.processEvents()
-
     def accept(self):
         self.showLoading()
-        categoriesID = {}  # OLD_ID : NEW_ID
+        categoriesID = {}  # OLD_ID : [[], NEW_ID]
         socketsID = {}
         
-        # main categories/models
-        for i in range(0, self.categoriesTable.topLevelItemCount()):
-            itemMain = self.categoriesTable.topLevelItem(i)
-            
-            if itemMain.checkState(0) and itemMain.data(0, QtCore.Qt.UserRole) in ['IC', 'C']:  # categories
-                categoryName = itemMain.text(0)
-                categoryType = itemMain.data(0, QtCore.Qt.UserRole)
-                categoryDescription = itemMain.text(1)
-                
-                if categoryType == 'IC':  # ID of existing category
-                    categoryID = itemMain.data(0, QtCore.Qt.UserRole + 1)
-                else:  # add new category
-                    self.originalDatabase.addCategory(categoryName, 0, categoryDescription)
-                    categoryID = self.originalDatabase.lastInsertedID
-                
-                socketsID = self.importChilds(itemMain, categoryID, socketsID)
+        socketsID = self.importChilds(self.categoriesTable, 0, socketsID, True)  # main categories/models
         ### update sockets
         #FreeCAD.Console.PrintWarning(u"{0} \n".format(socketsID))
         for i in socketsID.keys():
@@ -516,8 +508,8 @@ class importScriptCopy(QtGui.QDialog):
                 #
                 self.tabs.setTabEnabled(0, True)
                 self.tabs.setTabEnabled(1, False)
-                self.loadCategories()
-                self.loadModelsData(self.categoriesTable, 0)
+                self.loadCategoryData(self.importDatabase.getAllcategoriesWithSubCat(), self.categoriesTable, True)
+                self.loadModelsData(self.categoriesTable, 0, True)  # models without category
             except Exception as e:
                 FreeCAD.Console.PrintWarning("\nERROR: {0}.\n".format(e))
 
@@ -550,7 +542,7 @@ class importScriptCopy(QtGui.QDialog):
             parentObject.setDisabled(False)
             parentObject.setCheckState(0, QtCore.Qt.Unchecked)
             
-    def loadModelsData(self, parentObject, categoryID):
+    def loadModelsData(self, parentObject, categoryID, topItem=False):
         for i in self.importDatabase.getAllModelsByCategory(categoryID):
             modelPaths = i.path3DModels.split(';')
             
@@ -571,7 +563,10 @@ class importScriptCopy(QtGui.QDialog):
             #load packages
             self.loadPackagesData(item, i.id)
             ########
-            parentObject.addChild(item)
+            if topItem:
+                parentObject.addTopLevelItem(item)
+            else:
+                parentObject.addChild(item)
     
     def loadCategoryData(self, categories, parentObject, topItem=False):
         for i in categories.keys():
@@ -601,10 +596,7 @@ class importScriptCopy(QtGui.QDialog):
                 #parentObject.setItemWidget(mainItem, 1, widgetAction)
             else:
                 parentObject.addChild(mainItem)
-    
-    def loadCategories(self):
-        self.loadCategoryData(self.importDatabase.getAllcategoriesWithSubCat(), self.categoriesTable, True)
-        
+
         #try:
             #for i in range(self.categoriesTable.rowCount()):
                 #if self.categoriesTable.cellWidget(i, 0).isChecked():

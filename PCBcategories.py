@@ -96,12 +96,13 @@ class addCategoryGui(QtGui.QDialog):
         lay.addWidget(buttons, 0, 2, 2, 1, QtCore.Qt.AlignCenter)
         lay.setRowStretch(2, 10)
     
-    def loadCategories(self, categories):
+    def loadCategories(self, categories, defParent):
         for i in categories:
             self.parentCategory.addItem(i.name, i.id)
         
         self.parentCategory.insertItem(-1, 'None', 0)
-        self.parentCategory.setCurrentIndex(0)
+        #self.parentCategory.setCurrentIndex(0)
+        self.parentCategory.setCurrentIndex(self.parentCategory.findText(defParent))
 
 
 class removeCategoryGui(QtGui.QMessageBox):
