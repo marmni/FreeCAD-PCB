@@ -223,6 +223,7 @@ class importScriptCopy(QtGui.QDialog):
         filePathLayout = QtGui.QHBoxLayout(filePathFrame)
         filePathLayout.addWidget(QtGui.QLabel(u'File:\t'))
         filePathLayout.addWidget(self.filePath)
+        #filePathLayout.addWidget(self.loadingWidget)
         filePathLayout.addWidget(filePathButton)
         filePathLayout.setContentsMargins(0, 0, 0, 0)
         
@@ -234,8 +235,6 @@ class importScriptCopy(QtGui.QDialog):
         self.tabs.addTab(self.tabSettings(), u'FreeCAD settings')
         self.tabs.setTabEnabled(0, False)
         self.tabs.setTabEnabled(1, False)
-        self.tabs.setTabEnabled(2, False)
-        self.connect(self.tabs, QtCore.SIGNAL("currentChanged (int)"), self.activeModelsTab)
         
         # buttons
         buttons = QtGui.QDialogButtonBox()
@@ -258,61 +257,156 @@ class importScriptCopy(QtGui.QDialog):
         lay.addWidget(buttonsFrame, 2, 0, 1, 1)
         lay.setRowStretch(1, 10)
         lay.setContentsMargins(5, 5, 5, 5)
+        
+        #loadingGif = QtGui.QMovie('C:/Users/marmn/Desktop/FreeCAD_0.18.14495_Conda_Py3QT5-WinVS2016_x64/Mod/PCB/data/loading.gif')
+        self.loadingWidget = QtGui.QLabel('', self)
+        self.loadingWidget.setPixmap(QtGui.QPixmap('C:/Users/marmn/Desktop/FreeCAD_0.18.14495_Conda_Py3QT5-WinVS2016_x64/Mod/PCB/data/loading.png'))
+        self.loadingWidget.setMinimumSize(400, 400)
+        #self.loadingWidget.setMovie(loadingGif)
+        #loadingGif.start()
+        self.loadingWidget.hide()
     
-    def activeModelsTab(self, num):
-        if num == 1:
-            self.loadModels()
+    
+    def importChilds(self, parentItem, parentID, socketsID):
+        for i in range(0, parentItem.childCount()):
+            itemMain = parentItem.child(i)
+            
+            if itemMain.checkState(0) and itemMain.data(0, QtCore.Qt.UserRole) in ['IC', 'C']:  # categories
+                categoryName = itemMain.text(0)
+                categoryType = itemMain.data(0, QtCore.Qt.UserRole)
+                categoryDescription = itemMain.text(1)
+                
+                if categoryType == 'IC':  # ID of existing category
+                    categoryID = itemMain.data(0, QtCore.Qt.UserRole + 1)
+                else:  # add new category
+                    self.originalDatabase.addCategory(categoryName, parentID, categoryDescription)
+                    categoryID = self.originalDatabase.lastInsertedID
+                
+                socketsID = self.importChilds(itemMain, categoryID, socketsID)
+            elif itemMain.checkState(0) and itemMain.data(0, QtCore.Qt.UserRole) in ['IM', 'M']:  # models
+                modelType = itemMain.data(0, QtCore.Qt.UserRole)
+                
+                # get packages
+                importNumber = 0
+                paramModelSoftware = []
+                for j in range(0, itemMain.childCount()):
+                    itemPackage = itemMain.child(j)
+                    if itemPackage.checkState(0) and itemPackage.data(0, QtCore.Qt.UserRole) == 'P':  # new package
+                        dataPackage = self.importDatabase.getPackageByID(itemPackage.data(0, QtCore.Qt.UserRole + 1))
+                        if dataPackage:
+                            paramPackage = {
+                                'name' : dataPackage.name,
+                                'software' : dataPackage.software,
+                                'x' : dataPackage.x,
+                                'y' : dataPackage.y,
+                                'z' :  dataPackage.z,
+                                'rx' : dataPackage.rx,
+                                'ry' : dataPackage.ry,
+                                'rz' : dataPackage.rz,
+                                'blanked': False
+                            }
+                            paramModelSoftware.append(paramPackage)
+                            importNumber += 1
+                
+                if modelType == 'IM':  # ID of existing model - add only new package
+                    modelID = itemMain.data(0, QtCore.Qt.UserRole + 1)
+                    
+                    for j in paramModelSoftware:
+                        self.originalDatabase.addPackage(j, modelID=modelID)
+                    
+                else:  # add new model
+                    data = self.importDatabase.getModelByID(itemMain.data(0, QtCore.Qt.UserRole + 1))[1]
+                    paramModel = {
+                        'name' : data.name,
+                        'description' : data.description,
+                        'categoryID' : parentID,
+                        'datasheet' : data.datasheet,
+                        'path3DModels' : data.path3DModels,
+                        'isSocket' : data.isSocket,
+                        'isSocketHeight' : data.isSocketHeight,
+                        'socketID' : data.socketID,
+                        'socketIDSocket' : data.socketIDSocket,
+                        'software' : paramModelSoftware
+                    }
+                    
+                    if importNumber:  # protection against importing model without packages
+                        self.originalDatabase.addModel(paramModel)
+                        ####
+                        if data.isSocket:
+                            if not itemMain.data(0, QtCore.Qt.UserRole + 1) in socketsID.keys():
+                                socketsID[itemMain.data(0, QtCore.Qt.UserRole + 1)] = [[]]
+                            else:
+                                socketsID[itemMain.data(0, QtCore.Qt.UserRole + 1)].append(self.originalDatabase.lastInsertedModelID)
+                        ####
+                        if data.socketIDSocket:
+                            if not data.socketID in socketsID.keys():
+                                socketsID[data.socketID] = [[]]
+                            
+                            socketsID[data.socketID][0].append(self.originalDatabase.lastInsertedModelID)
+                        ####
+        return socketsID
+        
+    def showLoading(self):
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        #
+        x = self.width() / 2. - 50
+        y = self.height() / 2. - 200
+        self.loadingWidget.move(x, y)
+        self.loadingWidget.show()
+        #
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        
+    def hideLoading(self):
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
+        #
+        self.loadingWidget.hide()
+        #
+        time.sleep(0.05)
+        QtGui.QApplication.processEvents()
 
-    def modelsListsetRowColor(self, item, color):
-        item.setBackground(0, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(1, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(2, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(3, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        #item.setBackground(4, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-    
-    def modelsLoadCategories(self):
-        ''' main items '''
-        categories = {}
-        # Without category
-        mainItem = QtGui.QTreeWidgetItem([u'Models without category'])
-        mainItem.setData(0, QtCore.Qt.UserRole, -1)
-        mainItem.setData(0, QtCore.Qt.UserRole + 1, '')
-        self.modelsTable.addTopLevelItem(mainItem)
-        self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-        categories[-1] = mainItem
-        # omitted models
-        mainItem = QtGui.QTreeWidgetItem([u'Omitted models'])
-        mainItem.setData(0, QtCore.Qt.UserRole, -2)
-        mainItem.setData(0, QtCore.Qt.UserRole + 1, -2)
-        self.modelsTable.addTopLevelItem(mainItem)
-        self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-        categories[-2] = mainItem
+    def accept(self):
+        self.showLoading()
+        categoriesID = {}  # OLD_ID : NEW_ID
+        socketsID = {}
+        
+        # main categories/models
+        for i in range(0, self.categoriesTable.topLevelItemCount()):
+            itemMain = self.categoriesTable.topLevelItem(i)
+            
+            if itemMain.checkState(0) and itemMain.data(0, QtCore.Qt.UserRole) in ['IC', 'C']:  # categories
+                categoryName = itemMain.text(0)
+                categoryType = itemMain.data(0, QtCore.Qt.UserRole)
+                categoryDescription = itemMain.text(1)
+                
+                if categoryType == 'IC':  # ID of existing category
+                    categoryID = itemMain.data(0, QtCore.Qt.UserRole + 1)
+                else:  # add new category
+                    self.originalDatabase.addCategory(categoryName, 0, categoryDescription)
+                    categoryID = self.originalDatabase.lastInsertedID
+                
+                socketsID = self.importChilds(itemMain, categoryID, socketsID)
+        ### update sockets
+        #FreeCAD.Console.PrintWarning(u"{0} \n".format(socketsID))
+        for i in socketsID.keys():
+            newID = socketsID[i][1]
+            
+            for j in socketsID[i][0]:
+                self.originalDatabase.updateModelSockedID(j, newID)
         #
-        try:
-            for i in range(self.categoriesTable.rowCount()):
-                if self.categoriesTable.cellWidget(i, 0).isChecked():
-                    oldCategoryID = int(self.categoriesTable.item(i, 1).text())
-                    if self.categoriesTable.cellWidget(i, 4).currentIndex() == 0:
-                        mainItem = QtGui.QTreeWidgetItem(['{0} (New category)'.format(self.categoriesTable.item(i, 2).text())])
-                        mainItem.setData(0, QtCore.Qt.UserRole, 'New')
-                        mainItem.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold;'>New category '{0}' will be added.</span>".format(self.categoriesTable.item(i, 2).text()))  # info
-                    else:
-                        categoryData = self.categoriesTable.cellWidget(i, 4).itemData(self.categoriesTable.cellWidget(i, 4).currentIndex())
-                        
-                        mainItem = QtGui.QTreeWidgetItem(['{1} (Existing category {0})'.format(categoryData[1], self.categoriesTable.item(i, 2).text())])
-                        mainItem.setData(0, QtCore.Qt.UserRole, 'Old')
-                        mainItem.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold;'>All entries from category '{1}' will be shifted to the existing '{0}'.</span>".format(categoryData[1], self.categoriesTable.item(i, 2).text()))  # info
-                    
-                    mainItem.setData(0, QtCore.Qt.UserRole + 1, i)  # category row number
-                    self.modelsTable.addTopLevelItem(mainItem)
-                    self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-                    
-                    categories[oldCategoryID] = mainItem
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0}.\n".format(e))
-        #
-        return categories
+        self.hideLoading()
+        self.done(1)
+        return True
     
+    #def modelsListsetRowColor(self, item, color):
+        #item.setBackground(0, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+        #item.setBackground(1, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+        #item.setBackground(2, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+        #item.setBackground(3, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+        ##item.setBackground(4, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+
     def itemParentSetCheckState(self, item):
         if item.parent() and item.checkState(0):
             item.parent().setCheckState(0, item.checkState(0))
@@ -401,55 +495,12 @@ class importScriptCopy(QtGui.QDialog):
         lay.setContentsMargins(5, 5, 5, 5)
         
         return tab
-        #tab = QtGui.QWidget()
-        
-        ## buttons
-        #selectAll = QtGui.QPushButton()
-        #selectAll.setFlat(True)
-        #selectAll.setToolTip('Select all')
-        #selectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_checked_16x16.png"))
-        #selectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        #self.connect(selectAll, QtCore.SIGNAL("clicked()"), self.selectAllCategories)
-        
-        #unselectAll = QtGui.QPushButton()
-        #unselectAll.setFlat(True)
-        #unselectAll.setToolTip('Deselect all')
-        #unselectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
-        #unselectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        #self.connect(unselectAll, QtCore.SIGNAL("clicked()"), self.unselectAllCategories)
-        
-        ## table
-        #self.categoriesTable = QtGui.QTableWidget()
-        #self.categoriesTable.setStyleSheet('''border:0px solid red;''')
-        #self.categoriesTable.setColumnCount(5)
-        #self.categoriesTable.setGridStyle(QtCore.Qt.DashDotLine)
-        #self.categoriesTable.setHorizontalHeaderLabels([' Active ', 'ID', 'Name', 'Description', 'Action'])
-        #self.categoriesTable.verticalHeader().hide()
-        #self.categoriesTable.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        #self.categoriesTable.horizontalHeader().setStretchLastSection(True)
-        #self.categoriesTable.hideColumn(1)
-        
-        ## main lay
-        #layTableButtons = QtGui.QHBoxLayout()
-        #layTableButtons.addWidget(selectAll)
-        #layTableButtons.addWidget(unselectAll)
-        #layTableButtons.addStretch(10)
-        
-        #lay = QtGui.QGridLayout(tab)
-        #lay.addLayout(layTableButtons, 0, 0, 1, 1)
-        #lay.addWidget(self.categoriesTable, 1, 0, 1, 1)
-        #lay.setRowStretch(1, 10)
-        #lay.setColumnStretch(0, 10)
-        #lay.setContentsMargins(5, 5, 5, 5)
-        
-        #return tab
-    
+
     def showInfoF(self, item, num):
         self.showInfo.setText(item.data(0, QtCore.Qt.UserRole + 3))
         
     def tabSettings(self):
         tab = QtGui.QWidget()
-        
         return tab
  
     def importDataBase(self):
@@ -464,96 +515,12 @@ class importScriptCopy(QtGui.QDialog):
                 self.originalDatabase.connect()
                 #
                 self.tabs.setTabEnabled(0, True)
-                self.tabs.setTabEnabled(1, True)
+                self.tabs.setTabEnabled(1, False)
                 self.loadCategories()
                 self.loadModelsData(self.categoriesTable, 0)
             except Exception as e:
                 FreeCAD.Console.PrintWarning("\nERROR: {0}.\n".format(e))
-    
-    def loadModelsDEP(self):
-        pass
-        #self.modelsTable.clear()
-        #self.showInfo.setText('')
-        #categories = self.modelsLoadCategories()
-        ##
-        #try:
-            #for i in self.importDatabase.getAllModels():
-                #data = self.importDatabase.convertToTable(i)
-                ##
-                #modelName = data['name']
-                #modelID = int(data['id'])
-                #modelDescription = data['description']
-                #modelPaths = data['path3DModels'].split(';')
-                
-                ## models
-                #mainModel = QtGui.QTreeWidgetItem([modelName, modelDescription, '\n'.join(modelPaths)])
-                #mainModel.setData(0, QtCore.Qt.UserRole, 'PM')
-                #mainModel.setData(0, QtCore.Qt.UserRole + 1, modelID)
-                #mainModel.setData(0, QtCore.Qt.UserRole + 2, data)  # str representation
-                
-                #if len(modelPaths) == 0 or modelName == '':  # Corrupt entry - this is no error
-                    #self.modelsListsetRowColor(mainModel, [255, 166 , 166])
-                    #mainModel.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Info: Corrupt entry!</span>")  # info
-               
-                ## packages
-                ##errors = 0
-                ##errorsID = -1
-                ##modelSoftware = self.importDatabase.getPackagesByModelID(modelID)
-                
-                
-                
-                #try:
-                    #categories[int(data['categoryID'])].addChild(mainModel)
-                #except:
-                    #categories[-1].addChild(mainModel)  # models without category
-                
-                
-                ##for j in modelSoftware:
-                    ##packageData = self.importDatabase.convertToTable(j)
-                    ###
-                    ##softwareModel = packageData['name']
-                    ##softwareName = packageData['software']
-                    ##position = "X:{0} ;Y:{1} ;Z:{2} ;RX:{3} ;RY:{4} ;RZ:{5}".format(packageData['x'], packageData['y'], packageData['z'], packageData['rx'], packageData['ry'], packageData['rz'])
-                    ###
-                    ##childModel = QtGui.QTreeWidgetItem([softwareName, softwareModel, position])
-                    ##childModel.setData(0, QtCore.Qt.UserRole, 'M')  # correct model definition
-                    ##childModel.setData(0, QtCore.Qt.UserRole + 2, j)  # str representation
-                    
-                    ##if self.originalDatabase.findPackage(softwareModel, softwareName):
-                        ##packageDataOriginal = self.importDatabase.convertToTable(self.originalDatabase.findPackage(softwareModel, softwareName))
-                        
-                        ##errors += 1
-                        ##childModel.setData(0, QtCore.Qt.UserRole, 'ER')
-                        
-                        ##if errorsID == -1:
-                            ##errorsID = packageDataOriginal['id']
-                        
-                        ##self.modelsListsetRowColor(childModel, [255, 166 , 166])
-                        ##childModel.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Error: Model is already defined in database.</span>")  # info
-                    ##else:
-                        ##childModel.setCheckState(0, QtCore.Qt.Unchecked)
-                    
-                    ##if modelSoftware.count() > errors > 0:
-                        ##mainModel.setData(0, QtCore.Qt.UserRole + 4, errorsID)
-                    ##elif errors == 0:
-                        ##mainModel.setData(0, QtCore.Qt.UserRole + 4, 'new')
-                    
-                    ##mainModel.addChild(childModel)
-                #########
-                ##if errors == modelSoftware.count():
-                    ##categories[-2].addChild(mainModel)
-                ##else:
-                    ##try:
-                        ##categories[data['categoryID']].addChild(mainModel)
-                    ##except:  # 
-                        ##categories[-1].addChild(mainModel)  # models without category
-        #except Exception as e:
-            #FreeCAD.Console.PrintWarning("Error: {0}.\n".format(e))
-            
-    def clearCategories(self):
-        self.categoriesTable.clear()
-        self.showInfo.setText('')
-        
+
     def loadPackagesData(self, parentObject, modelID):
         newP = 0
         
@@ -566,6 +533,7 @@ class importScriptCopy(QtGui.QDialog):
             if self.originalDatabase.findPackage(i.name, i.software):
                 item.setData(0, QtCore.Qt.UserRole, 'ER')
                 item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Package already exist.")  # info
+                item.setDisabled(True)
             else: # new package
                 item.setCheckState(0, QtCore.Qt.Unchecked)
                 item.setData(0, QtCore.Qt.UserRole, 'P')
@@ -579,7 +547,7 @@ class importScriptCopy(QtGui.QDialog):
         if newP and parentObject.data(0, QtCore.Qt.UserRole) == 'EM':
             parentObject.setData(0, QtCore.Qt.UserRole, 'IM')
             parentObject.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold;'>New packages are available.")  # info
-            
+            parentObject.setDisabled(False)
             parentObject.setCheckState(0, QtCore.Qt.Unchecked)
             
     def loadModelsData(self, parentObject, categoryID):
@@ -594,6 +562,7 @@ class importScriptCopy(QtGui.QDialog):
                 item.setData(0, QtCore.Qt.UserRole, 'EM')
                 item.setData(0, QtCore.Qt.UserRole + 1, data[1].id)  # existing model ID
                 item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Model already exist.")  # info
+                item.setDisabled(True)
             else:
                 item.setData(0, QtCore.Qt.UserRole, 'M')
                 item.setCheckState(0, QtCore.Qt.Unchecked)
@@ -694,22 +663,20 @@ class importScriptCopy(QtGui.QDialog):
                 #nr += 1
             #self.categoriesTable.setCellWidget(rowNumber, 4, widgetAction)
 
-    def importFreeCADSettings(self):
-        self.tabs.setTabEnabled(2, True)
-      
     def chooseFile(self):
-        self.clearCategories()
+        self.categoriesTable.clear()
+        self.showInfo.setText('')
         self.tabs.setTabEnabled(0, False)
         self.tabs.setTabEnabled(1, False)
-        self.tabs.setTabEnabled(2, False)
-        
+        #
         newDatabase = QtGui.QFileDialog.getOpenFileName(None, u'Choose file to import', os.path.expanduser("~"), '*.zip')
         if newDatabase[0].strip() != '' and self.checkFile(newDatabase[0].strip()):
             self.filePath.setText(newDatabase[0])
             #
+            self.showLoading()
             self.importDataBase()
-            self.importFreeCADSettings()
-    
+            self.hideLoading()
+            
     def checkFile(self, fileName):
         try:
             if 'dataFreeCAD_pcb' in zipfile.ZipFile(fileName).namelist():
@@ -726,16 +693,6 @@ class importScriptCopy(QtGui.QDialog):
         except Exception as e:
             FreeCAD.Console.PrintWarning("\nERROR: {0} (checkFile).\n".format(e))
             return False
-        
-    def selectAllModels(self):
-        for i in QtGui.QTreeWidgetItemIterator(self.modelsTable):
-            if i.value().data(0, QtCore.Qt.UserRole) == 'M':
-                i.value().setCheckState(0, QtCore.Qt.Checked)
-    
-    def unselectAllModels(self):
-        for i in QtGui.QTreeWidgetItemIterator(self.modelsTable):
-            if i.value().data(0, QtCore.Qt.UserRole) == 'M':
-                i.value().setCheckState(0, QtCore.Qt.Unchecked)
 
 
 class prepareScriptCopy(QtGui.QDialog):
@@ -748,13 +705,13 @@ class prepareScriptCopy(QtGui.QDialog):
         self.optionSaveModels = QtGui.QCheckBox("Models")
         self.optionSaveModels.setDisabled(True)
         self.optionSaveFreecadSettings = QtGui.QCheckBox("FreeCAD settings")
+        self.optionSaveFreecadSettings.setDisabled(True)
         
         self.path = QtGui.QLineEdit(os.path.expanduser("~"))
         self.path.setReadOnly(True)
         
         pathChange = QtGui.QPushButton("...")
         self.connect(pathChange, QtCore.SIGNAL("clicked ()"), self.changePath)
-        
         
         self.logs = QtGui.QTextEdit('')
         self.logs.setReadOnly(True)

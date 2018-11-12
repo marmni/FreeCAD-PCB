@@ -748,6 +748,9 @@ class dodajElement(QtGui.QDialog):
             dial.exec_()
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
+        else:
+            self.reloadList()
+            FreeCAD.Console.PrintWarning(u"Done!\n")
 
     def prepareCopy(self):
         try:
@@ -981,7 +984,10 @@ class dodajElement(QtGui.QDialog):
     def resetSetSocket(self, value):
         if value:
             self.boxAddSocket.setChecked(False)
-            self.socketModelName.setCurrentInedx(-1)
+            try:
+                self.socketModelName.setCurrentIndex(-1)
+            except Exception as e:
+                pass
     
     def addNewPathF(self):
         '''  '''

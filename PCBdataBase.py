@@ -152,7 +152,9 @@ class dataBase_CFG():
 class dataBase:
     def __init__(self):
         self.session = None
-    
+        self.lastInsertedID = None
+        self.lastInsertedModelID = None
+        
     def checkVersion(self):
         if not PCBcheckFreeCADVersion.checkdataBaseVersion():
             return False
@@ -270,6 +272,7 @@ class dataBase:
             Base.metadata.create_all(engine)
             Session = sessionmaker(bind=engine)
             self.session = Session()
+            self.connection = engine.connect()
             
             if not newPath and not self.checkVersion():
                 self.cfg2db()
@@ -388,6 +391,7 @@ class dataBase:
             package = Packages(modelID, name, software, x, y, z, rx, ry, rz)
             self.session.add(package)
             self.session.commit()
+            self.lastInsertedID = package.id
         except Exception as e:
             FreeCAD.Console.PrintWarning("ERROR: {0} (add package).\n".format(e))
             return [False]
@@ -508,12 +512,14 @@ class dataBase:
             model = Models(name, path3DModels, description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
             self.session.add(model)
             self.session.commit()
+            self.lastInsertedID = model.id
+            self.lastInsertedModelID = model.id
             
             for i in data["software"]:
                 if i['blanked']:
                     continue
                 else: # add new package
-                    self.addPackage(i, modelName=name)
+                    self.addPackage(i, modelID=self.lastInsertedModelID)
                 
                 #if i['blanked']:
                     #if int(i['id']) == -1:
@@ -526,7 +532,7 @@ class dataBase:
                         #self.updatePackage(int(i['id']), i)
                     #else:  # add package
                         #self.addPackage(i, modelName=name)
-            
+
         except Exception as e:
             self.session.rollback()
             FreeCAD.Console.PrintWarning("ERROR: {0} (add new model).\n".format(self.errorsDescription(e)))
@@ -553,6 +559,22 @@ class dataBase:
             return False
         else:
             return True
+    
+    def updateModelSockedID(self, modelID, socketID):
+        try:
+            if modelID <= 0 or socketID <= 0:
+                raise MandatoryError()
+                
+            self.session.query(Models).filter(Models.id == modelID).update({
+                    "socketID" : socketID
+            })
+            
+            self.session.commit()
+            
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR: {0} (update model).\n".format(self.errorsDescription(e)))
+            return False
     
     def updateModel(self, modelID, data):
         try:
@@ -700,6 +722,7 @@ class dataBase:
             categories = Categories(name, parentID, description)
             self.session.add(categories)
             self.session.commit()
+            self.lastInsertedID = categories.id
         except Exception as e:
             self.session.rollback()
             FreeCAD.Console.PrintWarning("ERROR: {0} (add new category).\n".format(self.errorsDescription(e)))
@@ -707,8 +730,6 @@ class dataBase:
         else:
             FreeCAD.Console.PrintWarning("Category {0} was added.\n".format(name))
             return True
-
-
 
 #class dataBase:
     #def __init__(self, parent=None):
