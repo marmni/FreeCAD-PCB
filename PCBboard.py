@@ -44,7 +44,7 @@ def getBoardOutline():
                     if j.Border.Geometry[k].Construction:
                         continue
                     
-                    if type(j.Border.Geometry[k]).__name__ == 'GeomLineSegment':
+                    if type(j.Border.Geometry[k]).__name__ == 'LineSegment':
                         outline.append([
                             'line',
                             j.Border.Geometry[k].StartPoint.x,
@@ -52,14 +52,14 @@ def getBoardOutline():
                             j.Border.Geometry[k].EndPoint.x,
                             j.Border.Geometry[k].EndPoint.y
                         ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'GeomCircle':
+                    elif type(j.Border.Geometry[k]).__name__ == 'Circle':
                         outline.append([
                             'circle',
                             j.Border.Geometry[k].Radius,
                             j.Border.Geometry[k].Center.x, 
                             j.Border.Geometry[k].Center.y
                         ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'GeomArcOfCircle':
+                    elif type(j.Border.Geometry[k]).__name__ == 'ArcOfCircle':
                         outline.append([
                             'arc',
                             j.Border.Geometry[k].Radius, 
@@ -83,7 +83,7 @@ def getHoles():
     
     try:
         for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
+            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
                 x = i.Center[0]
                 y = i.Center[1]
                 r = i.Radius
@@ -111,7 +111,7 @@ def getGlue():
                     if j.Base.Geometry[k].Construction:
                         continue
                     
-                    if type(j.Base.Geometry[k]).__name__ == 'GeomLineSegment':
+                    if type(j.Base.Geometry[k]).__name__ == 'LineSegment':
                         outline.append([
                             'line',
                             j.Base.Geometry[k].StartPoint.x,
@@ -121,7 +121,7 @@ def getGlue():
                             j.Proxy.Type,
                             j.Width.Value
                         ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'GeomCircle':
+                    elif type(j.Base.Geometry[k]).__name__ == 'Circle':
                         outline.append([
                             'circle',
                             j.Base.Geometry[k].Radius,
@@ -130,7 +130,7 @@ def getGlue():
                             j.Proxy.Type,
                             j.Width.Value
                         ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'GeomArcOfCircle':
+                    elif type(j.Base.Geometry[k]).__name__ == 'ArcOfCircle':
                         outline.append([
                             'arc',
                             j.Base.Geometry[k].Radius, 

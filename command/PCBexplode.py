@@ -270,7 +270,7 @@ class explodeEditWizard:
                 a = QtGui.QTreeWidgetItem()
                 a.setText(0, i.Label)
                 a.setData(0, QtCore.Qt.UserRole, i.Name)
-                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
+                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)
                 
                 dostepneWarstwy = QtGui.QComboBox()
                 dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])

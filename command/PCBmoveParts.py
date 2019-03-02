@@ -112,7 +112,7 @@ class moveParts(partsManaging):
         self.elemPackage = []
         doc = FreeCAD.activeDocument()
         for i in doc.Objects:
-            if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
+            if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
                 self.elemPackage.append([i, i.Placement, i.Proxy.offsetX, i.Proxy.offsetY])
     
     def loadData(self):
@@ -186,7 +186,7 @@ class moveParts(partsManaging):
             i[0].Placement.Base.z = sZ
             
             # move object to correct Z
-            i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() 
+            i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() + i[0].Socket.Value
             
             #
             if i[0].Side == "BOTTOM":

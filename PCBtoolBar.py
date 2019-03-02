@@ -255,7 +255,10 @@ class pcbToolBarView(pcbToolBarMain):
     
     def Flayers(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(layersSettings())
+            try:
+                FreeCADGui.Control.showDialog(layersSettings())
+            except Exception as e:
+                pass
 
     def heightDisplay(self):
         if FreeCAD.activeDocument():
@@ -286,7 +289,7 @@ class pcbToolBarView(pcbToolBarMain):
         if hidePCB:
             try:
                 FreeCAD.ActiveDocument.Board.ViewObject.DisplayMode = 'Wireframe'
-            except:
+            except Exception as e:
                 pass
 
 
@@ -675,12 +678,12 @@ class pcbToolBar(pcbToolBarMain):
                 viewProviderExplodeObject(a.ViewObject)
                 
                 for elem in doc.Objects:
-                    if hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == "PCBpart":
+                    if hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == "PCBpart":
                         if elem.Side == "TOP":
                             obj.spisObiektowGora[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
                         else:
                             obj.spisObiektowDol[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
-                    #elif hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
+                    #elif hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
                         #for i in elem.OutList:
                             #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == "PCBpart":
                                 #if i.Side == "TOP":
@@ -691,7 +694,7 @@ class pcbToolBar(pcbToolBarMain):
                                 ##obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
                             ##else:  # top side
                                 ##obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                    elif hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == 'layersGroup':  # layers
+                    elif hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'layersGroup':  # layers
                         for i in elem.OutList:
                             if hasattr(i, "Proxy") and hasattr(i, "Type") and ('tSilk' in i.Proxy.Type or 'tDocu' in i.Proxy.Type):
                                 obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 1]

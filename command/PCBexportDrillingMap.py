@@ -145,7 +145,7 @@ class exportDrillingMap:
         holes = {}
         #
         for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
+            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
                 x = i.Center[0]
                 y = i.Center[1]
                 r = i.Radius
@@ -260,6 +260,8 @@ class svg(drillMap):
         data = ''
         
         for i in range(len(self.holes.keys())):
+            key = list(self.holes)
+            
             char = self.randomChar()
             layer = 'T{0}'.format(i + 1)
             color_R = hex(randomValue(254)).split('x')[1]
@@ -268,12 +270,12 @@ class svg(drillMap):
             
             self.addCode(files, '\n\t<g id="{0}" inkscape:groupmode="layer" inkscape:label="{0}">'.format(layer))
             header = False
-            for j in self.holes[self.holes.keys()[i]]:
+            for j in self.holes[key[i]]:
                 self.addCode(files, '\n\t\t<g>')
                 for k in char:
                     x = self.correctX(j[0])
                     y = self.correctY(j[1])
-                    r = self.holes.keys()[i]
+                    r = key[i]
                     
                     if k[0] == 'l':
                         p1 = eval(k[1])
@@ -329,13 +331,13 @@ class svg(drillMap):
                 self.addCode(files, '\n\t\t</g>')
             self.addCode(files, '\n\t</g>')
             # add annotation under board
-            txt = SVG_Text(str(self.holes.keys()[i] * 2))
+            txt = SVG_Text(str(key[i] * 2))
             txt.x = self.pcbMin_X + 2.1
             txt.y = self.pcbMin_Y + 0.4 - lineNumber * lineHeight
             txt.fontSize = 0.5
             self.addCode(files, txt)
             
-            txt = SVG_Text(str(len(self.holes[self.holes.keys()[i]])))
+            txt = SVG_Text(str(len(self.holes[key[i]])))
             txt.x = self.pcbMin_X + 4.3
             txt.y = self.pcbMin_Y + 0.4 - lineNumber * lineHeight
             txt.fontSize = 0.5
@@ -501,6 +503,8 @@ class dxf(drillMap):
         #
         num = 1
         for i in range(len(self.holes.keys())):
+            key = list(self.holes)
+            
             color = randomValue(254)
             char = self.randomChar()
             #layer = 'T{0}_{1}mm'.format(i + 1, self.holes.keys()[i])
@@ -508,11 +512,11 @@ class dxf(drillMap):
             #
             header = False
             
-            for j in self.holes[self.holes.keys()[i]]:
+            for j in self.holes[key[i]]:
                 for k in char:
                     x = j[0]
                     y = j[1]
-                    r = self.holes.keys()[i]
+                    r = key[i]
                     
                     if k[0] == 'l':
                         p1 = eval(k[1])
@@ -575,12 +579,12 @@ class dxf(drillMap):
             
             header = True
             # add annotation under board
-            txt = DXF_Text("Info", str(self.holes.keys()[i] * 2))
+            txt = DXF_Text("Info", str(key[i] * 2))
             txt.p = [self.pcbMin_X + 3.5, self.pcbMin_Y - lineNumber * lineHeight, 0.0]
             txt.height = 0.5
             self.addCode(files, eval(str(txt)))
             
-            txt = DXF_Text("Info", str(len(self.holes[self.holes.keys()[i]])))
+            txt = DXF_Text("Info", str(len(self.holes[key[i]])))
             txt.p = [self.pcbMin_X + 7.3, self.pcbMin_Y - lineNumber * lineHeight, 0.0]
             txt.height = 0.5
             self.addCode(files, eval(str(txt)))

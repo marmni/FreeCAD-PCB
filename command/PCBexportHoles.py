@@ -291,14 +291,15 @@ class exportHolesReport_Gui(QtGui.QDialog):
         holes = self.getHoles()
         #
         txt = ''
-        txt += 'Drill report for {0}\n'.format(FreeCAD.ActiveDocument.Label)
-        txt += 'Created on {0}\n'.format(datetime.datetime.now())
+        txt += 'Drill report for: {0}\n'.format(FreeCAD.ActiveDocument.Label)
+        txt += 'Created on: {0}\n'.format(datetime.datetime.now())
         txt += 'Drill report for plated through holes:\n'
         
         num = 0
         for i in range(len(holes.keys())):
-            txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % holes.keys()[i], '%.3f' % (float(holes.keys()[i]) / 25.4), holes[holes.keys()[i]])
-            num += holes[holes.keys()[i]]
+            key = list(holes)
+            txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), holes[key[i]])
+            num += holes[key[i]]
         
         txt += '\nTotal plated holes count: {0}\n'.format(num)
         
@@ -308,7 +309,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
         holes = {}
         #
         for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
+            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
                 d = i.Radius * 2.0
                 
                 if not d in holes.keys():
@@ -427,12 +428,12 @@ class exportHoles:
         holes = {}
         #
         for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
+            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
                 x = self.prepareX(i.Center[0])
                 y = self.prepareY(i.Center[1])
                 d = self.setUnit(i.Radius) * 2.0
                 
-                if not d in holes.keys():
+                if not d in list(holes.keys()):
                     holes[d] = []
                 
                 holes[d].append([x, y])
@@ -463,8 +464,9 @@ class exportHolesReport(exportHoles):
         
         num = 0
         for i in range(len(holes.keys())):
-            self.files.write('T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % holes.keys()[i], '%.3f' % (float(holes.keys()[i]) / 25.4), len(holes[holes.keys()[i]])))
-            num += len(holes[holes.keys()[i]])
+            key = list(holes)
+            self.files.write('T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]])))
+            num += len(holes[key[i]])
         
         self.files.write('\nTotal plated holes count: {0}\n'.format(num))
         #
@@ -531,7 +533,8 @@ class drl(exportFileMain):
         self.files.write('FMAT,2\n')  # 
         # tools
         for i in range(len(self.holes.keys())):
-            self.files.write('T{0}C{1}\n'.format(i + 1, self.holes.keys()[i]))
+            key = list(self.holes)
+            self.files.write('T{0}C{1}\n'.format(i + 1, key[i]))
         #
         self.files.write('%\n')
         self.files.write('M47,DRILL\n')  # Message
@@ -544,8 +547,10 @@ class drl(exportFileMain):
             self.files.write('M72\n')  # Inch Measuring Mode 
         # holes
         for i in range(len(self.holes.keys())):
+            key = list(self.holes)
+            
             self.files.write('T{0}\n'.format(i + 1))
-            for j in self.holes[self.holes.keys()[i]]:
+            for j in self.holes[key[i]]:
                 self.files.write('X{0}Y{1}\n'.format(j[0], j[1]))
             
         #self.files.write('T0\n')
