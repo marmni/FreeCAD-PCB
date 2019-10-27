@@ -1,2 +1,4 @@
 *.pyc
 __pychache__
+PCBsettings.cfg
+data/database.db
