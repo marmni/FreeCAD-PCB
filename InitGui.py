@@ -115,7 +115,6 @@ class PCB(Workbench):
         import PCBcheckFreeCADVersion
         result = PCBcheckFreeCADVersion.checkCompatibility()
         if result[0]:
-            FreeCAD.addImportType("PCB file formats (*.brd *.pcb *.fpc *.rzp *.fcd *.kicad_pcb *.idf *.emn *.bdf *.idb *.HYP)", "PCBbrd")
             PCBcheckFreeCADVersion.setDefaultValues()
             
             import PCBtoolBar, PCBrc, PCBcommands
