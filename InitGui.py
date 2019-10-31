@@ -169,7 +169,7 @@ class PCB(Workbench):
     def ContextMenu(self, recipient):
         elem = FreeCADGui.Selection.getSelection()
         if(elem) and len(elem) == 1:
-            if hasattr(elem[0], "Proxy") and hasattr(elem[0].Proxy, "Type"):
+            if hasattr(elem[0], "Proxy") and hasattr(elem[0], "Type"):
                 if elem[0].Proxy.Type == 'Explode':
                     self.appendContextMenu("Explode", self.explodeSettings)
                 elif elem[0].Proxy.Type == 'PCBpart_E':
