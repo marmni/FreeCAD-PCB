@@ -58,6 +58,7 @@ from command.PCBglue import createGlueGui
 from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssembly
 from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
+from command.PCBconstraintAreas import createConstraintArea
 
 
 class pcbToolBarMain(QtGui.QToolBar):
@@ -398,7 +399,7 @@ class pcbToolBar(pcbToolBarMain):
         constraintsAreaPlaceOutlineBottom = self.createAction(u"Bottom", u"Place Outline Bottom", ":/data/img/constraintsArea.png")
         par = partial(self.constraintAreaF, "bPlaceOutline")
         QtCore.QObject.connect(constraintsAreaPlaceOutlineBottom, QtCore.SIGNAL("triggered()"), par)
-        constraintsAreaPlaceOutlineBoth = self.createAction(u"Bottom", u"Place Outline Both", ":/data/img/constraintsArea.png")
+        constraintsAreaPlaceOutlineBoth = self.createAction(u"Both", u"Place Outline Both", ":/data/img/constraintsArea.png")
         par = partial(self.constraintAreaF, "vPlaceOutline")
         QtCore.QObject.connect(constraintsAreaPlaceOutlineBoth, QtCore.SIGNAL("triggered()"), par)
 
@@ -604,31 +605,16 @@ class pcbToolBar(pcbToolBarMain):
         zaznaczoneObiekty = FreeCADGui.Selection.getSelection()
 
         if len(zaznaczoneObiekty) and getPCBheight()[0]:
-            grp = createGroup_Areas()
+            #grp = createGroup_Areas()
             for i in zaznaczoneObiekty:
-                if i.isDerivedFrom("Sketcher::SketchObject") and i.Shape.isClosed():
-                    i.ViewObject.Visibility = False
-                    
-                    #layerName = PCBconstraintAreas[typeCA][0]
-                    layerColor = (PCBconstraintAreas[typeCA][3][0] / 255., PCBconstraintAreas[typeCA][3][1] / 255., PCBconstraintAreas[typeCA][3][2] / 255.)
-                    layerTransparent = PCBconstraintAreas[typeCA][2]
-                    typeL = PCBconstraintAreas[typeCA][1]
-                    #numLayer = 0
-                    #
-                    a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", typeCA + "_{0}".format(0))
-                    constraintAreaObject(a, typeL)
-                    a.Base = i
-                    viewProviderConstraintAreaObject(a.ViewObject)
-                    
-                    grp.addObject(a)
-                    FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
-                    FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
-                    FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
-                    #grp.Proxy.Object.Group.append(a)
-                    #grp.Object.Group.append(a)
+                try:
+                    createConstraintArea(i, typeCA)
+                except Exception as e:
+                    continue
+                    #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
         elif not pcb[0]:
             FreeCAD.Console.PrintWarning("No PCB found\n")
-    
+        
     def createGluePath(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             FreeCADGui.Control.showDialog(createGlueGui())

@@ -45,6 +45,7 @@ from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
 from command.PCBglue import createGlue
+from command.PCBconstraintAreas import createConstraintArea
 from PCBobjects import *
 
 from formats.eagle import EaglePCB
@@ -317,8 +318,8 @@ class mainPCB(partsManaging):
     
     def generateConstraintAreas(self, doc, layerNumber, grp, layerName, layerColor, layerTransparent):
         typeL = PCBconf.softLayers[self.databaseType][layerNumber]['ltype']
-        mainGroup = doc.addObject("App::DocumentObjectGroup", layerName)
-        grp.addObject(mainGroup)
+        #mainGroup = doc.addObject("App::DocumentObjectGroup", layerName)
+        #grp.addObject(mainGroup)
         
         for i in self.wersjaFormatu.getConstraintAreas(layerNumber):
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
@@ -389,16 +390,18 @@ class mainPCB(partsManaging):
                         arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
                         ser.addGeometry(self.Draft2Sketch(arc, ser))
             #
-            a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName + "_{0}".format(0))
-            layerObj = constraintAreaObject(a, typeL)
-            a.Base = ser
-            if height != 0:
-                a.Height = height
-            viewProviderConstraintAreaObject(a.ViewObject)
-            mainGroup.addObject(a)
-            FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
-            FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
-            FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
+            FreeCAD.ActiveDocument.recompute()
+            createConstraintArea(ser, typeL, height)
+            # a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName + "_{0}".format(0))
+            # layerObj = constraintAreaObject(a, typeL)
+            # a.Base = ser
+            # if height != 0:
+                # a.Height = height
+            # viewProviderConstraintAreaObject(a.ViewObject)
+            # mainGroup.addObject(a)
+            # FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
+            # FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
+            # FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
             self.updateView()
     
     def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
