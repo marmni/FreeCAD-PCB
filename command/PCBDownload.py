@@ -61,12 +61,12 @@ class downloadModelW(QtGui.QWidget):
         #
         if searchPhrase:
             self.form.setWindowTitle('Download model for {0}'.format(searchPhrase))
-            url_1 = odnosnik("<a href='http://sourceforge.net/projects/eaglepcb2freecad/files/models/'>FreeCAD-PCB</a>")
+            url_1 = odnosnik("<a href='https://github.com/marmni/FreeCAD-PCB-library'>FreeCAD-PCB</a>")
             url_2 = odnosnik("<a href='http://www.tracepartsonline.net/(S(q4odzm45rnnypc4513kjgy45))/content.aspx?SKeywords={0}'>trace<b>parts</b></a>".format(searchPhrase))
             url_3 = odnosnik("<a href='http://www.3dcontentcentral.com/Search.aspx?arg={0}'>3D ContentCentral</a>".format(searchPhrase))
         else:
             self.form.setWindowTitle('Download model')
-            url_1 = odnosnik("<a href='http://sourceforge.net/projects/eaglepcb2freecad/files/models/'>FreeCAD-PCB</a>")
+            url_1 = odnosnik("<a href='https://github.com/marmni/FreeCAD-PCB-library'>FreeCAD-PCB</a>")
             url_2 = odnosnik("<a href='http://www.tracepartsonline.net/(S(q4odzm45rnnypc4513kjgy45))/content.aspx'>trace<b>parts</b></a>")
             url_3 = odnosnik("<a href='http://www.3dcontentcentral.com/'>3D ContentCentral</a>")
         #
