@@ -1,0 +1,1 @@
+Download free models from https://github.com/marmni/FreeCAD-PCB-library
