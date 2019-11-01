@@ -272,11 +272,14 @@ class PCBboardObject:
             elif prop == "AutoUpdate":
                 self.execute(fp)
             
-            if prop == "Shape" or prop == "Display" or prop == "Holes" and fp.Display:
+            if prop == "Shape" or prop == "Display" or prop == "Holes" or prop == "AutoUpdate" and fp.Display:
                 self.updateObjectaHoles(fp)
-            if prop == "Thickness":
+            if prop == "Thickness" or prop == "AutoUpdate":
                 self.updatePosition_Z(fp)
-    
+        else:
+            if prop == "Thickness":
+                self.execute(fp)
+            
     def updateObjectaHoles(self, fp):
         for i in FreeCAD.ActiveDocument.Objects:
             try:
@@ -286,11 +289,11 @@ class PCBboardObject:
     
     def updatePosition_Z(self, fp):
         if fp.Thickness < 0.5:
-            return
+            fp.Thickness = 0.5
         
         for i in fp.Group:
             try:
-                i.Proxy.updatePosition_Z(i, fp.Thickness - self.oldHeight, fp.Thickness)
+                i.Proxy.updatePosition_Z(i, fp.Thickness)
                 i.purgeTouched()
             except:
                 pass
@@ -299,10 +302,11 @@ class PCBboardObject:
         try:
             if fp.Border == None or fp.Holes == None:
                 return
+            # elif not fp.AutoUpdate:
+                # return
             
             if fp.Thickness < 0.5:
                 fp.Thickness = 0.5
-                return
             
             try:
                 self.oldHeight = fp.Shape.BoundBox.ZMax

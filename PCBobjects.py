@@ -56,7 +56,6 @@ class partsObject(mathFunctions):
         self.oldROT = 0
         self.oldX = 0
         self.oldY = 0
-        self.update_Z = 0
         self.oldSocket = 0
         
         obj.addProperty("App::PropertyString", "Package", "PCB", "Package").Package = ""
@@ -79,6 +78,7 @@ class partsObject(mathFunctions):
         obj.Side = objectSides
         self.offsetX = 0
         self.offsetY = 0
+        self.offsetZ = 0
         obj.Proxy = self
         self.Object = obj
 
@@ -86,13 +86,13 @@ class partsObject(mathFunctions):
         pass
 
     def __getstate__(self):
-        return [self.Type, self.oldROT, self.update_Z, self.offsetX, self.offsetY, self.oldX, self.oldY, self.oldSocket]
+        return [self.Type, self.oldROT, self.offsetZ, self.offsetX, self.offsetY, self.oldX, self.oldY, self.oldSocket]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
             self.oldROT = state[1]
-            self.update_Z = state[2]
+            self.offsetZ = state[2]
             self.offsetX = state[3]
             self.offsetY = state[4]
             self.oldX = state[5]
@@ -137,12 +137,10 @@ class partObject(partsObject):
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
         
-    def updatePosition_Z(self, fp, thickness, thickness2):
+    def updatePosition_Z(self, fp, thickness):
         try:
             if fp.Side == objectSides[0]:  # TOP
-                fp.Placement.Base.z = fp.Placement.Base.z + thickness
-            #else:
-                #fp.Placement.Base.z = fp.Placement.Base.z - fp.Shape.BoundBox.Center.z - self.update_Z
+                fp.Placement.Base.z = thickness + self.offsetZ + fp.Socket.Value
         except:
             pass
         
@@ -1416,6 +1414,9 @@ class layerSilkObject(objectWire):
             
             pads.Placement.Base.z = fp.Placement.Base.z
             fp.Shape = pads
+            
+            #fp.recompute()
+            fp.purgeTouched()
         
         #if len(self.spisObiektowTXT):
             #if 'tSilk' in self.Type or 'bSilk' in self.Type or 'tDocu' in self.Type or 'bDocu' in self.Type or 'PCBcenterDrill' in self.Type:
@@ -2013,20 +2014,16 @@ class layerSilkObject(objectWire):
         
     def updateHoles(self, fp):
         self.generuj(fp)
-        
-    def updatePosition_Z(self, fp, dummy=None):
+    
+    def updatePosition_Z(self, fp, thickness):
         if self.side:  # top side
-            fp.Placement.Base.z = getPCBheight()[1] + self.defHeight / 1000.
+            fp.Placement.Base.z = thickness + 0.000001
         else:
             fp.Placement.Base.z = -self.defHeight / 1000.
-
-        #if 'tSilk' in self.Type or 'tDocu' in self.Type or 'tPad' in self.Type:
-            #fp.Placement.Base.z = thickness
-        #elif 'PCBcenterDrill' in self.Type:
-            #pass
-        #else:
-            #fp.Placement.Base.z = -self.defHeight  / 1000.
-
+        
+        #fp.recompute()
+        #fp.purgeTouched()
+    
     def onChanged(self, fp, prop):
         pass
         
@@ -2122,10 +2119,10 @@ class constraintAreaObject:
         obj.setEditorMode("Placement", 2)
         obj.Proxy = self
     
-    def updatePosition_Z(self, fp, thickness, thickness2):
+    def updatePosition_Z(self, fp, thickness):
         if self.Type.startswith('t'):
             self.z = thickness
-            fp.Base.Placement.Base.z = thickness2
+            fp.Base.Placement.Base.z = thickness
             
             fp.recompute()
             fp.Base.recompute()
@@ -2133,25 +2130,10 @@ class constraintAreaObject:
             fp.Base.purgeTouched()
         elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
             self.z = -0.5
-            self.layerHeight = thickness2 + 1.0
+            self.layerHeight = thickness + 1.0
             self.createGeometry(fp)
         else:  # bottomSide
             self.z = 0.0
-        
-        
-        #fp.Base.Placement.Base.z = self.z
-        
-    # def updatePosition_Z(self, fp, dummy=None):
-        # if self.Type.startswith('t'):
-            # self.z = getPCBheight()[1]
-        # elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
-            # self.z = -0.5
-            # self.layerHeight = getPCBheight()[1] + 1.0
-        # else:  # bottomSide
-            # self.z = 0.0
-        
-        # fp.Base.Placement.Base.z = self.z
-        # self.createGeometry(fp)
 
     def setLayerSide(self):
         if self.Type.startswith('t'):

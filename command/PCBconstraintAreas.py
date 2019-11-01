@@ -57,7 +57,6 @@ def createConstraintArea(obj, typeCA, height=0):
             layerColor = (PCBconstraintAreas[typeCA][3][0] / 255., PCBconstraintAreas[typeCA][3][1] / 255., PCBconstraintAreas[typeCA][3][2] / 255.)
             layerTransparent = PCBconstraintAreas[typeCA][2][2]
             typeL = PCBconstraintAreas[typeCA][1][0]
-            #numLayer = 0
             #
             a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", typeCA + "_{0}".format(0))
             layerObj = constraintAreaObject(a, typeL)
@@ -71,9 +70,8 @@ def createConstraintArea(obj, typeCA, height=0):
             FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
             
             a.purgeTouched()
-
             pcb[2].addObject(a)
-            #FreeCAD.ActiveDocument.recompute()
+            
             return a
     except Exception as e:
         FreeCAD.Console.PrintWarning("{0} \n".format(e))

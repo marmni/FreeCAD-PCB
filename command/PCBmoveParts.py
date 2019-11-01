@@ -183,11 +183,11 @@ class moveParts(partsManaging):
 
             i[0].Placement.Base.x = sX + self.form.positionX.value() - i[0].Proxy.offsetX
             i[0].Placement.Base.y = sY + self.form.positionY.value() - i[0].Proxy.offsetY
-            i[0].Placement.Base.z = sZ
+            #i[0].Placement.Base.z = sZ
             
             # move object to correct Z
-            i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() + i[0].Socket.Value
-            
+            #i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() + i[0].Socket.Value
+            i[0].Placement.Base.z = gruboscPlytki + self.form.positionZ.value() + i[0].Socket.Value
             #
             if i[0].Side == "BOTTOM":
                 # ROT Y - MIRROR
@@ -211,8 +211,9 @@ class moveParts(partsManaging):
             # placement object to X, Y set in eagle
             i[0].Placement.Base.x = i[0].Placement.Base.x + i[0].X.Value
             i[0].Placement.Base.y = i[0].Placement.Base.y + i[0].Y.Value
-            
-        FreeCAD.ActiveDocument.recompute()
+        
+        i[0].recompute()
+        #FreeCAD.ActiveDocument.recompute()
             
     def resetObj(self):
         for i in self.elemPackage:
@@ -241,6 +242,10 @@ class moveParts(partsManaging):
 
     def accept(self):
         ''' update 3d models of packages '''
+        for i in self.elemPackage:
+            i[0].Proxy.offsetZ = self.form.positionZ.value()
+            i[0].recompute()
+        
         packageID = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
         packageData = self.__SQL__.getPackageByID(packageID)
         packageData = self.__SQL__.convertToTable(packageData)
@@ -253,5 +258,4 @@ class moveParts(partsManaging):
         packageData['rz'] = self.form.rotationRZ.value()
         
         self.__SQL__.updatePackage(packageID, packageData)
-        FreeCAD.ActiveDocument.recompute()
         return True

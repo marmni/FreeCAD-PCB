@@ -115,21 +115,28 @@ class partsManaging(mathFunctions):
         fuse = []
         for i in FreeCAD.ActiveDocument.Objects:
             #if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility:
-            if i.ViewObject.Visibility and hasattr(i, 'Shape') and hasattr(i.Shape, 'ShapeType') and i.Shape.ShapeType == 'Solid':
+            #if i.ViewObject.Visibility and hasattr(i, 'Shape') and hasattr(i.Shape, 'ShapeType') and i.Shape.ShapeType == 'Solid':
+            if i.ViewObject.Visibility and hasattr(i, 'Shape'):
                 fuse.append(i)
         try:
             if len(fuse) == 1:
                 shape = fuse[0].Shape
                 col = fuse[0].ViewObject.DiffuseColor
             else:
-                newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
-                FreeCAD.ActiveDocument.recompute()
-            
-                shape = FreeCAD.ActiveDocument.getObject("Union").Shape
-                col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
+                # FC 0.16
+                #newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
+                #FreeCAD.ActiveDocument.recompute()
+                #shape = FreeCAD.ActiveDocument.getObject("Union").Shape
+                #col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
+                # FC 0.18
+                newPart = FreeCAD.ActiveDocument.addObject("Part::Compound","Compound")
+                newPart.Links = fuse
+                newPart.recompute()
+                shape = newPart.Shape
+                col = newPart.ViewObject.DiffuseColor
         except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        
+            pass
+            #FreeCAD.Console.PrintWarning("{0} \n".format(e))
         #FreeCADGui.insert(u"{0}".format(filePath), "importingPartsPCB")
         
         colFileData.write(str(col))
@@ -237,10 +244,53 @@ class partsManaging(mathFunctions):
 
             step_model.Placement.Base.x = sX + correctingValue_X
             step_model.Placement.Base.y = sY + correctingValue_Y
-            step_model.Placement.Base.z = sZ
+            #step_model.Placement.Base.z = sZ
             
             # move object to correct Z
-            step_model.Placement.Base.z = step_model.Placement.Base.z + (gruboscPlytki - step_model.Shape.BoundBox.Center.z) + correctingValue_Z
+            #step_model.Placement.Base.z = step_model.Placement.Base.z + (gruboscPlytki - step_model.Shape.BoundBox.Center.z) + correctingValue_Z
+            #################################################################
+            # DODANIE PODSTAWKI
+            #   dodajPodstawke - definicja zachowania dla danego obiektu
+            #     0 - brak podstawki
+            #     1 - dodanie podstawki
+            #################################################################
+            dodajPodstawke = False
+            
+            if modelData['socketIDSocket'] and self.allSocked == 0 and modelData['socketID'] != fileData[2]:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+                
+                if socketData["isSocket"]:
+                    dial = QtGui.QMessageBox()
+                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
+                    dial.setWindowTitle("Socket")
+                    dial.setIcon(QtGui.QMessageBox.Question)
+                    dial.addButton('No', QtGui.QMessageBox.RejectRole)
+                    podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+                    zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
+                    nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
+                    dial.exec_()
+                    
+                    if dial.clickedButton() == nigdyPodstawki:
+                        self.allSocked = -1
+                    elif dial.clickedButton() == zawszePodstawki:
+                        self.allSocked = 1
+                    elif dial.clickedButton() == podstawkaTAK:
+                        dodajPodstawke = True
+                    else:
+                        dodajPodstawke = False
+            #
+            if (dodajPodstawke or self.allSocked == 1) and modelData['socketIDSocket']:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+                
+                step_model.Socket.Value = socketData["isSocketHeight"]  # ustawienie wysokosci podstawki
+                EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
+                EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
+                PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
+
+                self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+            #################################################################
+            # move object to correct Z
+            step_model.Placement.Base.z = gruboscPlytki + correctingValue_Z + step_model.Socket.Value
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
@@ -303,49 +353,11 @@ class partsManaging(mathFunctions):
             step_model.Proxy.oldY = step_model.Shape.BoundBox.Center.y
             step_model.Proxy.offsetX = correctingValue_X
             step_model.Proxy.offsetY = correctingValue_Y
+            step_model.Proxy.offsetZ = correctingValue_Z
             step_model.Proxy.oldROT = partRotation
             step_model.Rot = partRotation
             step_model.Proxy.update_Z = step_model.Placement.Base.z
-            #################################################################
-            # DODANIE PODSTAWKI
-            #   dodajPodstawke - definicja zachowania dla danego obiektu
-            #     0 - brak podstawki
-            #     1 - dodanie podstawki
-            #################################################################
-            dodajPodstawke = False
             
-            if modelData['socketIDSocket'] and self.allSocked == 0 and modelData['socketID'] != fileData[2]:
-                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
-                
-                if socketData["isSocket"]:
-                    dial = QtGui.QMessageBox()
-                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
-                    dial.setWindowTitle("Socket")
-                    dial.setIcon(QtGui.QMessageBox.Question)
-                    dial.addButton('No', QtGui.QMessageBox.RejectRole)
-                    podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
-                    zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
-                    nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
-                    dial.exec_()
-                    
-                    if dial.clickedButton() == nigdyPodstawki:
-                        self.allSocked = -1
-                    elif dial.clickedButton() == zawszePodstawki:
-                        self.allSocked = 1
-                    elif dial.clickedButton() == podstawkaTAK:
-                        dodajPodstawke = True
-                    else:
-                        dodajPodstawke = False
-            #
-            if (dodajPodstawke or self.allSocked == 1) and modelData['socketIDSocket']:
-                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
-                
-                step_model.Socket = socketData["isSocketHeight"]  # ustawienie wysokosci podstawki
-                EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
-
-                self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             ##################################################################
             ## part name object
             ## [txt, x, y, size, rot, side, align, spin, mirror, font]

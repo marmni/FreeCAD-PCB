@@ -209,14 +209,17 @@ class mainPCB(partsManaging):
             if layerVariant == "pads":
                 self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)
         #
+        pcb = getPCBheight()
+        #
         layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
+        layerNew.updatePosition_Z(layerS, pcb[1])
         viewProviderLayerSilkObject(layerS.ViewObject)
         layerS.ViewObject.ShapeColor = layerColor
         grp.addObject(layerS)
         #
+        pcb[2].addObject(layerS)
         #
-        doc.recompute()
+        #doc.recompute()
         #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
     
     def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
