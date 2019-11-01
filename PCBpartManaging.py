@@ -152,7 +152,8 @@ class partsManaging(mathFunctions):
         
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         doc = FreeCAD.activeDocument()
-        gruboscPlytki = getPCBheight()[1]
+        pcb = getPCBheight()
+        gruboscPlytki = pcb[1]
         result = ['OK']
         
         #grp = doc.addObject("App::DocumentObjectGroup", "Parts")
@@ -169,7 +170,7 @@ class partsManaging(mathFunctions):
         # check if 3D model exist
         #################################################################
         #################################################################
-        fileData = self.partExist(newPart[0], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
+        fileData = self.partExist(newPart[0], u"{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
         #fileData [True, u'/home/mariusz/.FreeCAD/Mod/PCB/parts/resistors/R1206.stp', 8, {'software': u'Eagle', 'name': u'R1206', 'rx': 0.0, 'ry': 0.0, 'rz': 0.0, 'y': 0.02, 'x': 0.0, 'z': 0.28, 'id': 22, 'modelID': 8}, 2].
         
         if fileData[0]:
@@ -524,6 +525,7 @@ class partsManaging(mathFunctions):
             self.addPartToGroup(groupParts, fileData[4], step_model)
         except:
             self.addPartToGroup(groupParts, False, step_model)  # Missing categoory
+        pcb[2].addObject(step_model)
         #self.updateView()
         return result
     

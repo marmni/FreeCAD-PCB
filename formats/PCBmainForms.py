@@ -289,6 +289,7 @@ class mainPCB(partsManaging):
             groupBRD.addObject(doc.Board)
             FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = PCBconf.PCB_COLOR
             FreeCADGui.activeDocument().PCB_Border.Visibility = False
+            PCBboard.purgeTouched()
             self.updateView()
         except Exception as e:
             self.printInfo(u'{0}'.format(e), 'error')
@@ -390,19 +391,11 @@ class mainPCB(partsManaging):
                         arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
                         ser.addGeometry(self.Draft2Sketch(arc, ser))
             #
-            FreeCAD.ActiveDocument.recompute()
+            #FreeCAD.ActiveDocument.recompute()
+            ser.recompute()
             createConstraintArea(ser, typeL, height)
-            # a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName + "_{0}".format(0))
-            # layerObj = constraintAreaObject(a, typeL)
-            # a.Base = ser
-            # if height != 0:
-                # a.Height = height
-            # viewProviderConstraintAreaObject(a.ViewObject)
-            # mainGroup.addObject(a)
-            # FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
-            # FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
-            # FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
             self.updateView()
+            #FreeCAD.ActiveDocument.recompute()
     
     def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
         for i in data[0]:

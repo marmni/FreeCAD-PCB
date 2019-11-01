@@ -207,10 +207,10 @@ def getPCBheight():
         return [False, 0]
     #
     try:
-        pcb = FreeCAD.ActiveDocument.Board.Thickness.Value
-        return [True, pcb]
+        pcbH = FreeCAD.ActiveDocument.Board.Thickness
+        return [True, pcbH, FreeCAD.ActiveDocument.Board]
     except:
-        return [False, False]
+        return [False, False, None]
     
 def getPCBsize():
     if not FreeCAD.activeDocument():
@@ -243,21 +243,26 @@ def cutToBoardShape(pads):
     return pads
 
 
+def addObject(self, obj):
+    self.Group += [obj]
+
 class PCBboardObject:
     def __init__(self, obj):
         self.Type = 'PCBboard'
         obj.setEditorMode("Placement", 2)
         #  board
-        obj.addProperty("App::PropertyDistance", "Thickness", "PCB", "Thickness").Thickness = 1.6
+        obj.addProperty("App::PropertyFloatConstraint", "Thickness", "PCB", "Thickness").Thickness = (1.6, 0.5, 10, 0.5)
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
         #  holes
         obj.addProperty("App::PropertyBool", "Display", "Holes", "Display").Display = True
         obj.addProperty("App::PropertyLink", "Holes", "Holes", "Holes")
         #  base
         obj.addProperty("App::PropertyBool", "AutoUpdate", "Base", "Auto Update").AutoUpdate = True
+        obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
         #
         obj.Proxy = self
-
+        obj.addObject = addObject
+        
     def onChanged(self, fp, prop):
         fp.setEditorMode("Placement", 2)
         #
@@ -271,7 +276,7 @@ class PCBboardObject:
                 self.updateObjectaHoles(fp)
             if prop == "Thickness":
                 self.updatePosition_Z(fp)
-                
+    
     def updateObjectaHoles(self, fp):
         for i in FreeCAD.ActiveDocument.Objects:
             try:
@@ -280,20 +285,23 @@ class PCBboardObject:
                 pass
     
     def updatePosition_Z(self, fp):
-        for i in FreeCAD.ActiveDocument.Objects:
+        if fp.Thickness < 0.5:
+            return
+        
+        for i in fp.Group:
             try:
-                i.Proxy.updatePosition_Z(i, fp.Thickness.Value - self.oldHeight)
+                i.Proxy.updatePosition_Z(i, fp.Thickness - self.oldHeight, fp.Thickness)
+                i.purgeTouched()
             except:
                 pass
-                #FreeCAD.Console.PrintWarning(str(e) + "\n")
-    
+
     def execute(self, fp):
         try:
             if fp.Border == None or fp.Holes == None:
                 return
             
-            if fp.Thickness.Value <= 0:
-                fp.Thickness.Value = 0.1
+            if fp.Thickness < 0.5:
+                fp.Thickness = 0.5
                 return
             
             try:
@@ -312,7 +320,12 @@ class PCBboardObject:
             else:
                 face = borderOutline
             #
-            fp.Shape = face.extrude(FreeCAD.Base.Vector(0, 0, fp.Thickness.Value))
+            fp.Shape = face.extrude(FreeCAD.Base.Vector(0, 0, fp.Thickness))
+            
+            try:
+                fp.purgeTouched()
+            except:
+                pass
         except:
             pass
         ##############
@@ -339,7 +352,7 @@ class viewProviderPCBboardObject:
     def __init__(self, obj):
         ''' Set this object to the proxy object of the actual view provider '''
         obj.Proxy = self
-
+    
     def getDisplayModes(self, vobj):
         return ["Shaded"]
 

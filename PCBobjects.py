@@ -137,7 +137,7 @@ class partObject(partsObject):
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
         
-    def updatePosition_Z(self, fp, thickness):
+    def updatePosition_Z(self, fp, thickness, thickness2):
         try:
             if fp.Side == objectSides[0]:  # TOP
                 fp.Placement.Base.z = fp.Placement.Base.z + thickness
@@ -2121,18 +2121,37 @@ class constraintAreaObject:
         obj.addProperty("App::PropertyLink", "Base", "Draft", "The base object is the wire is formed from 2 objects")
         obj.setEditorMode("Placement", 2)
         obj.Proxy = self
-        
-    def updatePosition_Z(self, fp, dummy=None):
+    
+    def updatePosition_Z(self, fp, thickness, thickness2):
         if self.Type.startswith('t'):
-            self.z = getPCBheight()[1]
+            self.z = thickness
+            fp.Base.Placement.Base.z = thickness2
+            
+            fp.recompute()
+            fp.Base.recompute()
+            fp.purgeTouched()
+            fp.Base.purgeTouched()
         elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
             self.z = -0.5
-            self.layerHeight = getPCBheight()[1] + 1.0
+            self.layerHeight = thickness2 + 1.0
+            self.createGeometry(fp)
         else:  # bottomSide
             self.z = 0.0
         
-        fp.Base.Placement.Base.z = self.z
-        self.createGeometry(fp)
+        
+        #fp.Base.Placement.Base.z = self.z
+        
+    # def updatePosition_Z(self, fp, dummy=None):
+        # if self.Type.startswith('t'):
+            # self.z = getPCBheight()[1]
+        # elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
+            # self.z = -0.5
+            # self.layerHeight = getPCBheight()[1] + 1.0
+        # else:  # bottomSide
+            # self.z = 0.0
+        
+        # fp.Base.Placement.Base.z = self.z
+        # self.createGeometry(fp)
 
     def setLayerSide(self):
         if self.Type.startswith('t'):
@@ -2179,6 +2198,14 @@ class constraintAreaObject:
                         d = d.extrude(FreeCAD.Base.Vector(0, 0, self.layerHeight))
                     
                     fp.Shape = d
+                    
+                    try:
+                        fp.recompute()
+                        fp.Base.recompute()
+                        fp.purgeTouched()
+                        fp.Base.purgeTouched()
+                    except:
+                        pass
         except:
             pass
 

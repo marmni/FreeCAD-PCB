@@ -37,9 +37,11 @@ from PCBobjects import constraintAreaObject, viewProviderConstraintAreaObject
 #***********************************************************************
 #*                             CONSOLE
 #***********************************************************************
-def createConstraintArea(obj, typeCA):
+def createConstraintArea(obj, typeCA, height=0):
     try:
-        if not getPCBheight()[0]:
+        pcb = getPCBheight()
+        
+        if not pcb[0]:
             return
         #
         grp = createGroup_Areas()
@@ -60,12 +62,18 @@ def createConstraintArea(obj, typeCA):
             a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", typeCA + "_{0}".format(0))
             layerObj = constraintAreaObject(a, typeL)
             a.Base = obj
+            if height != 0:
+                a.Height = height
             viewProviderConstraintAreaObject(a.ViewObject)
             grp.addObject(a)
             FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
             FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
             FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
             
+            a.purgeTouched()
+
+            pcb[2].addObject(a)
+            #FreeCAD.ActiveDocument.recompute()
             return a
     except Exception as e:
         FreeCAD.Console.PrintWarning("{0} \n".format(e))
