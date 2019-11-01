@@ -1194,7 +1194,18 @@ class layerSilkObject(objectWire):
             self.spisObiektowTXT[-1]['objects'].append(['line', x1, y1, x2, y2])
     
     def addDrillCenter(self, xs, ys, r1, r2):
-        self.spisObiektowTXT[-1]['objects'].append(['drillCenter', xs, ys, r1, r2])
+        if r1 == 0:
+             self.spisObiektowTXT.append(None)
+             return
+        else:
+            #self.spisObiektowTXT[-1]['objects'].append(['drillCenter', xs, ys, r1, r2])
+            circle_1 = Part.Circle(FreeCAD.Vector(xs, ys), FreeCAD.Vector(0, 0, 1), r1)
+            circle_2 = Part.Circle(FreeCAD.Vector(xs, ys), FreeCAD.Vector(0, 0, 1), r2)
+            
+            drillCenter = Part.Shape([circle_1, circle_2])
+            #drillCenter = Part.Wire(drillCenter.Edges)
+            self.spisObiektowTXT.append(drillCenter)
+            
     
     def createCircle2(self, x, y, r):
         return Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r)
