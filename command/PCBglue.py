@@ -143,6 +143,7 @@ class createGlue:
         elif not self.base.isDerivedFrom("Sketcher::SketchObject"):
             FreeCAD.Console.PrintWarning("Wrong object!\n")
         #
+        pcb = getPCBheight()
         grp = createGroup_Glue()
         
         if self.side == 1:  # top
@@ -159,6 +160,7 @@ class createGlue:
             a.Width = self.width
         a.Height = self.height
         a.Flat = self.flat
+        a.Proxy.updatePosition_Z(a, pcb[1])
         
         viewProviderPCBgluePath(a.ViewObject)
         grp.addObject(a)
@@ -166,6 +168,9 @@ class createGlue:
         FreeCADGui.activeDocument().getObject(a.Name).Transparency = self.transparent
         #
         self.base.ViewObject.Visibility = False
+        #
+        
+        pcb[2].addObject(a)
 
 
 #***********************************************************************
@@ -182,6 +187,8 @@ class PCBgluePath(layerSilkObject):
         obj.addProperty("App::PropertyDistance", "Height", "Base", "Height").Height = 0.2
         obj.addProperty("App::PropertyBool", "Flat", "Base", "Flat").Flat = False
         obj.addProperty("App::PropertyLink", "Base", "Base", "Base")
+        obj.addProperty("App::PropertyLength", "Length", "Info", "Length", 1)
+        obj.addProperty("App::PropertyFloat", "Volume", "Info", "Volume", 1)
     
     def __getstate__(self):
         return [self.Type, self.cutToBoard]
@@ -191,28 +198,76 @@ class PCBgluePath(layerSilkObject):
             self.Type = state[0]
             self.cutToBoard = state[1]
 
-    def updatePosition_Z(self, fp, dummy=None):
-        self.execute(fp)
-    
+    def updatePosition_Z(self, fp, thickness):
+        if 'tGlue' in self.Type:
+            fp.Base.Placement.Base.z = thickness + 0.04
+            fp.Placement.Base.z = thickness + 0.04
+        else:  # bottomSide
+            fp.Base.Placement.Base.z = -0.04
+            fp.Placement.Base.z = -0.04
+            
+        fp.recompute()
+        fp.Base.recompute()
+        fp.purgeTouched()
+        fp.Base.purgeTouched()
+        
     def generuj(self, fp):
         pass
     
+    def countSeamLength(self, obj):
+        obj.Length.Value = 0
+        try:
+            for i in obj.Base.Geometry:
+                if i.Construction:
+                    continue
+                
+                obj.Length.Value += i.length()
+        except Exception as e:
+            pass
+            #FreeCAD.Console.PrintWarning("{0}\n".format(e))
+        #
+    
     def execute(self, obj):
         if 'tGlue' in self.Type:
-            z = getPCBheight()[1] + 0.04
             h = obj.Height.Value
             
             if h <= 0:
                 h = 0.01
         else:  # bottomSide
-            z = -0.04
             h = -obj.Height.Value
             
             if h >= 0:
                 h = -0.01
         ##
+        try:
+            if obj.Base:
+                if obj.Base.isDerivedFrom("Sketcher::SketchObject"):
+                    if obj.Base.Support != None:
+                        obj.Base.Support = None
+                    
+                    d = OpenSCAD2Dgeom.edgestofaces(obj.Base.Shape.Edges)
+                    if self.layerReversed:
+                        d = d.extrude(FreeCAD.Base.Vector(0, 0, -self.layerHeight))
+                    else:
+                        d = d.extrude(FreeCAD.Base.Vector(0, 0, self.layerHeight))
+                    
+                    obj.Shape = d
+                    
+                    try:
+                        obj.recompute()
+                        obj.Base.recompute()
+                        obj.purgeTouched()
+                        obj.Base.purgeTouched()
+                    except:
+                        pass
+        except:
+            pass
+
         self.spisObiektowTXT = []
         for i in obj.Base.Geometry:
+            if i.Construction:
+                continue
+            
             if i.__class__.__name__ == 'LineSegment':
                 x1 = i.StartPoint.x
                 y1 = i.StartPoint.y
@@ -228,92 +283,40 @@ class PCBgluePath(layerSilkObject):
                 #
                 self.addCircle(x, y, r, 0)
                 self.setFace()
-            #elif i.__class__.__name__ == 'ArcOfCircle':
-                #curve = degrees(i.LastParameter - i.FirstParameter)
-                #xs = i.Center.x
-                #ys = i.Center.y
-                #r = i.Radius
+            elif i.__class__.__name__ == 'ArcOfCircle':
+                curve = degrees(i.LastParameter - i.FirstParameter)
+                xs = i.Center.x
+                ys = i.Center.y
+                r = i.Radius
                 
-                #math = mathFunctions()
-                #p1 = [math.cosinus(degrees(i.FirstParameter)) * r, math.sinus(degrees(i.FirstParameter)) * r]
-                #p1 = [p1[0] + xs, p1[1] + ys]
-                #p2 = math.obrocPunkt2(p1, [xs, ys], curve)
+                math = mathFunctions()
+                p1 = [math.cosinus(degrees(i.FirstParameter)) * r, math.sinus(degrees(i.FirstParameter)) * r]
+                p1 = [p1[0] + xs, p1[1] + ys]
+                p2 = math.obrocPunkt2(p1, [xs, ys], curve)
                 ##
                 
-                #self.addArcWidth(p1, p2, curve, obj.Width.Value)
-                #self.setFace()
+                self.addArcWidth(p1, p2, curve, obj.Width.Value)
+                self.setFace()
         #
         if len(self.spisObiektowTXT) > 0:
             path = Part.makeCompound(self.spisObiektowTXT)
             if obj.Flat == False:
                 path = path.extrude(FreeCAD.Base.Vector(0, 0, h))
-            path.Placement.Base.z = z
             obj.Shape = path
         else:
             obj.Shape = Part.Shape()
         
-            
-            
-            
-            
-            
-            
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        #obiekty = []
-        ###
-        #for i in obj.Base.Geometry:
-            #FreeCAD.Console.PrintWarning("{0}\n".format(i.__class__.__name__))
-            #if i.__class__.__name__ == 'LineSegment':
-                #x1 = i.StartPoint.x
-                #y1 = i.StartPoint.y
-                #x2 = i.EndPoint.x
-                #y2 = i.EndPoint.y
-                ##
-                #obiekty.append(self.createLineWidth(x1, y1, x2, y2, obj.Width.Value))
-                
-                
-               ## obiekty.append(self.createLine(x1, y1, x2, y2, obj.Width.Value))
-            #elif i.__class__.__name__ == 'GeomCircle':
-                #x = i.Center.x
-                #y = i.Center.y
-                #r = i.Radius
-                ##
-                #obiekty.append(self.createCircle(x, y, r, obj.Width.Value))
-            #elif i.__class__.__name__ == 'GeomArcOfCircle':
-                #curve = degrees(i.LastParameter - i.FirstParameter)
-                #xs = i.Center.x
-                #ys = i.Center.y
-                #r = i.Radius
-                
-                #math = mathFunctions()
-                #p1 = [math.cosinus(degrees(i.FirstParameter)) * r, math.sinus(degrees(i.FirstParameter)) * r]
-                #p1 = [p1[0] + xs, p1[1] + ys]
-                #p2 = math.obrocPunkt2(p1, [xs, ys], curve)
-                ##
-                #obiekty.append(self.createArc(p1, p2, curve, obj.Width.Value))
-        ##
-        #if len(obiekty) > 0:
-            #path = Part.makeCompound(obiekty)
-            #if obj.Flat == False:
-                #path = path.extrude(FreeCAD.Base.Vector(0, 0, h))
-            #path.Placement.Base.z = z
-            #obj.Shape = path
-        #else:
-            #obj.Shape = Part.Shape()
+        obj.Placement.Base.z = obj.Base.Placement.Base.z
+        obj.Volume = obj.Shape.Volume
         
     def onChanged(self, fp, prop):
         try:
+            #FreeCAD.Console.PrintWarning("3. {0}\n".format(prop))
             if prop in ["Width", "Height", "Flat"]:
                 self.execute(fp)
+            
+            if prop in ["Base", "Shape"]:
+                self.countSeamLength(fp)
         except:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass

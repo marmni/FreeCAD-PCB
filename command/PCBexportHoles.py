@@ -30,6 +30,8 @@ import os
 import codecs
 from PySide import QtCore, QtGui
 import datetime
+#
+from PCBboard import getHoles
 
 
 exportList = {
@@ -225,6 +227,7 @@ class exportHoles_Gui(QtGui.QDialog):
         export.export()
         
         #super(exportHoles_Gui, self).accept()
+        self.close()
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -288,7 +291,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
         self.showReport()
         
     def showReport(self):
-        holes = self.getHoles()
+        holes = getHoles()
         #
         txt = ''
         txt += 'Drill report for: {0}\n'.format(FreeCAD.ActiveDocument.Label)
@@ -298,37 +301,21 @@ class exportHolesReport_Gui(QtGui.QDialog):
         num = 0
         for i in range(len(holes.keys())):
             key = list(holes)
-            txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), holes[key[i]])
-            num += holes[key[i]]
+            txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]]))
+            num += len(holes[key[i]])
         
         txt += '\nTotal plated holes count: {0}\n'.format(num)
         
         self.reportPrev.setPlainText(txt)
     
-    def getHoles(self):
-        holes = {}
-        #
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
-                d = i.Radius * 2.0
-                
-                if not d in holes.keys():
-                    holes[d] = 0
-                
-                holes[d] += 1
-        #
-        return holes
-    
     def accept(self):
-        try:
-            export = exportHolesReport()
-            export.filePath = str(self.pathToFile.text())
-            export.fileName = FreeCAD.ActiveDocument.Label
-            export.export()
-            
-            super(exportHolesReport_Gui, self).accept()
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        export = exportHolesReport()
+        export.filePath = str(self.pathToFile.text())
+        export.fileName = FreeCAD.ActiveDocument.Label
+        export.export()
+        
+        super(exportHolesReport_Gui, self).accept()
+
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -355,12 +342,6 @@ class exportHoles:
         self.mirror_Y = False  # True/False
         self.minimalHeader = False  # True/False
         self.groupHoles = False  # True/False
-        
-    def setUnit(self, value):
-        if self.units == 'mm':
-            return value
-        else:
-            return value
 
     def prepareX(self, value):
         value = self.setUnit(value)
@@ -410,7 +391,7 @@ class exportHoles:
             exportClass = eval(exportList[self.fileFormat]['class'])
             exportClass.fileName = self.fileName
             exportClass.filePath = self.filePath
-            exportClass.holes = self.getHoles()
+            exportClass.holes = getHoles()
             exportClass.groupList = self.groupHoles
             exportClass.minimalHeader = self.minimalHeader
             exportClass.unit = self.units
@@ -423,22 +404,9 @@ class exportHoles:
             exportClass.export()
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def getHoles(self):
-        holes = {}
-        #
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
-                x = self.prepareX(i.Center[0])
-                y = self.prepareY(i.Center[1])
-                d = self.setUnit(i.Radius) * 2.0
-                
-                if not d in list(holes.keys()):
-                    holes[d] = []
-                
-                holes[d].append([x, y])
-        #
-        return holes
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
+            
 
 
 class exportHolesReport(exportHoles):
@@ -450,27 +418,32 @@ class exportHolesReport(exportHoles):
         self.fileName = 'untitled'  # def. value
     
     def export(self):
-        holes = self.getHoles()
-        #
-        fileName = os.path.join(self.filePath, self.fileName)
-        if not fileName.endswith('rpt'):
-            fileName = fileName + '.rpt'
-        
-        self.files = codecs.open(fileName, "w", "utf-8")
-        #
-        self.files.write('Drill report for {0}\n'.format(self.fileName))
-        self.files.write('Created on {0}\n'.format(datetime.datetime.now()))
-        self.files.write('Drill report for plated through holes:\n')
-        
-        num = 0
-        for i in range(len(holes.keys())):
-            key = list(holes)
-            self.files.write('T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]])))
-            num += len(holes[key[i]])
-        
-        self.files.write('\nTotal plated holes count: {0}\n'.format(num))
-        #
-        self.files.close()
+        try:
+            holes = getHoles()
+            #
+            fileName = os.path.join(self.filePath, self.fileName)
+            if not fileName.endswith('rpt'):
+                fileName = fileName + '.rpt'
+            
+            self.files = codecs.open(fileName, "w", "utf-8")
+            #
+            self.files.write('Drill report for {0}\n'.format(self.fileName))
+            self.files.write('Created on {0}\n'.format(datetime.datetime.now()))
+            self.files.write('Drill report for plated through holes:\n')
+            
+            num = 0
+            for i in range(len(holes.keys())):
+                key = list(holes)
+                self.files.write('T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]])))
+                num += len(holes[key[i]])
+            
+            self.files.write('\nTotal plated holes count: {0}\n'.format(num))
+            #
+            self.files.close()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
 
 ##
 class exportFileMain():

@@ -111,6 +111,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         export.fileName = FreeCAD.ActiveDocument.Label
         export.export()
         #super(exportDrillingMap_Gui, self).accept()
+        self.close()
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -134,28 +135,15 @@ class exportDrillingMap:
             exportClass = eval(exportList[self.fileFormat]['class'])
             exportClass.fileName = self.fileName
             exportClass.filePath = self.filePath
-            exportClass.holes = self.getHoles()
+            exportClass.holes = getHoles()
             exportClass.outline = getBoardOutline()
             [exportClass.pcbMin_X, exportClass.pcbMin_Y, exportClass.pcbXLength, exportClass.pcbYLength] = getPCBsize()
             exportClass.export()
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def getHoles(self):
-        holes = {}
-        #
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
-                x = i.Center[0]
-                y = i.Center[1]
-                r = i.Radius
-                
-                if not r in holes.keys():
-                    holes[r] = []
-                
-                holes[r].append([x, y])
-        #
-        return holes
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
+            
 
 
 ##***********************************************************************

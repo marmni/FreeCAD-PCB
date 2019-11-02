@@ -35,7 +35,9 @@ from command.PCBgroups import createGroup_Layers
 
 
 def createDrillcenter(size, color):
-    if not FreeCAD.activeDocument() or not getPCBheight()[0]:
+    pcb = getPCBheight()
+    #
+    if not FreeCAD.activeDocument() or not pcb[0]:
         return False
     else:
         doc = FreeCAD.activeDocument()
@@ -56,44 +58,47 @@ def createDrillcenter(size, color):
         if not obj:
             layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", 'centerDrill')
             layerNew = layerSilkObject(layerS, ['PCBcenterDrill'])
+            layerNew.defHeight = pcb[1] + 0.000001
+            layerNew.side = 2
         else:
             layerS = obj
             layerNew = obj.Proxy
             #
             layerNew.spisObiektowTXT = []
-    except Exception as e:
+    except:
         FreeCAD.Console.PrintWarning(str(e) + "\n")
-    #
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "PCBboard":
-            try:
-                for k in range(len(j.Holes.Geometry)):
-                    if j.Holes.Geometry[k].Construction:
-                        continue
-                    
-                    x = j.Holes.Geometry[k].Center.x
-                    y = j.Holes.Geometry[k].Center.y
-                    r1 = j.Holes.Geometry[k].Radius
-                    r2 = size / 2.
-                    
-                    if r1 > r2:
-                        layerNew.createObject()
-                        layerNew.addDrillCenter(x, y, r1, r2)
-                        layerNew.setFace()
-                break
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-    #######
-    layerNew.generuj(layerS)
-    layerNew.updatePosition_Z(layerS)
-    viewProviderLayerSilkObject(layerS.ViewObject)
-    layerS.ViewObject.ShapeColor = color
-    
-    grp = createGroup_Layers()
-    grp.addObject(layerS)
-    #
-    doc.recompute()
-    return True
+        return False
+    else:
+        for j in doc.Objects:
+            if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "PCBboard":
+                try:
+                    for k in range(len(j.Holes.Geometry)):
+                        if j.Holes.Geometry[k].Construction or str(j.Holes.Geometry[k].__class__) != "<class 'Part.Circle'>":
+                            continue
+                        
+                        x = j.Holes.Geometry[k].Center.x
+                        y = j.Holes.Geometry[k].Center.y
+                        r1 = j.Holes.Geometry[k].Radius
+                        r2 = size / 2.
+                        
+                        if r1 > r2:
+                            layerNew.addCircle(x, y, r1)
+                            layerNew.setFace()
+                            layerNew.circleCutHole(x, y, r2)
+                    break
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning(str(e) + "\n")
+        #######
+        layerNew.generuj(layerS)
+        #layerNew.updatePosition_Z(layerS, pcb[1])
+        viewProviderLayerSilkObject(layerS.ViewObject)
+        layerS.ViewObject.ShapeColor = color
+        
+        grp = createGroup_Layers()
+        grp.addObject(layerS)
+        pcb[2].addObject(layerS)
+        #
+        return True
     
 
 

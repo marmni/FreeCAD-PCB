@@ -247,6 +247,7 @@ class mainPCB(partsManaging):
             glue.side = layerSide
             glue.color = layerColor
             glue.generate()
+            #glue.recompute()
 
     def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
         layerName = "{0}".format(layerName)

@@ -1180,7 +1180,7 @@ class layerSilkObject(objectWire):
         
         self.defHeight = 35
         self.spisObiektowTXT = []
-        self.side = 1  # 1-top  0-bottom
+        self.side = 1  # 0-bottom   1-top   2-both
 
     ################
     ################
@@ -1394,80 +1394,26 @@ class layerSilkObject(objectWire):
     
     def generuj(self, fp):
         if len(self.spisObiektowTXT):
-            #if self.cutToBoard:
-                #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
             
-            #pads = []
-            #for i in self.spisObiektowTXT:
-                #data = self.makePolygon(i)
-                
-                #if not data:
-                    #continue
-                
-                #pads.append(data)
-                
-                #if self.cutToBoard:
-                    #data = board.common(data)
             pads = Part.makeCompound(self.spisObiektowTXT)
-            pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            
+            if self.side == 1:  # top side
+                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            elif  self.side == 2:  # both sides
+                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
+            else:  # bottom side
+                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, -self.defHeight / 1000.))
             
             pads.Placement.Base.z = fp.Placement.Base.z
             fp.Shape = pads
-            
-            #fp.recompute()
             fp.purgeTouched()
-        
-        #if len(self.spisObiektowTXT):
-            #if 'tSilk' in self.Type or 'bSilk' in self.Type or 'tDocu' in self.Type or 'bDocu' in self.Type or 'PCBcenterDrill' in self.Type:
-                #if self.cutToBoard:
-                    #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                    #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
-                
-                #pads = []
-                #for i in self.spisObiektowTXT:
-                    #data = self.makePolygon(i)
-                    #if not data:
-                        #continue
-                    
-                    #if self.cutToBoard:
-                        #data = board.common(data)
-                    
-                    #if 'PCBcenterDrill' in self.Type:
-                        #data = data.extrude(FreeCAD.Base.Vector(0, 0, getPCBheight()[1]))
-                    #else:
-                        #data = data.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    #pads.append(data)
-                
-                #pads = Part.makeCompound(pads)
-                #pads.Placement.Base.z = fp.Placement.Base.z
-                #fp.Shape = pads
-            #else:
-                #pads = []
-                #for i in self.spisObiektowTXT:
-                    #pads.append(self.makePolygon(i))
-                #pads = Part.makeCompound(pads)
-                
-                #if FreeCAD.ActiveDocument.Board.Display:
-                    #try:
-                        #holes = []
-                        #for i in FreeCAD.ActiveDocument.Board.Holes.Shape.Wires:
-                            #holes.append(Part.Face(i))
-                        
-                        #if len(holes):
-                            #pads = pads.cut(Part.makeCompound(holes))
-                        #else:
-                            #pads = pads
-                    #except Exception as e:
-                        #FreeCAD.Console.PrintWarning("{0} \n".format(e))
-                
-                ## cut to board shape
-                #if self.cutToBoard:
-                    #pads = cutToBoardShape(pads)
-                ####################################################
-                #pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                #pads.Placement.Base.z = fp.Placement.Base.z
-                #fp.Shape = pads
+            
+            # pads = Part.makeCompound(self.spisObiektowTXT)
+            # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            # pads.Placement.Base.z = fp.Placement.Base.z
+            # fp.Shape = pads
+            # #fp.recompute()
+            # fp.purgeTouched()
     
     ################
     # shapes
@@ -2016,10 +1962,15 @@ class layerSilkObject(objectWire):
         self.generuj(fp)
     
     def updatePosition_Z(self, fp, thickness):
-        if self.side:  # top side
+        if self.side == 1:  # top side
             fp.Placement.Base.z = thickness + 0.000001
-        else:
-            fp.Placement.Base.z = -self.defHeight / 1000.
+        else:  # bottom/both sides
+            #fp.Placement.Base.z = -self.defHeight / 1000.
+            fp.Placement.Base.z = - 0.000001
+            
+            if self.side == 2:  # both sides
+                self.defHeight = thickness + 0.000001
+                self.generuj(fp)
         
         #fp.recompute()
         #fp.purgeTouched()
