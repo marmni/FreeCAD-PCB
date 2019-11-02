@@ -115,6 +115,61 @@ class createAssembly:
         self.x = 0
         self.y = 0
         self.z = 0
+        
+    def addParts(self, comp):
+        if self.fileName == '' :
+            FreeCAD.Console.PrintWarning("Mandatory field is empty!\n")
+            return
+        if not self.fileName.lower().endswith('.fcstd'):
+            FreeCAD.Console.PrintWarning("Wrong file format!\n")
+            return
+        ##
+        mainFile = FreeCAD.ActiveDocument
+        # delete old parts
+        try:
+            for i in comp.Group:
+                FreeCAD.ActiveDocument.removeObject(i.Name)
+        except Exception as e:
+            pass
+            #FreeCAD.Console.PrintWarning("7. {0} \n".format(e))
+        # load new parts
+        newFile = checkFile(self.fileName)
+        if not newFile[0]:
+            return
+        #
+        for i in newFile[0].RootObjects:
+            comp.addObject(mainFile.copyObject(i, True))
+        
+        
+        
+        
+        
+        # visibleObjects = [i for i in newFile[0].Objects if i.ViewObject.Visibility and not i.__class__.__name__ in ['GeoFeature']]
+        # allGroupExtension = [i for i in visibleObjects if i.__class__.__name__ == 'GroupExtension' and not hasattr(i, "Proxy")]
+        
+        # for i in allGroupExtension:
+            # if not i.ViewObject.Visibility:
+                # continue
+            
+            # #a = mainFile.copyObject(i, True)
+            # #obj.addObject(mainFile.getObject(i.Name))
+            
+            # for j in i.Group:
+                # visibleObjects.remove(j)
+            # visibleObjects.remove(i)
+        
+        # for i in visibleObjects:
+            # a = mainFile.copyObject(i, True)
+            # #comp.addObject(mainFile.copyObject(i, True))
+        #
+        if newFile[1]:
+            FreeCAD.closeDocument(newFile[0].Name)
+        FreeCAD.setActiveDocument(mainFile.Name)
+        FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile.Name)
+        
+        FreeCADGui.ActiveDocument.activeView().viewAxometric()
+        FreeCADGui.ActiveDocument.activeView().fitAll()
+        FreeCAD.ActiveDocument.recompute()
     
     def create(self):
         if self.fileName == '' :
@@ -124,17 +179,27 @@ class createAssembly:
             FreeCAD.Console.PrintWarning("Wrong file format!\n")
             return
         ##
-        comp = FreeCAD.ActiveDocument.addObject('App::Part','Part')
-        comp.Label = "Assembly_" + os.path.basename(self.fileName).split('.')[0]
+        comp = FreeCAD.ActiveDocument.addObject('App::Part', "{0}".format(os.path.basename(self.fileName).split('.')[0]))
+        #mainAssemblyObject(comp)
+        #comp.File = self.fileName
         comp.Placement = FreeCAD.Placement(FreeCAD.Base.Vector(self.x, self.y, self.z), FreeCAD.Rotation(FreeCAD.Base.Vector(0,0,1),0))
+        #viewProviderMainAssemblyObject(comp.ViewObject)
         
-        mainFile = FreeCAD.ActiveDocument.Label
+        #mainFile = FreeCAD.ActiveDocument.Labe
+        self.addParts(comp)
+        
+        #comp = FreeCAD.ActiveDocument.addObject('App::Part','Part')
+        #comp.Label = "Assembly_" + os.path.basename(self.fileName).split('.')[0]
+        #comp.Placement = FreeCAD.Placement(FreeCAD.Base.Vector(self.x, self.y, self.z), FreeCAD.Rotation(FreeCAD.Base.Vector(0,0,1),0))
+        
+        #mainFile = FreeCAD.ActiveDocument.Label
         #
-        a = FreeCAD.ActiveDocument.addObject("App::DocumentObjectGroupPython", "{0}".format(os.path.basename(self.fileName).split('.')[0]))
-        mainAssemblyObject(a)
-        a.File = self.fileName
-        viewProviderMainAssemblyObject(a.ViewObject)
-        comp.addObject(a)
+        #a = FreeCAD.ActiveDocument.addObject("App::DocumentObjectGroupPython", "{0}".format(os.path.basename(self.fileName).split('.')[0]))
+        #mainAssemblyObject(a)
+        #a.File = self.fileName
+        #viewProviderMainAssemblyObject(a.ViewObject)
+        #comp.addObject(a)
+        
         #
         #try:
             #FreeCADGui.ActiveDocument = FreeCADGui.getDocument(mainFile)
@@ -322,8 +387,8 @@ class childAssemblyObject:
 
 class mainAssemblyObject:
     def __init__(self, obj):
-        self.Type = 'assemblyMain'
-        obj.Proxy = self
+        #self.Type = 'assemblyMain'
+        #obj.Proxy = self
         self.Object = obj
         
         obj.addProperty("App::PropertyFile", "File", "Base", "File").File = ""

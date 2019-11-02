@@ -92,6 +92,10 @@ def state(TypeId):
 def display(TypeId):
     for i in FreeCAD.activeDocument().Objects:
         if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
+            FreeCAD.Console.PrintWarning("{0} \n".format(i.Proxy.Type))
+            FreeCAD.Console.PrintWarning("{0} \n".format(TypeId))
+            FreeCAD.Console.PrintWarning("\n")
+            
             if 'PCBannotation' in i.Proxy.Type and i.Proxy.mode != 'anno':
                 if len(TypeId) > 1 and i.Proxy.Type == TypeId[:1] and i.Proxy.mode == TypeId[1]:
                     i.ViewObject.Visibility = True
@@ -106,7 +110,6 @@ def blank(TypeId):
                     i.ViewObject.Visibility = False
             elif i.Proxy.Type == TypeId:
                 i.ViewObject.Visibility = False
-
 
 #***********************************************************************
 #*                               GUI

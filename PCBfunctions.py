@@ -894,11 +894,10 @@ class mathFunctions(object):
         y1R = (punkt[0] * sinKAT) + (punkt[1] * cosKAT) + srodek[1]
         return [x1R, y1R]
         
-
     def odbijWspolrzedne(self, punkt, srodek):
         ''' mirror '''
         return srodek + (srodek - punkt)
-
+    
     def arc3point(self, stopAngle, startAngle, radius, cx, cy):
         d = stopAngle - startAngle
         offset = 0

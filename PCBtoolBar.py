@@ -461,7 +461,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations_2, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
-        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations report", ":/data/img/drill-icon.png")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocationsReport, QtCore.SIGNAL("triggered()"), self.exportHoleLocationsReport)
         
         scriptCmd_ExportDrillingMap = self.createAction(u"Create drilling map", u"Create drilling map", ":/data/img/drill-icon.png")

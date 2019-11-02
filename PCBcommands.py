@@ -88,6 +88,9 @@ class cmdPartMoveModel:
         
     def GetResources(self):
         return {'MenuText': 'Placement model', 'ToolTip': 'Placement model'}
+        
+    def IsActive(self):
+        return True
 
 FreeCADGui.addCommand('cmdPartMoveModel', cmdPartMoveModel())
 ###############################################
