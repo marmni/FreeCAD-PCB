@@ -583,12 +583,7 @@ class viewProviderExplodeObject:
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
         '''
-        #***************************************************************
-        #   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
-        #   License:    Creative Commons Attribution-Noncommercial 3.0
-        #   Iconset:    Mono Icon Set
-        #***************************************************************
-        return ":/data/img/explode_TI.svg"
+        return ":/data/img/explode.png"
         
     def __getstate__(self):
         ''' When saving the document this object gets stored using Python's cPickle module.

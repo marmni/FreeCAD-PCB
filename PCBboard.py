@@ -261,7 +261,10 @@ class PCBboardObject:
         obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
         #
         obj.Proxy = self
-        obj.addObject = addObject
+        #obj.addObject = addObject
+    
+    def addObject(self, fp, obj):
+        fp.Group += [obj]
         
     def onChanged(self, fp, prop):
         fp.setEditorMode("Placement", 2)

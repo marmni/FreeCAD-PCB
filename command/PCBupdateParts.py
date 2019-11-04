@@ -74,7 +74,7 @@ class updateWizardWidget(QtGui.QWidget):
         przSelectAllTF = QtGui.QPushButton('')
         #przSelectAllTF.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         przSelectAllTF.setFlat(True)
-        przSelectAllTF.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
+        przSelectAllTF.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.png"))
         przSelectAllTF.setToolTip('Deselect all')
         self.connect(przSelectAllTF, QtCore.SIGNAL('pressed ()'), self.unselectAllObj)
         
@@ -134,7 +134,7 @@ class updateParts(partsManaging):
         partsManaging.__init__(self)
         self.form = updateWizardWidget()
         self.form.setWindowTitle('Update model')
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/updateParts.spng"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/updateModels.png"))
         self.updateModel = updateModel
         
         self.setDatabase()

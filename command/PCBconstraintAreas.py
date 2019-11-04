@@ -64,13 +64,19 @@ def createConstraintArea(obj, typeCA, height=0):
             if height != 0:
                 a.Height = height
             viewProviderConstraintAreaObject(a.ViewObject)
+            layerObj.updatePosition_Z(a, pcb[1])
+            
             grp.addObject(a)
             FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
             FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
             FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
             
+            a.recompute()
+            a.Base.recompute()
             a.purgeTouched()
-            pcb[2].addObject(a)
+            a.Base.purgeTouched()
+            
+            pcb[2].Proxy.addObject(pcb[2], a)
             
             return a
     except Exception as e:

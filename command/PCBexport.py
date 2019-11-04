@@ -52,7 +52,7 @@ class exportPCB_Gui(QtGui.QWizard):
         QtGui.QWizard.__init__(self, parent)
 
         self.setWindowTitle(u"Export PCB")
-        self.setPixmap(QtGui.QWizard.LogoPixmap, QtGui.QPixmap(":/data/img/exportModel.png"))
+        self.setPixmap(QtGui.QWizard.LogoPixmap, QtGui.QPixmap(":/data/img/exportPCB.png"))
         self.exportType = eagle()
         ###
         self.addPage(self.formatPliku())

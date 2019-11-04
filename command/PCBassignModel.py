@@ -171,6 +171,7 @@ class pathChooser(QtGui.QTreeView):
 class addNewPath(QtGui.QDialog):
     def __init__(self, lista, parent=None):
         QtGui.QDialog.__init__(self, parent)
+        self.setWindowIcon(QtGui.QIcon(":/data/img/uklad.png"))
         self.setWindowTitle(u"Paths")
         #
         self.pathChooser = pathChooser(self)
@@ -202,6 +203,13 @@ class addNewPath(QtGui.QDialog):
         
         checkPathsButton = QtGui.QPushButton(u'Check paths')
         self.connect(checkPathsButton, QtCore.SIGNAL("clicked ()"), self.checkPaths)
+        
+        deleteColFileButton = QtGui.QPushButton(u'Delete *.col file')
+        deleteColFileButton.setToolTip("For selected models")
+        self.connect(deleteColFileButton, QtCore.SIGNAL("clicked ()"), self.deleteColFile)
+        
+        deleteAllColFilesButton = QtGui.QPushButton(u'Delete all *.col files')
+        self.connect(deleteAllColFilesButton, QtCore.SIGNAL("clicked ()"), self.deleteAllColFiles)
         # buttons
         buttons = QtGui.QDialogButtonBox()
         buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
@@ -221,11 +229,14 @@ class addNewPath(QtGui.QDialog):
         layPathsListWidget.setObjectName('lay_path_widget')
         layPathsListWidget.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;} QListWidget {border:1px solid rgb(223, 223, 223);}''')
         layPathsLis = QtGui.QGridLayout(layPathsListWidget)
-        layPathsLis.addWidget(self.pathsList, 0, 0, 5, 1)
+        layPathsLis.addWidget(self.pathsList, 0, 0, 8, 1)
         layPathsLis.addWidget(editPathButton, 0, 1, 1, 1)
         layPathsLis.addWidget(removePathButton, 1, 1, 1, 1)
         layPathsLis.addWidget(separator(), 2, 1, 1, 1)
         layPathsLis.addWidget(checkPathsButton, 3, 1, 1, 1)
+        layPathsLis.addWidget(separator(), 4, 1, 1, 1)
+        layPathsLis.addWidget(deleteColFileButton, 5, 1, 1, 1)
+        layPathsLis.addWidget(deleteAllColFilesButton, 6, 1, 1, 1)
         layPathsLis.setContentsMargins(0, 0, 0, 0)
         #
         lay = QtGui.QGridLayout(self)
@@ -242,7 +253,7 @@ class addNewPath(QtGui.QDialog):
         self.connect(librariesList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadPath)
         librariesList.setCurrentIndex(0)
         self.loadPath(librariesList.currentText())
-        
+    
     def loadPath(self, value):
         try:
             if value == "Whole computer":
@@ -311,7 +322,47 @@ class addNewPath(QtGui.QDialog):
             self.addItem(i)
         
         self.pathsList.setCurrentRow(0)
+    
+    def deleteColFile(self):
+        if self.pathsList.currentRow() == -1:
+            return
+        
+        dial = QtGui.QMessageBox()
+        dial.setText(u"Delete *.col file for selected model?")
+        dial.setWindowTitle("Caution!")
+        dial.setIcon(QtGui.QMessageBox.Question)
+        delete_YES = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+        dial.addButton('No', QtGui.QMessageBox.RejectRole)
+        dial.exec_()
+        
+        if dial.clickedButton() == delete_YES:
+            [boolValue, path] = partExistPath(self.pathsList.currentItem().text())
+            path, extension = os.path.splitext(path)
             
+            try:
+                os.remove(path + ".col") 
+            except:
+                pass
+    
+    def deleteAllColFiles(self):
+        dial = QtGui.QMessageBox()
+        dial.setText(u"Delete all *.col files?")
+        dial.setWindowTitle("Caution!")
+        dial.setIcon(QtGui.QMessageBox.Question)
+        delete_YES = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+        dial.addButton('No', QtGui.QMessageBox.RejectRole)
+        dial.exec_()
+        
+        if dial.clickedButton() == delete_YES:
+            for i in range(self.pathsList.count()):
+                [boolValue, path] = partExistPath(self.pathsList.item(i).text())
+                path, extension = os.path.splitext(path)
+                
+                try:
+                    os.remove(path + ".col") 
+                except:
+                    pass
+
     def removePath(self):
         if self.pathsList.currentRow() == -1:
             return
@@ -671,6 +722,15 @@ class separator(QtGui.QFrame):
         self.setFrameShape(QtGui.QFrame.HLine)
         self.setFrameShadow(QtGui.QFrame.Sunken)
         self.setLineWidth(1)
+        
+
+class flatButton(QtGui.QPushButton):
+    def __init__(self, icon, tooltip, parent=None):
+        QtGui.QPushButton.__init__(self, QtGui.QIcon(icon), "", parent)
+        #
+        self.setToolTip(tooltip)
+        self.setFlat(True)
+        self.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
 
 
 class dodajElement(QtGui.QDialog):
@@ -844,6 +904,69 @@ class dodajElement(QtGui.QDialog):
                     item.setCheckState(0, QtCore.Qt.Unchecked)
                 
                 self.reloadList()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("Error1: {0} \n".format(e))
+    
+    def selectAllModels(self):
+        for i in QtGui.QTreeWidgetItemIterator(self.modelsList):
+                if str(i.value().data(0, QtCore.Qt.UserRole + 1)) == 'C':
+                    continue
+                
+                i.value().setCheckState(0, QtCore.Qt.Checked)
+    
+    def deselectAllModels(self):
+        for i in QtGui.QTreeWidgetItemIterator(self.modelsList):
+                if str(i.value().data(0, QtCore.Qt.UserRole + 1)) == 'C':
+                    continue
+                
+                i.value().setCheckState(0, QtCore.Qt.Unchecked)
+    
+    def deleteColFilesF(self):
+        try:
+            delAll = False
+            #
+            for i in QtGui.QTreeWidgetItemIterator(self.modelsList):
+                if str(i.value().data(0, QtCore.Qt.UserRole + 1)) == 'C':
+                    continue
+                if not i.value().checkState(0) == QtCore.Qt.Checked:
+                    continue
+                ##########
+                item = i.value()
+                objectID = str(item.data(0, QtCore.Qt.UserRole))
+                ##########
+                if not delAll:
+                    dial = QtGui.QMessageBox()
+                    dial.setText(u"Delete *.col file for package {0}?".format(item.text(0)))
+                    dial.setWindowTitle("Caution!")
+                    dial.setIcon(QtGui.QMessageBox.Question)
+                    delete_YES = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+                    delete_YES_ALL = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
+                    delete_NO = dial.addButton('No', QtGui.QMessageBox.RejectRole)
+                    delete_NO_ALL = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
+                    dial.exec_()
+                    
+                    if dial.clickedButton() == delete_NO_ALL:
+                        break
+                    elif dial.clickedButton() == delete_YES_ALL:
+                        delAll = True
+                    elif dial.clickedButton() == delete_NO:
+                        continue
+                ##
+                dane = self.sql.getModelByID(objectID)
+                if dane[0]:
+                    modelData = self.sql.convertToTable(dane[1])
+                    for p in modelData["path3DModels"].split(';'):
+                        if p == '':
+                            continue
+                        
+                        [boolValue, path] = partExistPath(p)
+                        path, extension = os.path.splitext(path)
+                        
+                        try:
+                            os.remove(path + ".col") 
+                        except:
+                            pass
+            ##########
         except Exception as e:
             FreeCAD.Console.PrintWarning("Error1: {0} \n".format(e))
 
@@ -1109,11 +1232,13 @@ class dodajElement(QtGui.QDialog):
             self.editCategory.setDisabled(False)
             self.removeCategory.setDisabled(False)
             self.removeModel.setDisabled(True)
+            self.deleteColFiles.setDisabled(True)
             self.setOneCategoryForModels.setDisabled(True)
         else:
             self.editCategory.setDisabled(True)
             self.removeCategory.setDisabled(True)
             self.removeModel.setDisabled(False)
+            self.deleteColFiles.setDisabled(False)
             self.setOneCategoryForModels.setDisabled(False)
             #
             try:
@@ -1144,6 +1269,7 @@ class dodajElement(QtGui.QDialog):
         self.editCategory.setDisabled(True)
         self.removeCategory.setDisabled(True)
         self.removeModel.setDisabled(True)
+        self.deleteColFiles.setDisabled(True)
         self.setOneCategoryForModels.setDisabled(True)
         
         try:
@@ -1200,20 +1326,7 @@ class dodajElement(QtGui.QDialog):
         self.pathToModel = QtGui.QLineEdit("")
         self.pathToModel.setReadOnly(True)
         
-        pathToModelInfo = QtGui.QPushButton("")
-        pathToModelInfo.setToolTip(u"Edit")
-        #pathToModelInfo.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        pathToModelInfo.setIcon(QtGui.QIcon(":/data/img/edit_16x16.png"))
-        pathToModelInfo.setFlat(True)
-        pathToModelInfo.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 15px;
-                    height: 15px;
-                }
-            ''')
+        pathToModelInfo = flatButton(":/data/img/edit_16x16.png", u"Edit")
         self.connect(pathToModelInfo, QtCore.SIGNAL("clicked ()"), self.addNewPathF)
         
         #########################
@@ -1221,20 +1334,7 @@ class dodajElement(QtGui.QDialog):
         #########################
         self.datasheetPath = QtGui.QLineEdit("")
         
-        datasheetPathPrz = QtGui.QPushButton("")
-        datasheetPathPrz.setToolTip(u"Open datasheet")
-        #datasheetPathPrz.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        datasheetPathPrz.setIcon(QtGui.QIcon(":/data/img/browser_16x16.png"))
-        datasheetPathPrz.setFlat(True)
-        datasheetPathPrz.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 15px;
-                    height: 15px;
-                }
-            ''')
+        datasheetPathPrz = flatButton(":/data/img/browser_16x16.png", u"Open datasheet")
         self.connect(datasheetPathPrz, QtCore.SIGNAL("clicked ()"), self.loadDatasheet)
         
         #########################
@@ -1310,68 +1410,16 @@ class dodajElement(QtGui.QDialog):
         #########################
         self.modelSettings = modelSettingsTable()
         
-        modelSettingsAdd = QtGui.QPushButton("")
-        modelSettingsAdd.setToolTip(u"Add")
-        #modelSettingsAdd.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelSettingsAdd.setIcon(QtGui.QIcon(":/data/img/add_16x16.png"))
-        modelSettingsAdd.setFlat(True)
-        modelSettingsAdd.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 16px;
-                    height: 16px;
-                }
-            ''')
+        modelSettingsAdd = flatButton(":/data/img/add_16x16.png", u"Add")
         self.connect(modelSettingsAdd, QtCore.SIGNAL("clicked ()"), self.modelSettings.addNewModel)
         
-        modelSettingsDelete = QtGui.QPushButton("")
-        modelSettingsDelete.setToolTip(u"Delete")
-        #modelSettingsDelete.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelSettingsDelete.setIcon(QtGui.QIcon(":/data/img/delete_16x16.png"))
-        modelSettingsDelete.setFlat(True)
-        modelSettingsDelete.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 16px;
-                    height: 16px;
-                }
-            ''')
+        modelSettingsDelete = flatButton(":/data/img/delete_16x16.png", u"Delete")
         self.connect(modelSettingsDelete, QtCore.SIGNAL("clicked ()"), self.modelSettings.deleteModel)
         
-        modelSettingsEdit = QtGui.QPushButton("")
-        modelSettingsEdit.setToolTip(u"Edit")
-        #modelSettingsEdit.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelSettingsEdit.setIcon(QtGui.QIcon(":/data/img/edit_16x16.png"))
-        modelSettingsEdit.setFlat(True)
-        modelSettingsEdit.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 16px;
-                    height: 16px;
-                }
-            ''')
+        modelSettingsEdit = flatButton(":/data/img/edit_16x16.png", u"Edit")
         self.connect(modelSettingsEdit, QtCore.SIGNAL("clicked ()"), self.modelSettings.editModel)
         
-        modelSettingsCopy = QtGui.QPushButton("")
-        modelSettingsCopy.setToolTip(u"Copy")
-        #modelSettingsCopy.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelSettingsCopy.setIcon(QtGui.QIcon(":/data/img/copy.png"))
-        modelSettingsCopy.setFlat(True)
-        modelSettingsCopy.setStyleSheet('''
-                QPushButton
-                {
-                    border: 0px;
-                    margin-top: 2px;
-                    width: 16px;
-                    height: 16px;
-                }
-            ''')
+        modelSettingsCopy = flatButton(":/data/img/copy.png", u"Copy")
         self.connect(modelSettingsCopy, QtCore.SIGNAL("clicked ()"), self.modelSettings.copyModel)
 
         ########################
@@ -1437,54 +1485,41 @@ class dodajElement(QtGui.QDialog):
         ########################
         # database
         ########################
-        modelsListSaveCopy = QtGui.QPushButton("")
-        #modelsListSaveCopy.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelsListSaveCopy.setIcon(QtGui.QIcon(":/data/img/databaseExport.png"))
-        modelsListSaveCopy.setToolTip(u"Save database copy")
-        modelsListSaveCopy.setFlat(True)
+        modelsListSaveCopy = flatButton(":/data/img/databaseExport.svg", u"Save database copy")
         self.connect(modelsListSaveCopy, QtCore.SIGNAL("clicked ()"), self.prepareCopy)
         
-        modelsListImportDatabase = QtGui.QPushButton("")
-        #modelsListImportDatabase.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        modelsListImportDatabase.setIcon(QtGui.QIcon(":/data/img/databaseUpload.png"))
-        modelsListImportDatabase.setToolTip(u"Import database")
-        modelsListImportDatabase.setFlat(True)
+        modelsListImportDatabase = flatButton(":/data/img/databaseImport.svg", u"Import database")
         self.connect(modelsListImportDatabase, QtCore.SIGNAL("clicked ()"), self.importDatabase)
+        
+        modelsListReload = flatButton(":/data/img/databaseReload.svg", u"Reload database")
+        self.connect(modelsListReload, QtCore.SIGNAL("clicked ()"), self.reloadList)
         
         ########################
         # models list
         ########################
-        modelsListExpand = QtGui.QPushButton("")
-        modelsListExpand.setIcon(QtGui.QIcon(":/data/img/expand.png"))
-        modelsListExpand.setToolTip(u"Expand all")
-        modelsListExpand.setFlat(True)
+        modelsListExpand = flatButton(":/data/img/expand.png", u"Expand all")
         self.connect(modelsListExpand, QtCore.SIGNAL("clicked ()"), self.modelsList.expandAll)
         
-        modelsListCollapse = QtGui.QPushButton("")
-        modelsListCollapse.setIcon(QtGui.QIcon(":/data/img/collapse.png"))
-        modelsListCollapse.setToolTip(u"Collapse all")
-        modelsListCollapse.setFlat(True)
+        modelsListCollapse = flatButton(":/data/img/collapse.png", u"Collapse all")
         self.connect(modelsListCollapse, QtCore.SIGNAL("clicked ()"), self.modelsList.collapseAll)
         
-        modelsListReload = QtGui.QPushButton("")
-        modelsListReload.setIcon(QtGui.QIcon(":/data/img/databaseReload.png"))
-        modelsListReload.setToolTip(u"Reload database")
-        modelsListReload.setFlat(True)
-        self.connect(modelsListReload, QtCore.SIGNAL("clicked ()"), self.reloadList)
+        modelsListSelectAll = flatButton(":/data/img/checkbox_checked_16x16.png", u"Select all models")
+        self.connect(modelsListSelectAll, QtCore.SIGNAL("clicked ()"), self.selectAllModels)
         
-        self.removeModel = QtGui.QPushButton("")
-        self.removeModel.setIcon(QtGui.QIcon(":/data/img/databaseDelete.png"))
-        self.removeModel.setToolTip(u"Delete all selected models from database")
-        self.removeModel.setFlat(True)
+        modelsListDeselectAll = flatButton(":/data/img/checkbox_unchecked_16x16.png", u"Deselect all models")
+        self.connect(modelsListDeselectAll, QtCore.SIGNAL("clicked ()"), self.deselectAllModels)
+        
+        self.removeModel = flatButton(":/data/img/databaseDeleteModel.svg", u"Delete all selected models from database")
         self.removeModel.setDisabled(True)
         self.connect(self.removeModel, QtCore.SIGNAL("clicked ()"), self.deleteModel)
         
-        self.setOneCategoryForModels = QtGui.QPushButton("")
-        self.setOneCategoryForModels.setIcon(QtGui.QIcon(":/data/img/Draft_SelectGroup.png"))
-        self.setOneCategoryForModels.setToolTip(u"Set one category for all selected models")
-        self.setOneCategoryForModels.setFlat(True)
+        self.setOneCategoryForModels = flatButton(":/data/img/boundingBoxAll.svg", u"Set one category for all selected models")
         self.setOneCategoryForModels.setDisabled(True)
         self.connect(self.setOneCategoryForModels, QtCore.SIGNAL("clicked ()"), self.setOneCategoryForModelsF)
+        
+        self.deleteColFiles = flatButton(":/data/img/deleteColFile.svg", u"Delete *.col files for selected models")
+        self.deleteColFiles.setDisabled(True)
+        self.connect(self.deleteColFiles, QtCore.SIGNAL("clicked ()"), self.deleteColFilesF)
         
         ########################
         # categories
@@ -1494,12 +1529,14 @@ class dodajElement(QtGui.QDialog):
         self.editCategory.setToolTip(u"Edit category")
         self.editCategory.setFlat(True)
         self.editCategory.setDisabled(True)
+        self.editCategory.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
         self.connect(self.editCategory, QtCore.SIGNAL("clicked ()"), self.editCategoryF)
         
         addCategoryButton = QtGui.QPushButton("")
         addCategoryButton.setIcon(QtGui.QIcon(":/data/img/add_16x16.png"))
         addCategoryButton.setToolTip(u"Add new category")
         addCategoryButton.setFlat(True)
+        addCategoryButton.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
         self.connect(addCategoryButton, QtCore.SIGNAL("clicked ()"), self.addCategory)
         
         self.removeCategory = QtGui.QPushButton("")
@@ -1507,18 +1544,22 @@ class dodajElement(QtGui.QDialog):
         self.removeCategory.setToolTip(u"Remove category")
         self.removeCategory.setFlat(True)
         self.removeCategory.setDisabled(True)
+        self.removeCategory.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
         self.connect(self.removeCategory, QtCore.SIGNAL("clicked ()"), self.deleteCategory)
         ########################
         ########################
         mainLayLeftSide = QtGui.QVBoxLayout()
         mainLayLeftSide.addWidget(modelsListExpand)
         mainLayLeftSide.addWidget(modelsListCollapse)
+        mainLayLeftSide.addWidget(modelsListSelectAll)
+        mainLayLeftSide.addWidget(modelsListDeselectAll)
         mainLayLeftSide.addWidget(separator())
         mainLayLeftSide.addWidget(modelsListReload)
         mainLayLeftSide.addWidget(modelsListSaveCopy)
         mainLayLeftSide.addWidget(modelsListImportDatabase)
         mainLayLeftSide.addWidget(separator())
         mainLayLeftSide.addWidget(self.removeModel)
+        mainLayLeftSide.addWidget(self.deleteColFiles)
         mainLayLeftSide.addWidget(self.setOneCategoryForModels)
         mainLayLeftSide.addWidget(separator())
         mainLayLeftSide.addWidget(self.editCategory)
@@ -1537,18 +1578,10 @@ class dodajElement(QtGui.QDialog):
         self.searcher.setStyleSheet("border: 1px solid #808080")
         self.connect(self.searcher, QtCore.SIGNAL("textChanged (const QString&)"), self.wyszukajObiekty)
        
-        searcherNext = QtGui.QPushButton("")
-        #searcherNext.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        searcherNext.setIcon(QtGui.QIcon(":/data/img/next_16x16.png"))
-        searcherNext.setToolTip(u"Next package")
-        searcherNext.setFlat(True)
+        searcherNext = flatButton(":/data/img/next_16x16.png", u"Next package")
         self.connect(searcherNext, QtCore.SIGNAL("clicked ()"), self.wyszukajObiektyNext)
         
-        searcherPrev = QtGui.QPushButton("")
-        #searcherPrev.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        searcherPrev.setIcon(QtGui.QIcon(":/data/img/previous_16x16.png"))
-        searcherPrev.setToolTip(u"Previous package")
-        searcherPrev.setFlat(True)
+        searcherPrev = flatButton(":/data/img/previous_16x16.png", u"Previous package")
         self.connect(searcherPrev, QtCore.SIGNAL("clicked ()"), self.wyszukajObiektyPrev)
         
         mainLayLeftSide = QtGui.QHBoxLayout()

@@ -217,7 +217,7 @@ class mainPCB(partsManaging):
         layerS.ViewObject.ShapeColor = layerColor
         grp.addObject(layerS)
         #
-        pcb[2].addObject(layerS)
+        pcb[2].Proxy.addObject(pcb[2], layerS)
         #
         #doc.recompute()
         #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
@@ -238,8 +238,8 @@ class mainPCB(partsManaging):
                     y2 = k[4]
                     [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], k[5])
                     
-                    arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                    ser.addGeometry(self.Draft2Sketch(arc, ser))
+                    arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                    ser.addGeometry(arc)
             #
             glue = createGlue()
             glue.base = ser
@@ -323,9 +323,7 @@ class mainPCB(partsManaging):
     
     def generateConstraintAreas(self, doc, layerNumber, grp, layerName, layerColor, layerTransparent):
         typeL = PCBconf.softLayers[self.databaseType][layerNumber]['ltype']
-        #mainGroup = doc.addObject("App::DocumentObjectGroup", layerName)
-        #grp.addObject(mainGroup)
-        
+
         for i in self.wersjaFormatu.getConstraintAreas(layerNumber):
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
             ser.ViewObject.Visibility = False
@@ -385,15 +383,15 @@ class mainPCB(partsManaging):
                 for j in i[1]:
                     if j[0] == 'Line':
                         ser.addGeometry(Part.LineSegment(FreeCAD.Vector(j[1], j[2], 0), FreeCAD.Vector(j[3], j[4], 0)))
-                    elif j[0] == 'Arc':
+                    elif j[0] == 'Arc3P':
                         x1 = j[1]
                         y1 = j[2]
                         x2 = j[3]
                         y2 = j[4]
                         [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], j[5])
                         
-                        arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                        ser.addGeometry(self.Draft2Sketch(arc, ser))
+                        arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                        ser.addGeometry(arc)
             #
             #FreeCAD.ActiveDocument.recompute()
             ser.recompute()

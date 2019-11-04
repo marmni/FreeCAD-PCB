@@ -149,7 +149,7 @@ class createAnnotation_Gui(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle("Add annotation")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/annotation.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/modelAddAnnotation.png"))
         #
         self.text = QtGui.QLineEdit('')
         

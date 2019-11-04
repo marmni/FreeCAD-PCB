@@ -104,6 +104,7 @@ class moveParts(partsManaging):
     ''' move 3d models of packages '''
     def __init__(self, updateModel, parent=None):
         self.form = moveWizardWidget()
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/centroid.svg"))
         self.form.setWindowTitle('Placement model')
         self.updateModel = updateModel
         

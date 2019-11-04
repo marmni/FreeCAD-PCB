@@ -108,15 +108,15 @@ class pcbToolBarView(pcbToolBarMain):
         self.setObjectName("pcbToolBarView")
         
         # przyciski
-        scriptCmd_viewShaded = self.createAction(u"Display mode: Shaded", u"Display mode: Shaded", ":/data/img/viewShaded.png")
+        scriptCmd_viewShaded = self.createAction(u"Display mode: Shaded", u"Display mode: Shaded", ":/data/img/displayShaded.png")
         par = partial(self.changeDisplayMode, 'Shaded')
         QtCore.QObject.connect(scriptCmd_viewShaded, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewFlatLines = self.createAction(u"Display mode: Shaded with Edges", u"Display mode: Shaded with Edges", ":/data/img/viewFlatLines.png")
+        scriptCmd_viewFlatLines = self.createAction(u"Display mode: Shaded with Edges", u"Display mode: Shaded with Edges", ":/data/img/displayFlatLines.png")
         par = partial(self.changeDisplayMode, 'Flat Lines')
         QtCore.QObject.connect(scriptCmd_viewFlatLines, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewWireframe = self.createAction(u"Display mode: Wireframe", u"Display mode: Wireframe", ":/data/img/viewWireframe.png")
+        scriptCmd_viewWireframe = self.createAction(u"Display mode: Wireframe", u"Display mode: Wireframe", ":/data/img/displayWrireFrame.png")
         par = partial(self.changeDisplayMode, 'Wireframe')
         QtCore.QObject.connect(scriptCmd_viewWireframe, QtCore.SIGNAL("triggered()"), par)
         
@@ -128,17 +128,17 @@ class pcbToolBarView(pcbToolBarMain):
         QtCore.QObject.connect(self.scriptCmd_HeightDisplay, QtCore.SIGNAL("triggered()"), self.heightDisplay)
         self.scriptCmd_HeightDisplay.setCheckable(True)
         
-        scriptCmd_Layers = self.createAction(u"Layers settings", u"Layers settings", ":/data/img/layers.png")
+        scriptCmd_Layers = self.createAction(u"Layers settings", u"Layers settings", ":/data/img/layers_TI.svg")
         QtCore.QObject.connect(scriptCmd_Layers, QtCore.SIGNAL("triggered()"), self.Flayers)
         
-        scriptCmd_cutToBoardOutline = self.createAction(u"Cut to board outline (ON/OFF)", u"Cut to board outline (ON/OFF)", ":/data/img/mesh_cut.png")
+        scriptCmd_cutToBoardOutline = self.createAction(u"Cut to board outline (ON/OFF)", u"Cut to board outline (ON/OFF)", ":/data/img/cutToBoard.svg")
         QtCore.QObject.connect(scriptCmd_cutToBoardOutline, QtCore.SIGNAL("triggered()"), self.cutToBoardOutline)
         
         # rendering
-        scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.png")
+        scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.ico")
         QtCore.QObject.connect(scriptCmd_ExportToKerkythea, QtCore.SIGNAL("triggered()"), self.exportToKerkytheaF)
         
-        scriptCmd_ExportObjectToPovRay = self.createAction(u"3D rendering: export object to POV-Ray (*.inc)", u"3D rendering: export object to POV-Ray (*.inc)", ":/data/img/file_inc_slick_32.png")
+        scriptCmd_ExportObjectToPovRay = self.createAction(u"3D rendering: export object to POV-Ray (*.inc)", u"3D rendering: export object to POV-Ray (*.inc)", ":/data/img/povray.ico")
         QtCore.QObject.connect(scriptCmd_ExportObjectToPovRay, QtCore.SIGNAL("triggered()"), self.exportObjectToPovRayF)
         
         # assembly
@@ -155,10 +155,10 @@ class pcbToolBarView(pcbToolBarMain):
         QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
         
         # parts groups
-        scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/Draft_AddToGroup.png")
+        scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/ungroup.svg")
         QtCore.QObject.connect(scriptCmd_ungroupParts, QtCore.SIGNAL("triggered()"), self.ungroupParts)
         
-        scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/Draft_SelectGroup.png")
+        scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/group.svg")
         QtCore.QObject.connect(scriptCmd_groupParts, QtCore.SIGNAL("triggered()"), self.groupParts)
         
         ##########
@@ -174,11 +174,11 @@ class pcbToolBarView(pcbToolBarMain):
         self.addSeparator()
         self.addAction(scriptCmd_ExportToKerkythea)
         self.addAction(scriptCmd_ExportObjectToPovRay)
-        self.addSeparator()
-        self.addAction(scriptCmd_QuickAssembly)
-        self.addAction(scriptCmd_QuickAssembly2)
-        self.addAction(scriptCmd_exportAssembly)
-        self.addAction(scriptCmd_CheckForCollisions)
+        #self.addSeparator()
+        #self.addAction(scriptCmd_QuickAssembly)
+        #self.addAction(scriptCmd_QuickAssembly2)
+        #self.addAction(scriptCmd_exportAssembly)
+        #self.addAction(scriptCmd_CheckForCollisions)
         #self.addAction(self.scriptCmd_HeightDisplay)
         self.addToolBar(self)
     
@@ -313,13 +313,13 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_Assign = self.createAction(u"Assign models", u"Assign models", ":/data/img/uklad.png")
         QtCore.QObject.connect(scriptCmd_Assign, QtCore.SIGNAL("triggered()"), self.assignModels)
         
-        scriptCmd_AddModel = self.createAction(u"Add model", u"Add model", ":/data/img/addModel.png")
+        scriptCmd_AddModel = self.createAction(u"Add model", u"Add model", ":/data/img/addNewModel.png")
         QtCore.QObject.connect(scriptCmd_AddModel, QtCore.SIGNAL("triggered()"), self.addModel)
         
-        scriptCmd_UpdateModels = self.createAction(u"Update models", u"Update models", ":/data/img/updateParts.png")
+        scriptCmd_UpdateModels = self.createAction(u"Update models", u"Update models", ":/data/img/updateModels.png")
         QtCore.QObject.connect(scriptCmd_UpdateModels, QtCore.SIGNAL("triggered()"), self.updateModels)
         
-        scriptCmd_DownloadModels = self.createAction(u"Download models", u"Download models", ":/data/img/downloadModel.png")
+        scriptCmd_DownloadModels = self.createAction(u"Download models", u"Download models", ":/data/img/downloadModels.png")
         QtCore.QObject.connect(scriptCmd_DownloadModels, QtCore.SIGNAL("triggered()"), self.downloadModels)
         #
         scriptCmd_Explode = self.createAction(u"Explode", u"Explode", ":/data/img/explode.png")
@@ -334,11 +334,11 @@ class pcbToolBar(pcbToolBarMain):
         groupsMenu.addAction(scriptCmd_FastExplode)
         scriptCmd_Explode.setMenu(groupsMenu)
         # Bounding Box
-        scriptCmd_BoundingBox_M = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBox.png")
+        scriptCmd_BoundingBox_M = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBoxAll.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBox_M, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBox)
-        scriptCmd_BoundingBox = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBox.png")
+        scriptCmd_BoundingBox = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBoxAll.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBox, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBox)
-        scriptCmd_BoundingBoxSel = self.createAction(u"Bounding box from selection", u"Bounding box from selection", ":/data/img/boundingBoxSel.png")
+        scriptCmd_BoundingBoxSel = self.createAction(u"Bounding box from selection", u"Bounding box from selection", ":/data/img/boundingBoxSelected.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBoxSel, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBoxSel)
         
         boundingBoxMenu = QtGui.QMenu(self)
@@ -437,7 +437,7 @@ class pcbToolBar(pcbToolBarMain):
         constraintsAreaRouteKeepoutMenu.addAction(constraintsAreaRouteKeepoutBoth)
         constraintsAreasMenu.addMenu(constraintsAreaRouteKeepoutMenu)
         ##########
-        scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportModel.png")
+        scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportPCB.png")
         QtCore.QObject.connect(scriptCmd_Export, QtCore.SIGNAL("triggered()"), self.exportPCB)
         ##
         scriptCmd_ExportBOM = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
@@ -446,7 +446,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportBOM_2 = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
         QtCore.QObject.connect(scriptCmd_ExportBOM_2, QtCore.SIGNAL("triggered()"), self.exportBOM)
         
-        scriptCmd_centroid = self.createAction(u"Centroid", u"Centroid", ":/data/img/exportBOM.png")
+        scriptCmd_centroid = self.createAction(u"Centroid", u"Centroid", ":/data/img/centroid.svg")
         QtCore.QObject.connect(scriptCmd_centroid, QtCore.SIGNAL("triggered()"), self.exportCentroid)
         
         groupsMenu = QtGui.QMenu(self)
@@ -458,7 +458,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportHoleLocations = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
-        scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/centroid.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations_2, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
         scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations report", ":/data/img/drill-icon.png")
@@ -494,7 +494,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_addWirePoint = self.createAction(u"Add wire point", u"Add wire point", ":/data/img/convert_16x16.png")
         QtCore.QObject.connect(scriptCmd_addWirePoint, QtCore.SIGNAL("triggered()"), self.addWirePoint)
         ##########
-        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation", ":/data/img/annotation.png")
+        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation",  ":/data/img/modelAddAnnotation.png")
         QtCore.QObject.connect(scriptCmd_addAnnotation, QtCore.SIGNAL("triggered()"), self.addAnnotation)
 
         ##########

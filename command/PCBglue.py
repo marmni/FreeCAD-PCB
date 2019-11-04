@@ -29,11 +29,12 @@ if FreeCAD.GuiUp:
     from PySide import QtGui
 import Part
 from math import degrees
+import importlib
 #
 from PCBobjects import layerSilkObject
 from PCBfunctions import kolorWarstwy, mathFunctions
 from command.PCBcreateBoard import pickSketch
-from PCBconf import PCBlayers
+import PCBconf
 from PCBboard import getPCBheight, cutToBoardShape
 from command.PCBgroups import createGroup_Glue
 
@@ -43,6 +44,8 @@ from command.PCBgroups import createGroup_Glue
 #***********************************************************************
 class createGlueGui(QtGui.QWidget):
     def __init__(self, parent=None):
+        importlib.reload(PCBconf)
+        
         QtGui.QWidget.__init__(self, parent)
         
         self.form = self
@@ -82,7 +85,7 @@ class createGlueGui(QtGui.QWidget):
         self.side.addItems(['TOP', 'BOTTOM'])
         #
         self.pcbColor = kolorWarstwy()
-        self.pcbColor.setColor(PCBlayers['tGlue'][1])
+        self.pcbColor.setColor(PCBconf.PCBlayers['tGlue'][1])
         self.pcbColor.setToolTip(u"Click to change color")
         #
         lay = QtGui.QGridLayout(self)
@@ -147,9 +150,9 @@ class createGlue:
         grp = createGroup_Glue()
         
         if self.side == 1:  # top
-            typeL = PCBlayers["tGlue"][3]
+            typeL = PCBconf.PCBlayers["tGlue"][3]
         else:
-            typeL  = PCBlayers["bGlue"][3]
+            typeL  = PCBconf.PCBlayers["bGlue"][3]
         #
         a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Glue_{0}".format(0))
         PCBgluePath(a, typeL)
@@ -170,7 +173,7 @@ class createGlue:
         self.base.ViewObject.Visibility = False
         #
         
-        pcb[2].addObject(a)
+        pcb[2].Proxy.addObject(pcb[2], a)
 
 
 #***********************************************************************
@@ -199,6 +202,7 @@ class PCBgluePath(layerSilkObject):
             self.cutToBoard = state[1]
 
     def updatePosition_Z(self, fp, thickness):
+        FreeCAD.Console.PrintWarning("jest klej\n")
         if 'tGlue' in self.Type:
             fp.Base.Placement.Base.z = thickness + 0.04
             fp.Placement.Base.z = thickness + 0.04
@@ -239,30 +243,6 @@ class PCBgluePath(layerSilkObject):
             if h >= 0:
                 h = -0.01
         ##
-        try:
-            if obj.Base:
-                if obj.Base.isDerivedFrom("Sketcher::SketchObject"):
-                    if obj.Base.Support != None:
-                        obj.Base.Support = None
-                    
-                    d = OpenSCAD2Dgeom.edgestofaces(obj.Base.Shape.Edges)
-                    if self.layerReversed:
-                        d = d.extrude(FreeCAD.Base.Vector(0, 0, -self.layerHeight))
-                    else:
-                        d = d.extrude(FreeCAD.Base.Vector(0, 0, self.layerHeight))
-                    
-                    obj.Shape = d
-                    
-                    try:
-                        obj.recompute()
-                        obj.Base.recompute()
-                        obj.purgeTouched()
-                        obj.Base.purgeTouched()
-                    except:
-                        pass
-        except:
-            pass
-
         self.spisObiektowTXT = []
         for i in obj.Base.Geometry:
             if i.Construction:
@@ -285,17 +265,17 @@ class PCBgluePath(layerSilkObject):
                 self.setFace()
             elif i.__class__.__name__ == 'ArcOfCircle':
                 curve = degrees(i.LastParameter - i.FirstParameter)
-                xs = i.Center.x
-                ys = i.Center.y
-                r = i.Radius
                 
-                math = mathFunctions()
-                p1 = [math.cosinus(degrees(i.FirstParameter)) * r, math.sinus(degrees(i.FirstParameter)) * r]
-                p1 = [p1[0] + xs, p1[1] + ys]
-                p2 = math.obrocPunkt2(p1, [xs, ys], curve)
-                ##
+                points = i.discretize(Distance=i.length()/2)
+                if i.Circle.Axis.z < 0:
+                    p1 = [points[2].x, points[2].y]
+                    p2 = [points[0].x, points[0].y]
+                else:
+                    p1 = [points[0].x, points[0].y]
+                    p2 = [points[2].x, points[2].y]
+                p3 = [points[1].x, points[1].y]  # mid point
                 
-                self.addArcWidth(p1, p2, curve, obj.Width.Value)
+                self.addArcWidth(p1, p2, curve, obj.Width.Value, p3)
                 self.setFace()
         #
         if len(self.spisObiektowTXT) > 0:
@@ -306,12 +286,16 @@ class PCBgluePath(layerSilkObject):
         else:
             obj.Shape = Part.Shape()
         
+        obj.recompute()
+        obj.Base.recompute()
+        obj.purgeTouched()
+        obj.Base.purgeTouched()
+        
         obj.Placement.Base.z = obj.Base.Placement.Base.z
         obj.Volume = obj.Shape.Volume
         
     def onChanged(self, fp, prop):
         try:
-            #FreeCAD.Console.PrintWarning("3. {0}\n".format(prop))
             if prop in ["Width", "Height", "Flat"]:
                 self.execute(fp)
             

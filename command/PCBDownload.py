@@ -57,7 +57,7 @@ class downloadModelW(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #
         self.form = self
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/downloadModel.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/downloadModels.png"))
         #
         if searchPhrase:
             self.form.setWindowTitle('Download model for {0}'.format(searchPhrase))

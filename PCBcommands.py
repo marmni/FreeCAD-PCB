@@ -44,7 +44,7 @@ class cmdExplodeEdit:
         FreeCADGui.Control.showDialog(panel)
     
     def GetResources(self):
-        return {'MenuText': 'Edit', 'ToolTip': 'Edit Explode'}
+        return {'MenuText': 'Edit', 'ToolTip': 'Edit Explode', 'Pixmap'  : ":/data/img/explode.png"}
 
 FreeCADGui.addCommand('cmdExplodeEdit', cmdExplodeEdit())
 ###############################################
@@ -59,7 +59,7 @@ class cmdPartAssignModel:
         dial.exec_()
     
     def GetResources(self):
-        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model'}
+        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model', 'Pixmap'  : ':/data/img/uklad.png'}
 
 FreeCADGui.addCommand('cmdPartAssignModel', cmdPartAssignModel())
 ###############################################
@@ -73,7 +73,7 @@ class cmdPartUpdateModel:
         FreeCADGui.Control.showDialog(panel)
         
     def GetResources(self):
-        return {'MenuText': 'Update model', 'ToolTip': 'Update model'}
+        return {'MenuText': 'Update model', 'ToolTip': 'Update model', 'Pixmap'  : ":/data/img/updateModels.png"}
 
 FreeCADGui.addCommand('cmdPartUpdateModel', cmdPartUpdateModel())
 ###############################################
@@ -87,7 +87,7 @@ class cmdPartMoveModel:
         FreeCADGui.Control.showDialog(panel)
         
     def GetResources(self):
-        return {'MenuText': 'Placement model', 'ToolTip': 'Placement model'}
+        return {'MenuText': 'Placement model', 'ToolTip': 'Placement model', 'Pixmap'  : ":/data/img/centroid.svg"}
         
     def IsActive(self):
         return True
@@ -103,7 +103,7 @@ class cmdPartFindModel:
         FreeCADGui.Control.showDialog(downloadModelW(FreeCADGui.Selection.getSelection()[0].Package))
         
     def GetResources(self):
-        return {'MenuText': 'Find model on-line', 'ToolTip': 'Find model on-line'}
+        return {'MenuText': 'Find model on-line', 'ToolTip': 'Find model on-line', 'Pixmap'  : ":/data/img/downloadModels.png"}
 
 FreeCADGui.addCommand('cmdPartFindModel', cmdPartFindModel())
 ################################################
@@ -114,7 +114,7 @@ class ScriptCmd_OpenSketcherWorkbench:
         FreeCADGui.activateWorkbench("SketcherWorkbench")
     
     def GetResources(self):
-        return {'Pixmap': ":/data/img/Sketcher_Sketch.png", 'MenuText': 'Open Sketcher Workbench', 'ToolTip': 'Open Sketcher Workbench'}
+        return {'Pixmap': ":/data/img/SketcherWorkbech.svg", 'MenuText': 'Open Sketcher Workbench', 'ToolTip': 'Open Sketcher Workbench'}
 
 FreeCADGui.addCommand('ScriptCmd_OpenSketcherWorkbench', ScriptCmd_OpenSketcherWorkbench())
 #######

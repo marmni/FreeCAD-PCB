@@ -137,7 +137,7 @@ class layersSettings(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle(u"Layers settings")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/layers.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/layers_TI.svg"))
         #
         nr = 0
         
@@ -158,13 +158,13 @@ class layersSettings(QtGui.QWidget):
             
             showAll = przycisk()
             showAll.setToolTip(u"Show All")
-            showAll.setIcon(QtGui.QIcon(":/data/img/show.png"))
+            showAll.setIcon(QtGui.QIcon(":/data/img/visible.svg"))
             par = partial(self.showAll, j[3])
             self.connect(showAll, QtCore.SIGNAL("clicked ()"), par)
                 
             hideAll = przycisk()
             hideAll.setToolTip(u"Hide All")
-            hideAll.setIcon(QtGui.QIcon(":/data/img/hide.png"))
+            hideAll.setIcon(QtGui.QIcon(":/data/img/invisible.svg"))
             par = partial(self.hideAll, j[3])
             self.connect(hideAll, QtCore.SIGNAL("clicked ()"), par)
             #

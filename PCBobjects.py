@@ -959,11 +959,6 @@ class viewProviderLayerPolygonObject:
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
         '''
-        #***************************************************************
-        #   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
-        #   License:    Creative Commons Attribution-Noncommercial 3.0
-        #   Iconset:    Mono Icon Set
-        #***************************************************************
         return ":/data/img/layers_TI.svg"
 
     def __getstate__(self):
@@ -1580,14 +1575,18 @@ class layerSilkObject(objectWire):
         mainObj = Part.Wire(mainObj.Edges)
         self.spisObiektowTXT.append(mainObj)
     
-    def addArcWidth(self, p1, p2, curve, width=0.02, cap='round'):
+    def addArcWidth(self, p1, p2, curve, width=0.02, cap='round', p3=None):
         try:
             if width <= 0:
                 width = 0.02
                 
             width /= 2.
-                
-            [x3, y3] = self.arcMidPoint(p1, p2, curve)
+              
+            if p3:
+                [x3, y3] = p3
+            else:
+                [x3, y3] = self.arcMidPoint(p1, p2, curve)
+            
             [xs, ys] = self.arcCenter(p1[0], p1[1], p2[0], p2[1], x3, y3)
             ##
             #a = (ys - p1[1]) / (xs - p1[0])
@@ -2058,66 +2057,37 @@ class viewProviderLayerSilkObject:
 #####################################
 class constraintAreaObject:
     def __init__(self, obj, typeL):
-        self.layerHeight = None
-        self.layerReversed = None
         self.Type = typeL
-        self.z = 0
+        self.pcbHeight = 1.5
         
-        self.setLayerSide()
-        if not set(self.Type).intersection(set(['tRestrict', 'bRestrict', 'vRestrict', 'vRouteOutline', 'vPlaceOutline'])):
-            obj.addProperty("App::PropertyLength", "Height", "Base", "Height of the element").Height = self.layerHeight
+        if not self.Type in ['tRestrict', 'bRestrict', 'vRestrict', 'vRouteOutline', 'vPlaceOutline']:
+            obj.addProperty("App::PropertyLength", "Height", "Base", "Height of the element").Height = 0.5
         obj.addProperty("App::PropertyLink", "Base", "Draft", "The base object is the wire is formed from 2 objects")
         obj.setEditorMode("Placement", 2)
         obj.Proxy = self
     
     def updatePosition_Z(self, fp, thickness):
-        if self.Type.startswith('t'):
-            self.z = thickness
-            fp.Base.Placement.Base.z = thickness
+        self.pcbHeight = thickness
+        
+        if self.Type.startswith('t'):  # top side
+            fp.Base.Placement.Base.z = self.pcbHeight
             
             fp.recompute()
             fp.Base.recompute()
             fp.purgeTouched()
             fp.Base.purgeTouched()
-        elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
-            self.z = -0.5
-            self.layerHeight = thickness + 1.0
-            self.createGeometry(fp)
-        else:  # bottomSide
-            self.z = 0.0
-
-    def setLayerSide(self):
-        if self.Type.startswith('t'):
-            self.layerReversed = False
-            self.layerHeight = 0.5
-            self.z = getPCBheight()[1]
-        elif self.Type.startswith('v'):  # gorna oraz dolna warstwa
-            self.layerReversed = False
-            self.layerHeight = getPCBheight()[1] + 1.0
-            self.z = -0.5
-        else:  # bottomSide
-            self.layerReversed = True
-            self.layerHeight = 0.5
-            self.z = 0.0
-
-    def execute(self, fp):
-        self.createGeometry(fp)
-
-    def onChanged(self, fp, prop):
-        if prop in ["Base"]:
-            try:
-                if fp.Base.Placement.Base.z != self.z:
-                    fp.Base.Placement.Base.z = self.z
-            except:
-                pass
+        elif self.Type.startswith('v'):  # top and bottom side
+            fp.Base.Placement.Base.z = -0.5
+            self.execute(fp)
             
-            self.createGeometry(fp)
-        elif prop == "Height" and fp.Height.Value > 0:
-            self.layerHeight = fp.Height.Value
-            #fp.Base.Placement.Base.z = self.z
-            self.createGeometry(fp)
-    
-    def createGeometry(self, fp):
+            fp.recompute()
+            fp.Base.recompute()
+            fp.purgeTouched()
+            fp.Base.purgeTouched()
+        else:  # bottomSide
+            fp.Base.Placement.Base.z = 0
+ 
+    def execute(self, fp):
         try:
             if fp.Base:
                 if fp.Base.isDerivedFrom("Sketcher::SketchObject"):
@@ -2125,30 +2095,34 @@ class constraintAreaObject:
                         fp.Base.Support = None
                     
                     d = OpenSCAD2Dgeom.edgestofaces(fp.Base.Shape.Edges)
-                    if self.layerReversed:
-                        d = d.extrude(FreeCAD.Base.Vector(0, 0, -self.layerHeight))
+                    if self.Type.startswith('b'):
+                        d = d.extrude(FreeCAD.Base.Vector(0, 0, -fp.Height))
+                    elif self.Type.startswith('v'):
+                        d = d.extrude(FreeCAD.Base.Vector(0, 0, self.pcbHeight + 1))
                     else:
-                        d = d.extrude(FreeCAD.Base.Vector(0, 0, self.layerHeight))
+                        d = d.extrude(FreeCAD.Base.Vector(0, 0, fp.Height))
                     
                     fp.Shape = d
                     
-                    try:
-                        fp.recompute()
-                        fp.Base.recompute()
-                        fp.purgeTouched()
-                        fp.Base.purgeTouched()
-                    except:
-                        pass
+                    fp.recompute()
+                    fp.Base.recompute()
+                    fp.purgeTouched()
+                    fp.Base.purgeTouched()
         except:
             pass
 
+    def onChanged(self, fp, prop):
+        if prop in ["Base"]:
+            self.execute(fp)
+        elif prop == "Height" and fp.Height.Value > 0:
+            self.execute(fp)
+
     def __getstate__(self):
-        return self.Type
+        return [self.Type, self.pcbHeight]
 
     def __setstate__(self, state):
-        if state:
-            self.Type = state
-        self.setLayerSide()
+        self.Type = state[0]
+        self.pcbHeight = state[1]
 
 
 class viewProviderConstraintAreaObject:
@@ -2199,12 +2173,7 @@ class viewProviderConstraintAreaObject:
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
         '''
-        #***************************************************************
-        #   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
-        #   License:    Creative Commons Attribution-Noncommercial 3.0
-        #   Iconset:    Mono Icon Set
-        #***************************************************************
-        return ":/data/img/constraintsArea_TI.svg"
+        return ":/data/img/constraintsArea.png"
 
     def __getstate__(self):
         ''' When saving the document this object gets stored using Python's cPickle module.

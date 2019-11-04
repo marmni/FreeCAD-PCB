@@ -55,6 +55,7 @@ class partsManaging(mathFunctions):
         #    1 - dodaj podstawki dla wszystkich obiektow
         self.allSocked = 0
         self.databaseType = databaseType
+        self.colFileVersion = 3
     
     def adjustRotation(self, angle):
         if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
@@ -87,7 +88,7 @@ class partsManaging(mathFunctions):
                 colFileData = builtins.open(colFile, "r").readlines()
                 header = colFileData[0].strip().split("|")
                 
-                if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
+                if len(header) >= 2 and header[0] == colFileVersion and str(os.path.getmtime(filePath)) == header[1]:  # col file version
                     shape = Part.Shape()
                     shape.importBrepFromString("".join(colFileData[2:]))
                     
@@ -104,7 +105,7 @@ class partsManaging(mathFunctions):
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         ##
         colFileData = builtins.open(colFile, "w")
-        colFileData.write("2|{0}\n".format(os.path.getmtime(filePath)))  # wersja|data
+        colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), colFileVersion))  # wersja|data
         
         FreeCAD.newDocument('importingPartsPCB')
         #FreeCAD.setActiveDocument('importingPartsPCB')
@@ -537,7 +538,7 @@ class partsManaging(mathFunctions):
             self.addPartToGroup(groupParts, fileData[4], step_model)
         except:
             self.addPartToGroup(groupParts, False, step_model)  # Missing categoory
-        pcb[2].addObject(step_model)
+        pcb[2].Proxy.addObject(pcb[2], step_model)
         #self.updateView()
         return result
     

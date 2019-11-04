@@ -57,7 +57,7 @@ class addModel(QtGui.QWidget, partsManaging):
         #
         self.form = self
         self.form.setWindowTitle("Add model")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/addModel.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/addNewModel.png"))
         #
         self.listaBibliotek = QtGui.QComboBox()
         
