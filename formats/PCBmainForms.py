@@ -251,7 +251,7 @@ class mainPCB(partsManaging):
 
     def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
         layerName = "{0}".format(layerName)
-        grp = doc.addObject("App::DocumentObjectGroup", layerName)
+        grp = createGroup_Dimensions(layerName)
         
         for i in self.wersjaFormatu.getDimensions():
             x1 = i[0]

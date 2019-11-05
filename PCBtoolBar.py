@@ -193,34 +193,55 @@ class pcbToolBarView(pcbToolBarMain):
                 #FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def ungroupParts(self):
-        for j in FreeCAD.activeDocument().Objects:
-            try:
-                if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    aa = partsManaging()
-                    aa.addPartToGroup(False, 0, j)
-            except:
-                pass
+        pcb = getPCBheight()
+        groupsToDelete = []
+        
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                try:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                        if i.Name == "Parts":
+                            continue
+                        if not i.getParentGroup().Name in groupsToDelete:
+                            groupsToDelete.append(i.getParentGroup().Name)
+                        
+                        aa = partsManaging()
+                        aa.addPartToGroup(False, 0, i)
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
+            
+            for i in groupsToDelete:
+                if i == "Parts":
+                    continue
+                try:
+                    FreeCAD.ActiveDocument.removeObject(i)
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def groupParts(self):
-        for j in FreeCAD.activeDocument().Objects:
-            try:
-                if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    aa = partsManaging()
-                    aa.setDatabase()
-                    fileData = aa.__SQL__.findPackage(j.Package, "*")
-                    
-                    if fileData:
-                        model = aa.__SQL__.getModelByID(fileData.modelID)
-                        category = aa.__SQL__.getCategoryByID(model[1].categoryID)
+        pcb = getPCBheight()
+        
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                try:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                        aa = partsManaging()
+                        aa.setDatabase()
+                        fileData = aa.__SQL__.findPackage(i.Package, "*")
                         
-                        if category.id != -1:
-                            aa.addPartToGroup(True, category.id, j)
+                        if fileData:
+                            model = aa.__SQL__.getModelByID(fileData.modelID)
+                            category = aa.__SQL__.getCategoryByID(model[1].categoryID)
+                            
+                            if category.id != -1:
+                                aa.addPartToGroup(True, category.id, i)
+                            else:
+                                aa.addPartToGroup(True, 0, i)
                         else:
-                            aa.addPartToGroup(True, 0, j)
-                    else:
-                        aa.addPartToGroup(True, 0, j)
-            except:
-                pass
+                            aa.addPartToGroup(True, 0, i)
+                    
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportAssembly(self):
         exportAssembly()

@@ -41,7 +41,7 @@ from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
 from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
-from command.PCBgroups import createGroup_Parts, makeGroup
+from command.PCBgroups import createGroup_Parts, createGroup_Others, createGroup, createGroup_Missing
 from command.PCBannotations import createAnnotation
 
 
@@ -67,58 +67,78 @@ class partsManaging(mathFunctions):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
         
-    def getPartShape(self, filePath, step_model, koloroweElemnty):
-        #if not partExistPath(filePath)[0]:
-            #return step_model
-        
-        if filePath in self.objColors:
+    def getPartShape(self, filePath, step_model, colorizeElements):
+        standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
+        ################################################################
+        ################################################################
+        # check if model was has already been imported
+        ################################################################
+        ################################################################
+        if filePath in self.objColors.keys():
             step_model.Shape = self.objColors[filePath]['shape']
-            if koloroweElemnty:
+            
+            if colorizeElements:
                 step_model.ViewObject.DiffuseColor = self.objColors[filePath]['col']
+            else:
+                step_model.ViewObject.DiffuseColor = standardColor
+            
             return step_model
         else:
             self.objColors[filePath] = {}
-        
-        #active = FreeCAD.ActiveDocument.Label
-        
-        # colFile
+        ################################################################
+        ################################################################
+        # reading data from colFile - if exist
+        ################################################################
+        ################################################################
         colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+        
         try:
             if os.path.exists(colFile):
                 colFileData = builtins.open(colFile, "r").readlines()
                 header = colFileData[0].strip().split("|")
                 
-                if len(header) >= 2 and header[0] == colFileVersion and str(os.path.getmtime(filePath)) == header[1]:  # col file version
-                    shape = Part.Shape()
-                    shape.importBrepFromString("".join(colFileData[2:]))
+                if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
+                    newShape = Part.Shape()
+                    newShape.importBrepFromString("".join(colFileData[2:]))
+                    step_model.Shape = newShape
                     
-                    step_model.Shape = shape
-                    if koloroweElemnty:
+                    if colorizeElements:
                         step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                    else:
+                        step_model.ViewObject.DiffuseColor = standardColor
                     
-                    self.objColors[filePath]['shape'] = shape
+                    self.objColors[filePath]['shape'] = newShape
                     self.objColors[filePath]['col'] = eval(colFileData[1].strip())
                     
                     if len(colFileData[2:]) > 20:
                         return step_model
+                else:
+                    FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
+            else:  # generate new *.col file
+                FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
         except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        ##
+            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+        ################################################################
+        ################################################################
+        # generating new col file
+        ################################################################
+        ################################################################
+        active = FreeCAD.ActiveDocument.Name
+        #
         colFileData = builtins.open(colFile, "w")
-        colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), colFileVersion))  # wersja|data
+        colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
         
         FreeCAD.newDocument('importingPartsPCB')
-        #FreeCAD.setActiveDocument('importingPartsPCB')
         FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
         FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
         ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
         
         fuse = []
+        col = standardColor
         for i in FreeCAD.ActiveDocument.Objects:
-            #if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility:
-            #if i.ViewObject.Visibility and hasattr(i, 'Shape') and hasattr(i.Shape, 'ShapeType') and i.Shape.ShapeType == 'Solid':
             if i.ViewObject.Visibility and hasattr(i, 'Shape'):
                 fuse.append(i)
+        
         try:
             if len(fuse) == 1:
                 shape = fuse[0].Shape
@@ -135,26 +155,27 @@ class partsManaging(mathFunctions):
                 newPart.recompute()
                 shape = newPart.Shape
                 col = newPart.ViewObject.DiffuseColor
+            
+            step_model.Shape = shape
+            if colorizeElements:
+                step_model.ViewObject.DiffuseColor = col
+            else:
+                step_model.ViewObject.DiffuseColor = standardColor
+            
+            colFileData.write(str(col))
+            colFileData.write(shape.exportBrepToString())
+            
+            self.objColors[filePath]['shape'] = shape
+            self.objColors[filePath]['col'] = col
         except Exception as e:
-            pass
-            #FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        #FreeCADGui.insert(u"{0}".format(filePath), "importingPartsPCB")
+            FreeCAD.Console.PrintWarning("2. {0}\n".format(e))
         
-        colFileData.write(str(col))
-        colFileData.write(shape.exportBrepToString())
         colFileData.close()
         
         FreeCAD.closeDocument("importingPartsPCB")
-        #FreeCAD.setActiveDocument(active)
-        #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-        #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-        
-        step_model.Shape = shape
-        if koloroweElemnty:
-            step_model.ViewObject.DiffuseColor = col
-        
-        self.objColors[filePath]['shape'] = shape
-        self.objColors[filePath]['col'] = col
+        FreeCAD.setActiveDocument(active)
+        FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+        FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
         
         return step_model
         
@@ -205,21 +226,8 @@ class partsManaging(mathFunctions):
             ################################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3]['name']))
             step_model.Label = partNameTXT_label
-            
-            if not koloroweElemnty:
-                step_model.Shape = Part.read(filePath)
-            else:
-                active = FreeCAD.ActiveDocument.Name
-                try:
-                    step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
-                    step_model.Shape.isValid()
-                except:
-                    step_model.Shape = Part.read(filePath)
-                
-                FreeCAD.setActiveDocument(active)
-                FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-                FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-            
+            step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
+            #
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3]['name'])
             step_model.Side = "{0}".format(newPart[0][6])
@@ -543,36 +551,27 @@ class partsManaging(mathFunctions):
         return result
     
     def addPartToGroup(self, groupParts, categoryID, step_model):
-        try:
-            FreeCAD.ActiveDocument.removeObject(step_model.InList[0].Label)
-        except Exception as e:
-            pass
-        
-        try:
-            step_model.InList[0].removeObject(step_model)
-        except:
-            pass
-        #
-        grp = createGroup_Parts()
+        partsFolder = createGroup_Parts()
         
         if groupParts:
             try:
                 if categoryID in [-1, 0]:
-                    grp_2 = makeGroup('Others')
+                    grp_2 = createGroup_Others()
                 else:
                     categoryData = self.__SQL__.getCategoryByID(int(categoryID))
+                    
                     if categoryData:
-                        grp_2 = makeGroup(categoryData.name)
+                        grp_2 = createGroup(categoryData.name)
                     else:
-                        grp_2 = makeGroup('Others')
+                        grp_2 = createGroup_Others()
             except:
-                grp_2 = makeGroup('Missing')
+                grp_2 = createGroup_Missing()
             
             grp_2.addObject(step_model)
-            grp.addObject(grp_2)
+            partsFolder.addObject(grp_2)
         else:
-            grp.addObject(step_model)
-    
+            partsFolder.addObject(step_model)
+
     def getObjRot(self, obj):
         rx = obj.Placement.Rotation.Q[0]
         ry = obj.Placement.Rotation.Q[1]

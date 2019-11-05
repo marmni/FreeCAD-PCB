@@ -52,8 +52,7 @@ def createConstraintArea(obj, typeCA, height=0):
                 return
             #
             obj.ViewObject.Visibility = False
-            
-            #layerName = PCBconstraintAreas[typeCA][0]
+
             layerColor = (PCBconstraintAreas[typeCA][3][0] / 255., PCBconstraintAreas[typeCA][3][1] / 255., PCBconstraintAreas[typeCA][3][2] / 255.)
             layerTransparent = PCBconstraintAreas[typeCA][2][2]
             typeL = PCBconstraintAreas[typeCA][1][0]

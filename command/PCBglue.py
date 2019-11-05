@@ -214,9 +214,6 @@ class PCBgluePath(layerSilkObject):
         fp.Base.recompute()
         fp.purgeTouched()
         fp.Base.purgeTouched()
-        
-    def generuj(self, fp):
-        pass
     
     def countSeamLength(self, obj):
         obj.Length.Value = 0
@@ -229,7 +226,6 @@ class PCBgluePath(layerSilkObject):
         except Exception as e:
             pass
             #FreeCAD.Console.PrintWarning("{0}\n".format(e))
-        #
     
     def execute(self, obj):
         if 'tGlue' in self.Type:

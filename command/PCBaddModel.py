@@ -38,7 +38,7 @@ from PCBpartManaging import partsManaging
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject
 from command.PCBassignModel import modelsList
-from command.PCBgroups import createGroup_Parts, makeGroup
+from command.PCBgroups import createGroup_Parts
 from command.PCBannotations import createAnnotation
 
 
