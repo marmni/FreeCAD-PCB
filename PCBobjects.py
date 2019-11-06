@@ -563,10 +563,10 @@ class objectWire(mathFunctions):
             wir = []
             ## outer arc
             [xT_3, yT_3] = self.arcMidPoint([xT_1, yT_1], [xT_2, yT_2], curve)
-            wir.append(Part.Arc(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_3, yT_3, 0), FreeCAD.Base.Vector(xT_2, yT_2, 0)))
+            wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_3, yT_3, 0), FreeCAD.Base.Vector(xT_2, yT_2, 0)))
             ## inner arc
             [xT_6, yT_6] = self.arcMidPoint([xT_4, yT_4], [xT_5, yT_5], curve)
-            wir.append(Part.Arc(FreeCAD.Base.Vector(xT_4, yT_4, 0), FreeCAD.Base.Vector(xT_6, yT_6, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
+            wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(xT_4, yT_4, 0), FreeCAD.Base.Vector(xT_6, yT_6, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
             ##
             if cap == 'flat':
                 wir.append(Part.LineSegment(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
@@ -615,7 +615,7 @@ class objectWire(mathFunctions):
                                 else:
                                     [xT_7, yT_7] = self.arcMidPoint([xT_1, yT_1], [xT_4, yT_4], 180)
                         
-                wir.append(Part.Arc(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_7, yT_7, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
+                wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(xT_1, yT_1, 0), FreeCAD.Base.Vector(xT_7, yT_7, 0), FreeCAD.Base.Vector(xT_4, yT_4, 0)))
                 
                 #end
                 #b = (ys - p2[1]) / (xs - p2[0])
@@ -643,7 +643,7 @@ class objectWire(mathFunctions):
                         else:
                             [xT_8, yT_8] = self.arcMidPoint([xT_2, yT_2], [xT_5, yT_5], -180)
                 
-                wir.append(Part.Arc(FreeCAD.Base.Vector(xT_2, yT_2, 0), FreeCAD.Base.Vector(xT_8, yT_8, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
+                wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(xT_2, yT_2, 0), FreeCAD.Base.Vector(xT_8, yT_8, 0), FreeCAD.Base.Vector(xT_5, yT_5, 0)))
             
             ####
             mainObj = Part.Shape(wir)
@@ -828,12 +828,12 @@ class objectWire(mathFunctions):
         p1 = [0 - r, 0]
         p2 = [0, 0 - r]
         p3 = [0 + r, 0]
-        wir.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0)))
+        wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0)))
 
         p1 = [0 - r, dlugosc]
         p2 = [0, dlugosc + r]
         p3 = [0 + r, dlugosc]
-        wir.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0)))
+        wir.append(Part.ArcOfCircle(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0)))
 
         mainObj = Part.Shape(wir)
         mainObj = Part.Wire(mainObj.Edges)
@@ -868,9 +868,18 @@ class objectWire(mathFunctions):
         return mainObj
     
     def makeFace(self, mainObj):
-        return Part.Face(mainObj)
-
-
+        # shifted from generuj() function
+        # extruding each wires separately is much faster than the whole compound
+        # testing board - from 48[s] to 21[s]
+        
+        if self.side == 1:  # top side
+            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+        elif  self.side == 2:  # both sides
+            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
+        else:  # bottom side
+            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0,-self.defHeight / 1000.))
+        
+        
 class layerPolygonObject(objectWire):
     def __init__(self, obj, typeL):
         self.points = []
@@ -1240,7 +1249,7 @@ class layerSilkObject(objectWire):
         #return Part.ArcOfCircle(Part.Circle(FreeCAD.Vector(x, y, 0), FreeCAD.Vector(0, 0, 1), r), startAngle, stopAngle)
     
     def createArc3P(self, p1, p2, p3):
-        return Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0))
+        return Part.ArcOfCircle(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0))
     
     def arcMidPoint(self, prev_vertex, vertex, angle):
         if len(prev_vertex) == 3:
@@ -1262,7 +1271,7 @@ class layerSilkObject(objectWire):
     
     def setFace(self, param=True):
         self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1])
-    
+        
     def setChangeSide(self, xs, ys, layer):
         if layer == 0:
             self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 1, 0), 180)
@@ -1389,27 +1398,23 @@ class layerSilkObject(objectWire):
     
     def generuj(self, fp):
         if len(self.spisObiektowTXT):
-            
             pads = Part.makeCompound(self.spisObiektowTXT)
-            
-            if self.side == 1:  # top side
-                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-            elif  self.side == 2:  # both sides
-                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
-            else:  # bottom side
-                pads = pads.extrude(FreeCAD.Base.Vector(0, 0, -self.defHeight / 1000.))
-            
+            ############################################################
+            # shifted to makeFace() function
+            # extruding each wires separately is much faster than the whole compound
+            # testing board - from 48[s] to 21[s]
+            #
+            # if self.side == 1:  # top side
+                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+            # elif  self.side == 2:  # both sides
+                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
+            # else:  # bottom side
+                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, -self.defHeight / 1000.))
+            ############################################################
             pads.Placement.Base.z = fp.Placement.Base.z
             fp.Shape = pads
             fp.purgeTouched()
             
-            # pads = Part.makeCompound(self.spisObiektowTXT)
-            # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-            # pads.Placement.Base.z = fp.Placement.Base.z
-            # fp.Shape = pads
-            # #fp.recompute()
-            # fp.purgeTouched()
-    
     ################
     # shapes
     ################
@@ -1698,7 +1703,7 @@ class layerSilkObject(objectWire):
         
         if width <= 0:
             width = 0.01
-    
+
         # dlugosc linii
         dlugosc = sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
         

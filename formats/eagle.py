@@ -66,7 +66,7 @@ class dialogMAIN(dialogMAIN_FORM):
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ##
-        self.generateLayers([19, 20, 23, 24, 25, 26, 27, 28, 44, 45, 46, 91, 92, 93, 94, 95, 96, 97, 98, 99])
+        self.generateLayers([20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 44, 45, 46, 91, 92, 93, 94, 95, 96, 97, 98, 99]) # blocked layers
         self.spisWarstw.sortItems(1)
         
     def getBoardThickness(self):
