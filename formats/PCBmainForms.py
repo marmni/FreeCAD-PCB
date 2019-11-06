@@ -218,8 +218,6 @@ class mainPCB(partsManaging):
         grp.addObject(layerS)
         #
         pcb[2].Proxy.addObject(pcb[2], layerS)
-        #
-        #doc.recompute()
         #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
     
     def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
