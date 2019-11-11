@@ -52,11 +52,13 @@ def checkCompatibility():
     
     if currentFCVersion >= __requiredFreeCADVersion__[0] and currentFCVersion <= __requiredFreeCADVersion__[1]:
         if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
-            return [False, "Error. Minimum required Python version: {0}.".format(__pythonVersion__)]
+            FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
+            return [False]
         else:
             return [True]
     else:
-        return [False, "Error. Incompatible FreeCAD version. Supported FreeCAD versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1])]
+        FreeCAD.Console.PrintWarning("PCB Workbench: Error. Incompatible FreeCAD version. Supported FreeCAD versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
+        return [False]
 
 
 def checkdataBaseVersion():

@@ -40,6 +40,7 @@ from PCBtoolBar import pcbToolBarView
 
 from formats.PCBmainForms import mainPCB
 from command.PCBgroups import createGroup_PCB
+import PCBcheckFreeCADVersion
 
 
 def insert(filename, other):
@@ -52,18 +53,22 @@ def insert(filename, other):
 
 def open(filename):
     ''' '''
-    kursor = QtGui.QCursor()
-    kursor.setShape(QtCore.Qt.ArrowCursor)
-    QtGui.QApplication.setOverrideCursor(kursor)
-    
-    wersjaFormatu = wersjaFormatuF(filename)
-    if wersjaFormatu[0]:
-        FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
-        importBRD(filename, wersjaFormatu[0])
-    else:
-        FreeCAD.Console.PrintError("Incompatible file format.\n")
+    result = PCBcheckFreeCADVersion.checkCompatibility()
+    if result[0]:
+        PCBcheckFreeCADVersion.setDefaultValues()
         
-    QtGui.QApplication.restoreOverrideCursor()
+        kursor = QtGui.QCursor()
+        kursor.setShape(QtCore.Qt.ArrowCursor)
+        QtGui.QApplication.setOverrideCursor(kursor)
+        
+        wersjaFormatu = wersjaFormatuF(filename)
+        if wersjaFormatu[0]:
+            FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
+            importBRD(filename, wersjaFormatu[0])
+        else:
+            FreeCAD.Console.PrintError("Incompatible file format.\n")
+            
+        QtGui.QApplication.restoreOverrideCursor()
 
 
 def wersjaFormatuF(filename):

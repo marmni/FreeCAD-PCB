@@ -235,7 +235,6 @@ class PCB(Workbench):
         import PCBcheckFreeCADVersion
         result = PCBcheckFreeCADVersion.checkCompatibility()
         if result[0]:
-            
             PCBcheckFreeCADVersion.setDefaultValues()
             
             import PCBtoolBar, PCBrc, PCBcommands
@@ -264,9 +263,7 @@ class PCB(Workbench):
 
             self.appendToolbar("Sketcher", self.sketchertools)
             self.appendMenu("Sketcher", self.sketchertools)
-        else:
-            FreeCAD.Console.PrintWarning("PCB Workbench: {0}\n".format(result[1]))
-        
+
     def Activated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):
             FreeCADGui.pcbToolBar.Activated()
