@@ -371,91 +371,91 @@ class partsManaging(mathFunctions):
             ## part name object
             ## [txt, x, y, size, rot, side, align, spin, mirror, font]
             ##################################################################
-            annotationName = createAnnotation()
-            annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
-            annotationName.mode = 'anno_name'
-            annotationName.Side = newPart[1][5]
-            annotationName.Rot = self.adjustRotation(newPart[1][4])
-            annotationName.Text = partNameTXT_label
-            annotationName.Spin = newPart[1][7]
+            # annotationName = createAnnotation()
+            # annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
+            # annotationName.mode = 'anno_name'
+            # annotationName.Side = newPart[1][5]
+            # annotationName.Rot = self.adjustRotation(newPart[1][4])
+            # annotationName.Text = partNameTXT_label
+            # annotationName.Spin = newPart[1][7]
             
-            if adjustParts and "adjust" in modelData.keys() and "Name" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Name"][0])):
-                values = eval(modelData["adjust"])["Name"]
+            # if adjustParts and "adjust" in modelData.keys() and "Name" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Name"][0])):
+                # values = eval(modelData["adjust"])["Name"]
                 
-                if step_model.Side == "BOTTOM":
-                    x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    annotationName.Mirror = True
+                # if step_model.Side == "BOTTOM":
+                    # x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
+                    # annotationName.Mirror = True
                     
-                    [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                else:
-                    annotationName.Mirror = False
+                    # [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
+                # else:
+                    # annotationName.Mirror = False
                     
-                    [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
+                    # [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
                 
-                annotationName.X = xR
-                annotationName.Y = yR
-                annotationName.Z = values[4]
-                annotationName.Align = str(values[7])
-                annotationName.Size = values[5]
-                annotationName.Color = values[6]
-                annotationName.Visibility = eval(values[1])
-            else:
-                annotationName.X = newPart[1][1]
-                annotationName.Y = newPart[1][2]
-                annotationName.Z = 0
-                annotationName.Align = newPart[1][6]
-                annotationName.Size = newPart[1][3]
-                annotationName.Mirror = newPart[1][8]
-                annotationName.Color = (1., 1., 1.)
-                annotationName.Visibility = newPart[1][10]
+                # annotationName.X = xR
+                # annotationName.Y = yR
+                # annotationName.Z = values[4]
+                # annotationName.Align = str(values[7])
+                # annotationName.Size = values[5]
+                # annotationName.Color = values[6]
+                # annotationName.Visibility = eval(values[1])
+            # else:
+                # annotationName.X = newPart[1][1]
+                # annotationName.Y = newPart[1][2]
+                # annotationName.Z = 0
+                # annotationName.Align = newPart[1][6]
+                # annotationName.Size = newPart[1][3]
+                # annotationName.Mirror = newPart[1][8]
+                # annotationName.Color = (1., 1., 1.)
+                # annotationName.Visibility = newPart[1][10]
             
             #annotationName.generate()
             #################################################################
             # part value
             # [txt, x, y, size, rot, side, align, spin, mirror, font]
             #################################################################
-            annotationValue = createAnnotation()
-            annotationValue.defaultName = '{0}_Value'.format(partNameTXT_label)
-            annotationValue.mode = 'anno_value'
-            annotationValue.Side = newPart[2][5]
-            annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            annotationValue.Text = partValueTXT
-            annotationValue.Spin = newPart[2][7]
+            # annotationValue = createAnnotation()
+            # annotationValue.defaultName = '{0}_Value'.format(partNameTXT_label)
+            # annotationValue.mode = 'anno_value'
+            # annotationValue.Side = newPart[2][5]
+            # annotationValue.Rot = self.adjustRotation(newPart[2][4])
+            # annotationValue.Text = partValueTXT
+            # annotationValue.Spin = newPart[2][7]
             
-            if adjustParts and "adjust" in modelData.keys() and "Value" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Value"][0])):
-                values = eval(modelData["adjust"])["Value"]
+            # if adjustParts and "adjust" in modelData.keys() and "Value" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Value"][0])):
+                # values = eval(modelData["adjust"])["Value"]
                 
-                if step_model.Side == "BOTTOM":
-                    x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    annotationValue.Mirror = True
+                # if step_model.Side == "BOTTOM":
+                    # x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
+                    # annotationValue.Mirror = True
                     
-                    [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                else:
-                    annotationValue.Mirror = False
+                    # [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
+                # else:
+                    # annotationValue.Mirror = False
                     
-                    [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
+                    # [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
                 
-                annotationValue.X = xR
-                annotationValue.Y = yR
-                annotationValue.Z = values[4]
-                annotationValue.Align = str(values[7])
-                annotationValue.Size = values[5]
-                annotationValue.Color = values[6]
-                annotationValue.Visibility = eval(values[1])
-            else:
-                annotationValue.X = newPart[2][1]
-                annotationValue.Y = newPart[2][2]
-                annotationValue.Z = 0
-                annotationValue.Align = newPart[2][6]
-                annotationValue.Size = newPart[2][3]
-                annotationValue.Mirror = newPart[2][8]
-                annotationValue.Color = (1., 1., 1.)
-                annotationValue.Visibility = newPart[2][10]
+                # annotationValue.X = xR
+                # annotationValue.Y = yR
+                # annotationValue.Z = values[4]
+                # annotationValue.Align = str(values[7])
+                # annotationValue.Size = values[5]
+                # annotationValue.Color = values[6]
+                # annotationValue.Visibility = eval(values[1])
+            # else:
+                # annotationValue.X = newPart[2][1]
+                # annotationValue.Y = newPart[2][2]
+                # annotationValue.Z = 0
+                # annotationValue.Align = newPart[2][6]
+                # annotationValue.Size = newPart[2][3]
+                # annotationValue.Mirror = newPart[2][8]
+                # annotationValue.Color = (1., 1., 1.)
+                # annotationValue.Visibility = newPart[2][10]
             
             #annotationValue.generate()
             #
-            step_model.PartName = annotationName.Annotation
-            step_model.PartValue = annotationValue.Annotation
+            # step_model.PartName = annotationName.Annotation
+            # step_model.PartValue = annotationValue.Annotation
             ################
             viewProviderPartObject(step_model.ViewObject)
             #################################################################
@@ -498,43 +498,43 @@ class partsManaging(mathFunctions):
             ######
             # part name object
             # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            annotationName = createAnnotation()
-            annotationName.defaultName = u'{0}_Name'.format(partNameTXT_label)
-            annotationName.mode = 'anno_name'
-            annotationName.X = newPart[1][1]
-            annotationName.Y = newPart[1][2]
-            annotationName.Z = 0
-            annotationName.Side = newPart[1][5]
-            annotationName.Rot = self.adjustRotation(newPart[1][4])
-            annotationName.Text = partNameTXT_label
-            annotationName.Align = newPart[1][6]
-            annotationName.Size = newPart[1][3]
-            annotationName.Spin = newPart[1][7]
-            annotationName.Mirror = newPart[1][8]
-            annotationName.Visibility = newPart[1][10]
-            annotationName.Color = (1., 1., 1.)
+            # annotationName = createAnnotation()
+            # annotationName.defaultName = u'{0}_Name'.format(partNameTXT_label)
+            # annotationName.mode = 'anno_name'
+            # annotationName.X = newPart[1][1]
+            # annotationName.Y = newPart[1][2]
+            # annotationName.Z = 0
+            # annotationName.Side = newPart[1][5]
+            # annotationName.Rot = self.adjustRotation(newPart[1][4])
+            # annotationName.Text = partNameTXT_label
+            # annotationName.Align = newPart[1][6]
+            # annotationName.Size = newPart[1][3]
+            # annotationName.Spin = newPart[1][7]
+            # annotationName.Mirror = newPart[1][8]
+            # annotationName.Visibility = newPart[1][10]
+            # annotationName.Color = (1., 1., 1.)
             #annotationName.generate()
             # part value
             # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            annotationValue = createAnnotation()
-            annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
-            annotationValue.mode = 'anno_value'
-            annotationValue.X = newPart[2][1]
-            annotationValue.Y = newPart[2][2]
-            annotationValue.Z = 0
-            annotationValue.Side = newPart[2][5]
-            annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            annotationValue.Text = partValueTXT
-            annotationValue.Align = newPart[2][6]
-            annotationValue.Size = newPart[2][3]
-            annotationValue.Spin = newPart[2][7]
-            annotationValue.Mirror = newPart[2][8]
-            annotationValue.Visibility = newPart[2][10]
-            annotationValue.Color = (1., 1., 1.)
+            # annotationValue = createAnnotation()
+            # annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
+            # annotationValue.mode = 'anno_value'
+            # annotationValue.X = newPart[2][1]
+            # annotationValue.Y = newPart[2][2]
+            # annotationValue.Z = 0
+            # annotationValue.Side = newPart[2][5]
+            # annotationValue.Rot = self.adjustRotation(newPart[2][4])
+            # annotationValue.Text = partValueTXT
+            # annotationValue.Align = newPart[2][6]
+            # annotationValue.Size = newPart[2][3]
+            # annotationValue.Spin = newPart[2][7]
+            # annotationValue.Mirror = newPart[2][8]
+            # annotationValue.Visibility = newPart[2][10]
+            # annotationValue.Color = (1., 1., 1.)
             #annotationValue.generate()
             #
-            step_model.PartName = annotationName.Annotation
-            step_model.PartValue = annotationValue.Annotation
+            # step_model.PartName = annotationName.Annotation
+            # step_model.PartValue = annotationValue.Annotation
             ######
             ######
             viewProviderPartObject_E(step_model.ViewObject)

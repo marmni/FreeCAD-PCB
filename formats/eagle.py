@@ -31,6 +31,7 @@ from xml.dom import minidom
 import builtins
 import DraftGeomUtils
 import Draft
+from math import sqrt
 #
 from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
@@ -66,7 +67,7 @@ class dialogMAIN(dialogMAIN_FORM):
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ##
-        self.generateLayers([20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 44, 45, 46, 91, 92, 93, 94, 95, 96, 97, 98, 99]) # blocked layers
+        self.generateLayers([20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 44, 45, 46, 91, 92, 93, 94, 95, 96, 97, 98, 99, 116]) # blocked layers
         self.spisWarstw.sortItems(1)
         
     def getBoardThickness(self):
@@ -122,6 +123,10 @@ class dialogMAIN(dialogMAIN_FORM):
                 layerColor = None
             
             dane[layerNumber] = {"name": layerName, "color": layerColor}
+        
+        # annotations
+        dane[0] = {"name": softLayers[self.databaseType][0]["description"], "color": softLayers[self.databaseType][0]["color"]}
+        #
         return dane
 
 
@@ -410,6 +415,8 @@ class EaglePCB(mathFunctions):
             return "glue"
         elif layerNumber in [39, 40, 41, 42, 43]:  # ConstraintAreas
             return "constraint"
+        elif layerNumber == 0:
+            return "annotations"
         else:
             return "silk"
 
@@ -483,6 +490,9 @@ class EaglePCB(mathFunctions):
         
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
+        if types['IH']:  # detecting collisions between holes - intersections
+            holesList = []
+        
         # holes
         if types['H']:
             for i in self.projektBRD.getElementsByTagName("plain")[0].getElementsByTagName("hole"):
@@ -491,7 +501,24 @@ class EaglePCB(mathFunctions):
                 r = float(i.getAttribute('drill')) / 2.
                 
                 if self.filterHoles(r, Hmin, Hmax):
-                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    if types['IH']:  # detecting collisions between holes - intersections
+                        add = True
+                        try:
+                            for k in holesList:
+                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
+                                if(d < r + k[2]):
+                                    add = False
+                                    break
+                        except Exception as e:
+                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                        
+                        if (add):
+                            holesList.append([x, y, r])
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                        else:
+                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
+                    else:
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # vias
         if types['V']:
             for i in self.projektBRD.getElementsByTagName("signals")[0].getElementsByTagName("via"):
@@ -500,7 +527,24 @@ class EaglePCB(mathFunctions):
                 r = float(i.getAttribute('drill')) / 2.
                 
                 if self.filterHoles(r, Hmin, Hmax):
-                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    if types['IH']:  # detecting collisions between holes - intersections
+                        add = True
+                        try:
+                            for k in holesList:
+                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
+                                if(d < r + k[2]):
+                                    add = False
+                                    break
+                        except Exception as e:
+                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                        
+                        if (add):
+                            holesList.append([x, y, r])
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                        else:
+                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
+                    else:
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         ## pady
         self.getLibraries()
         self.getElements()
@@ -517,7 +561,24 @@ class EaglePCB(mathFunctions):
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
                     if self.filterHoles(drill, Hmin, Hmax):
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                        if types['IH']:  # detecting collisions between holes - intersections
+                            add = True
+                            try:
+                                for k in holesList:
+                                    d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
+                                    if(d < drill + k[2]):
+                                        add = False
+                                        break
+                            except Exception as e:
+                                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                            
+                            if (add):
+                                holesList.append([xR, yR, drill])
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                            else:
+                                FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
+                        else:
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
                 
             if types['P']:  # pads
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
@@ -530,7 +591,24 @@ class EaglePCB(mathFunctions):
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
                     if self.filterHoles(drill, Hmin, Hmax):
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                        if types['IH']:  # detecting collisions between holes - intersections
+                            add = True
+                            try:
+                                for k in holesList:
+                                    d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
+                                    if(d < drill + k[2]):
+                                        add = False
+                                        break
+                            except Exception as e:
+                                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                            
+                            if (add):
+                                holesList.append([xR, yR, drill])
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                            else:
+                                FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
+                        else:
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
 
     def getParts(self):
         self.getLibraries()
@@ -555,28 +633,28 @@ class EaglePCB(mathFunctions):
                         #EL_Value = j
             else:
                 for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text")):
-                    x1 = i['x'] + j[1]
-                    y1 = i['y'] + j[2]
+                    x1 = i['x'] + j["x"]
+                    y1 = i['y'] + j["y"]
                     
                     if side == "BOTTOM":
                         x1 = self.odbijWspolrzedne(x1, i['x'])
-                        j[5] = "BOTTOM"
-                        j[8] = True
+                        j["side"] = "BOTTOM"
+                        j["mirror"] = True
                         
                         [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], -i['rot'])
                     else:
                         [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], i['rot'])
                     
                     
-                    j[4] = j[4] + i['rot']
-                    j[1] = xR
-                    j[2] = yR
+                    j["rot"] = j["rot"] + i['rot']
+                    j["x"] = xR
+                    j["y"] = yR
                     
-                    if j[0] == '&gt;NAME' and EL_Name[0] == '':
-                        j[0] = 'NAME'
+                    if j["text"] == '&gt;NAME' and EL_Name[0] == '':
+                        j["text"] = 'NAME'
                         EL_Name = j
-                    elif j[0] == '&gt;VALUE' and EL_Value[0] == '':
-                        j[0] = 'VALUE'
+                    elif j["text"] == '&gt;VALUE' and EL_Value[0] == '':
+                        j["text"] = 'VALUE'
                         EL_Value = j
                 
             #newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
@@ -950,58 +1028,54 @@ class EaglePCB(mathFunctions):
                 szukanaWarstwa = layerNumber[0]
             ####
             self.addStandardShapes(self.libraries[i['library']][i['package']], layerNew, [szukanaWarstwa], parent=i)
-        
+    
+    def getNormalAnnotations(self):
+        try:
+            data = self.projektBRD.getElementsByTagName("plain")[0]
+            return self.getAnnotations(data.getElementsByTagName("text"), mode='anno')
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("4. {0}\n".format(e))
+    
     def getAnnotations(self, dane1, mode='anno'):
         adnotacje = []
         #
         for i in dane1:
+            # def. values
+            rot = 0
+            side = "TOP"
+            spin = False
+            distance = 50
+            align = "bottom-left"
+            font = 'Proportional'
+            #
             x = float(i.getAttribute('x'))
+            #
             y = float(i.getAttribute('y'))
+            #
             size = float(i.getAttribute('size'))
-            
+            #
             if i.getAttribute('rot'):
-                try:
-                    rot = float(re.search('R(.*)', i.getAttribute('rot')).groups()[0])  # kat o jaki zostana obrocone elementy
-                except:
-                    rot = 0  # kat o jaki zostana obrocone elementy
-                
-                if i.getAttribute('rot').startswith('MR'):  # bottom layer
-                    mirror = 1
-                else:
-                    mirror = 0
-                    
-                if i.getAttribute('rot').startswith('SR'):  # napis bez mirrora
+                if 'S' in i.getAttribute('rot'):
                     spin = True
-                else:
-                    spin = False
-                
-            else:
-                rot = 0  # kat o jaki zostana obrocone elementy
-                mirror = 0
-                spin = False
-            
-            #if int(re.search('layer="(.+?)"', i).groups()[0]) in [16, 22, 24, 26, 28, 52]:
-                #side = 'BOTTOM'
-            #else:
-                #side = 'TOP'
-            side = 'TOP'
-            
-            if i.getAttribute('align'):  # napis bez mirrora
+                if 'M' in i.getAttribute('rot'):
+                    side = 'BOTTOM'
+                if 'R' in i.getAttribute('rot'):
+                    rot = re.sub("[^0-9]", "", i.getAttribute('rot'))
+            #
+            if i.getAttribute('align'):
                 align = i.getAttribute('align')
-            else:
-                align = "bottom-left"
-            ####
+            #
             if mode == 'anno':
                 txt = i.firstChild.nodeValue
             else:
                 txt = i.getAttribute('name')
-            
-            
+            #
+            if i.getAttribute('distance'):
+                distance = int(i.getAttribute('distance'))
+            #
             if i.getAttribute('font'):
-                font = i.getAttribute('font')
-            else:
-                font = 'proportional'
-            
+                font = i.getAttribute('font').capitalize()
+            #
             if i.getAttribute('display'):
                 if i.getAttribute('display') == "off":
                     display = False
@@ -1010,7 +1084,21 @@ class EaglePCB(mathFunctions):
             else:
                 display = True
             
-            adnotacje.append([txt, x, y, size, rot, side, align, spin, mirror, font, display])
-        return adnotacje
+            adnotacje.append({
+                "text": txt,
+                "x": x,
+                "y": y,
+                "z": 0,
+                "size": size,
+                "rot": rot,
+                "side": side,
+                "align": align,
+                "spin": spin,
+                "font": font,
+                "display": display,
+                "distance": distance,
+                "tracking": 0,
+                "mode": mode
+            })
 
-    
+        return adnotacje

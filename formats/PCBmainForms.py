@@ -159,6 +159,8 @@ class mainPCB(partsManaging):
                         self.generateGlue(doc, grp, layerName, layerColor, layerNumber, layerSide)
                     elif layerFunction == "constraint":
                         self.generateConstraintAreas(doc, layerNumber, grp, layerName, layerColor, layerTransp)
+                    elif layerFunction == "annotations":
+                        self.addAnnotations(self.wersjaFormatu.getNormalAnnotations(), doc, layerColor)
                 except Exception as e:
                     self.printInfo('{0}'.format(e), 'error')
                 else:
@@ -306,7 +308,7 @@ class mainPCB(partsManaging):
             doc.PCB_Holes.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 0.0), FreeCAD.Rotation(0.0, 0.0, 0.0, 1.0))
             FreeCADGui.activeDocument().PCB_Holes.Visibility = False
             #
-            types = {'H':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyP.isChecked()}
+            types = {'H':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyP.isChecked(), "IH":self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyIH.isChecked()}
             self.wersjaFormatu.getHoles(doc.PCB_Holes, types, Hmin, Hmax)
             #
             doc.Board.Holes = doc.PCB_Holes
@@ -481,18 +483,22 @@ class mainPCB(partsManaging):
         
     def addAnnotations(self, annotations, doc, color):
         for i in annotations:
+            #FreeCAD.Console.PrintWarning("{0}\n".format(i))
             annotation = createAnnotation()
-            annotation.X = float(i[1])
-            annotation.Y = float(i[2])
-            annotation.Side = str(i[5])
-            annotation.Rot = float(i[4])
-            annotation.Text = i[0]
-            annotation.Align = str(i[6])
-            annotation.Size = float(i[3])
-            annotation.Spin = i[7]
-            annotation.Mirror = i[8]
+            annotation.mode = "anno"
+            annotation.X = i["x"]
+            annotation.Y = i["y"]
+            annotation.Z = i["z"]
+            annotation.Side = i["side"]
+            annotation.Rot = i["rot"]
+            annotation.Text = i["text"]
+            annotation.Align = i["align"]
+            annotation.Size = i["size"]
+            annotation.Spin = i["spin"]
+            annotation.tracking = i["tracking"]
+            annotation.lineDistance = i["distance"]
             annotation.Color = color
-            #annotation.fontName = str(i[9])
+            annotation.Font = i["font"]
+            annotation.Visibility = i["display"]
+            annotation.mode = i["mode"]
             annotation.generate()
-            annotation.addToAnnotations()
-        

@@ -50,7 +50,7 @@ from command.PCBDownload import downloadModelW
 from command.PCBaddModel import addModel
 from command.PCBcreateBoard import createPCB
 from command.PCBlayers import layersSettings
-from command.PCBannotations import createAnnotation_Gui
+from command.PCBannotations import createAnnotation_Gui, PCBannotation, viewProviderPCBannotation
 from command.PCBexportKerkythea import exportToKerkytheaGui
 from command.PCBexportPovRay import exportObjectToPovRayGui
 from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
@@ -550,6 +550,15 @@ class pcbToolBar(pcbToolBarMain):
     def addAnnotation(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             FreeCADGui.Control.showDialog(createAnnotation_Gui())
+        
+        # obj = FreeCAD.ActiveDocument.addObject("Part::Part2DObjectPython","ShapeString")
+        # PCBannotation(obj)
+        # obj.String = ["ser", "kolo"]
+        # obj.Proxy.mode = 'anno'
+        # obj.Justification = "bottom-left"
+        # viewProviderPCBannotation(obj.ViewObject)
+        # Draft.formatObject(obj)
+        # obj.recompute()
         
     def addWirePointStartEnd(self):
         wireStartEndPoint()

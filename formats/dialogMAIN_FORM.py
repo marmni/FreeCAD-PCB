@@ -80,6 +80,9 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.plytkaPCB_otworyP = QtGui.QCheckBox(u"Pads")
         self.plytkaPCB_otworyP.setChecked(freecadSettings.GetBool("boardImportHoles", True))
         
+        self.plytkaPCB_otworyIH = QtGui.QCheckBox(u"Omit intersected holes")  # detecting collisions between holes - intersections
+        self.plytkaPCB_otworyIH.setChecked(freecadSettings.GetBool("omitIntersectedHoles", True))
+        
         self.holesMin = QtGui.QDoubleSpinBox(self)
         self.holesMin.setSingleStep(0.1)
         self.holesMin.setValue(0)
@@ -183,6 +186,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         layHoles.addWidget(self.plytkaPCB_otworyH)
         layHoles.addWidget(self.plytkaPCB_otworyV)
         layHoles.addWidget(self.plytkaPCB_otworyP)
+        layHoles.addWidget(self.plytkaPCB_otworyIH)
         layHoles.setContentsMargins(20, 10, 0, 0)
         
         layHolesRange = QtGui.QGridLayout()
