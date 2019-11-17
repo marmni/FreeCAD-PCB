@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import Part
+import Part, Draft
 from pivy.coin import *
 from math import sqrt, atan2, degrees, sin, cos, radians, pi, hypot
 import OpenSCAD2Dgeom
@@ -53,10 +53,9 @@ objectSides = ["TOP", "BOTTOM"]
 class partsObject(mathFunctions):
     def __init__(self, obj, typeL):
         self.Type = typeL
-        self.oldROT = 0
         self.oldX = 0
         self.oldY = 0
-        self.oldSocket = 0
+        self.oldROT = 0
         
         obj.addProperty("App::PropertyString", "Package", "PCB", "Package").Package = ""
         obj.addProperty("App::PropertyEnumeration", "Side", "PCB", "Side").Side = 0
@@ -74,10 +73,11 @@ class partsObject(mathFunctions):
         
         obj.setEditorMode("Package", 1)
         obj.setEditorMode("Placement", 2)
+        obj.setEditorMode("Label", 2)
+        obj.setEditorMode("PartName", 1)
+        obj.setEditorMode("PartValue", 1)
         
         obj.Side = objectSides
-        self.offsetX = 0
-        self.offsetY = 0
         self.offsetZ = 0
         obj.Proxy = self
         self.Object = obj
@@ -103,130 +103,59 @@ class partsObject(mathFunctions):
 class partObject(partsObject):
     def __init__(self, obj):
         partsObject.__init__(self, obj, "PCBpart")
-
-    def changeSide(self, fp):
-        ''' ROT Y '''
-        gruboscPlytki = getPCBheight()[1]
         
-        shape = fp.Shape.copy()
-        shape.Placement = fp.Placement
-        shape.rotate((fp.Shape.BoundBox.Center.x, fp.Shape.BoundBox.Center.y, gruboscPlytki / 2.), (0.0, 1.0, 0.0), 180)
-        fp.Placement = shape.Placement
-        
-        try:
-            for i in fp.OutList:
-                i.X = self.odbijWspolrzedne(i.X.Value, fp.X.Value)
-                i.Proxy.reverseSide(i)
-        except Exception as e:
-            #FreeCAD.Console.PrintWarning("4. {0}\n".format(e))
-            pass
-
-        #self.updatePosition_Z(fp)
-        self.rotateZ(fp)
-        
-    def updateSocket(self, fp):
-        try:
-            if fp.Socket.Value >= 0:
-                if fp.Side == objectSides[0]:  # TOP
-                    fp.Placement.Base.z = fp.Placement.Base.z + (fp.Socket.Value - self.oldSocket)
-                else:
-                    fp.Placement.Base.z = fp.Placement.Base.z - (fp.Socket.Value - self.oldSocket)
-                
-                self.oldSocket = fp.Socket.Value
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        
-        
-    def updatePosition_Z(self, fp, thickness):
+    def updatePosition_Z(self, fp, thickness, forceUpdate=False):
         try:
             if fp.Side == objectSides[0]:  # TOP
                 fp.Placement.Base.z = thickness + self.offsetZ + fp.Socket.Value
+            elif fp.Side == objectSides[1] and forceUpdate:
+                fp.Placement.Base.z = -self.offsetZ - fp.Socket.Value
         except:
             pass
-        
-    def changePosX(self, fp):
-        ''' change placement - X, Y '''
-        try:
-            fp.Placement.Base.x = fp.Placement.Base.x + (fp.X.Value - fp.Shape.BoundBox.Center.x)
-            
-            for i in fp.OutList:
-                i.X = fp.X.Value - (self.oldX - i.X.Value)
-                
-            self.oldX = fp.X.Value
-        except Exception as e:
-            #FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-            pass
-            
-    def changePosY(self, fp):
-        ''' change placement - X, Y '''
-        try:
-            fp.Placement.Base.y = fp.Placement.Base.y + (fp.Y.Value - fp.Shape.BoundBox.Center.y)
-            
-            for i in fp.OutList:
-                i.Y = fp.Y.Value - (self.oldY - i.Y.Value)
-
-            self.oldY = fp.Y.Value
-        except Exception as e:
-            #FreeCAD.Console.PrintWarning("2. {0}\n".format(e))
-            pass
-        
+    
     def rotateZ(self, fp):
-        ''' ROT Z '''
         shape = fp.Shape.copy()
         shape.Placement = fp.Placement
-        if fp.Side == objectSides[0]:
-            shape.rotate((fp.Shape.BoundBox.Center.x, fp.Shape.BoundBox.Center.y, fp.Shape.BoundBox.Center.z), (0.0, 0.0, 1.0), fp.Rot.Value - self.oldROT)
-        else:
-            shape.rotate((fp.Shape.BoundBox.Center.x, fp.Shape.BoundBox.Center.y, fp.Shape.BoundBox.Center.z), (0.0, 0.0, 1.0), -(fp.Rot.Value - self.oldROT))
+
+        if fp.Side == objectSides[0]: # TOP
+            shape.rotate((fp.X.Value, fp.Y.Value, 0), (0.0, 0.0, 1.0), fp.Rot.Value - self.oldROT)
+        else: # BOTTOM
+            shape.rotate((fp.X.Value, fp.Y.Value, 0), (0.0, 0.0, 1.0),-(fp.Rot.Value - self.oldROT))
+        
         fp.Placement = shape.Placement
-        
-        try:
-            for i in fp.OutList:
-                if fp.Side == objectSides[0]:
-                    [xR, yR] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
-                else:
-                    [xR, yR] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
-            
-                i.X.Value = xR
-                i.Y.Value = yR
-                if i.Rot.Value == self.oldROT:
-                    i.Rot = fp.Rot
-                else:
-                    i.Rot = fp.Rot.Value - (self.oldROT - i.Rot.Value)
-        except:
-            pass
-        
         self.oldROT = fp.Rot.Value
     
-    def ShowHeight(self, mode):
-        pass
+    def changeSide(self, fp):
+        shape = fp.Shape.copy()
+        shape.Placement = fp.Placement
+        shape.rotate((fp.X.Value, fp.Y.Value, 0), (0.0, 1.0, 0.0), 180)
+        
+        fp.Placement = shape.Placement
+        self.oldROT = fp.Rot.Value
 
     def onChanged(self, fp, prop):
-        fp.setEditorMode("Label", 2)
-        fp.setEditorMode("Placement", 2)
-        fp.setEditorMode("Package", 1)
-        fp.setEditorMode("PartName", 1)
-        fp.setEditorMode("PartValue", 1)
-        
         try:
-            if hasattr(fp, "Rot") and prop == "Rot":
+            if prop == "Rot":
                 self.rotateZ(fp)
-            elif hasattr(fp, "Side") and prop == "Side":
+            elif prop == "Side":  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 self.changeSide(fp)
-            elif hasattr(fp, "X") and prop in ["X"]:
-                self.changePosX(fp)
-            elif hasattr(fp, "Y") and prop in ["Y"]:
-                self.changePosY(fp)
-            elif hasattr(fp, "Socket") and prop in ["Socket"]:
-                self.updateSocket(fp)
-            #elif hasattr(fp, "Socket") and prop in ["Socket"]:
-                #if fp.Socket != None:
-                    #socketH = 10
-                #else:
-                    #socketH = 0
+                #Draft.rotate([fp], 180, FreeCAD.Vector(fp.X.Value, fp.Y.Value, 0), axis=FreeCAD.Vector(0.0, 1.0, 0.0), copy=False)
+                self.updatePosition_Z(fp, getPCBheight()[1], True)
+                self.rotateZ(fp)
+            elif prop == "X":
+                if self.oldX == 0:
+                    self.oldX = fp.X.Value
                 
-                #fp.Placement.Base.z = fp.Placement.Base.z + socketH
-                #self.updatePosition_Z(fp, getPCBheight()[1])
+                fp.Placement.Base.x += fp.X.Value - self.oldX
+                self.oldX = fp.X.Value
+            elif prop == "Y":
+                if self.oldY == 0:
+                    self.oldY = fp.Y.Value
+                
+                fp.Placement.Base.y += fp.Y.Value - self.oldY
+                self.oldY = fp.Y.Value
+            elif prop == "Socket":
+                self.updatePosition_Z(fp, getPCBheight()[1], True)
         except Exception as e:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass

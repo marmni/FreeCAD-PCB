@@ -114,7 +114,7 @@ class moveParts(partsManaging):
         doc = FreeCAD.activeDocument()
         for i in doc.Objects:
             if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
-                self.elemPackage.append([i, i.Placement, i.Proxy.offsetX, i.Proxy.offsetY])
+                self.elemPackage.append([i, i.Placement, i.Proxy.oldX, i.Proxy.oldY, i.Proxy.oldROT, i.Proxy.offsetZ])
     
     def loadData(self):
         ''' load all packages types to list '''
@@ -166,61 +166,35 @@ class moveParts(partsManaging):
         gruboscPlytki = getPCBheight()[1]
         
         for i in self.elemPackage:
-            # rotate object according to (RX, RY, RZ) set by user
-            sX = i[0].Shape.BoundBox.Center.x * (-1) + i[0].Placement.Base.x
-            sY = i[0].Shape.BoundBox.Center.y * (-1) + i[0].Placement.Base.y
-            sZ = i[0].Shape.BoundBox.Center.z * (-1) + i[0].Placement.Base.z + gruboscPlytki / 2.
-            
-            rotateY = self.form.rotationRY.value()
-            rotateX = self.form.rotationRX.value()
-            rotateZ = self.form.rotationRZ.value()
-            pla = FreeCAD.Placement(i[0].Placement.Base, FreeCAD.Rotation(rotateX, rotateY, rotateZ), FreeCAD.Base.Vector(sX, sY, sZ))
-            i[0].Placement = pla
-            
-            ## placement object to 0, 0, PCB_size / 2. (X, Y, Z)
-            sX = i[0].Shape.BoundBox.Center.x * (-1) + i[0].Placement.Base.x
-            sY = i[0].Shape.BoundBox.Center.y * (-1) + i[0].Placement.Base.y
-            sZ = i[0].Shape.BoundBox.Center.z * (-1) + i[0].Placement.Base.z + gruboscPlytki / 2.
-
-            i[0].Placement.Base.x = sX + self.form.positionX.value() - i[0].Proxy.offsetX
-            i[0].Placement.Base.y = sY + self.form.positionY.value() - i[0].Proxy.offsetY
-            #i[0].Placement.Base.z = sZ
-            
-            # move object to correct Z
-            #i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() + i[0].Socket.Value
-            i[0].Placement.Base.z = gruboscPlytki + self.form.positionZ.value() + i[0].Socket.Value
+            step_model = i[0]
             #
-            if i[0].Side == "BOTTOM":
-                # ROT Y - MIRROR
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, gruboscPlytki / 2.), (0.0, 1.0, 0.0), 180)
-                i[0].Placement = shape.Placement
-                
-                # ROT Z - VALUE FROM EAGLE
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), -i[0].Rot)
-                i[0].Placement = shape.Placement
-            else:
-                # ROT Z - VALUE FROM EAGLE
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), i[0].Rot)
-                i[0].Placement = shape.Placement
+            step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))
             
-            # placement object to X, Y set in eagle
-            i[0].Placement.Base.x = i[0].Placement.Base.x + i[0].X.Value
-            i[0].Placement.Base.y = i[0].Placement.Base.y + i[0].Y.Value
-        
-        i[0].recompute()
-        #FreeCAD.ActiveDocument.recompute()
+            step_model.Placement.Base.x = self.form.positionX.value()
+            step_model.Placement.Base.y = self.form.positionY.value()
+            
+            step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(self.form.rotationRZ.value(), self.form.rotationRY.value(), self.form.rotationRX.value()))
+            
+            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+            
+            step_model.Placement.Base.x = xB0 + step_model.X.Value
+            step_model.Placement.Base.y = yB0 + step_model.Y.Value
+            #
+            step_model.Proxy.offsetZ = self.form.positionZ.value()
+            step_model.Proxy.oldROT = 0
+            step_model.Rot = step_model.Rot.Value # rot around Z
+            step_model.Proxy.updatePosition_Z(step_model, gruboscPlytki, True)
+            #
+            #step_model.recompute()
             
     def resetObj(self):
         for i in self.elemPackage:
             i[0].Placement = i[1]
-            i[0].Proxy.offsetX = i[2] 
-            i[0].Proxy.offsetY = i[3]
+            i[0].Proxy.oldX = i[2] 
+            i[0].Proxy.oldY = i[3]
+            i[0].Proxy.oldROT = i[4]
+            i[0].Proxy.offsetZ = i[5]
         
     def reject(self):
         self.resetObj()
@@ -243,9 +217,11 @@ class moveParts(partsManaging):
 
     def accept(self):
         ''' update 3d models of packages '''
-        for i in self.elemPackage:
-            i[0].Proxy.offsetZ = self.form.positionZ.value()
-            i[0].recompute()
+        # for i in self.elemPackage:
+            # i[0].Proxy.offsetX = self.form.positionX.value()
+            # i[0].Proxy.offsetY = self.form.positionY.value()
+            # i[0].Proxy.offsetZ = self.form.positionZ.value()
+            # i[0].recompute()
         
         packageID = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
         packageData = self.__SQL__.getPackageByID(packageID)

@@ -255,9 +255,9 @@ PCBlayers = {
     "centerDrill" : [0, getFromSettings_Color_1('CenterDrillColor', 4294967295), None, ['PCBcenterDrill'], "Center drill"],
     #"tcenterDrill" : [1, getFromSettings_Color_1('CenterDrillColor', 4294967295), None, ['tcenterDrill'], "Center drill, top side"],
     #"bcenterDrill" : [0, getFromSettings_Color_1('CenterDrillColor', 4294967295), None, ['bcenterDrill'], "Center drill, bottom side"],
-    "Annotations" : [2, getFromSettings_Color_1('AnnotationsColor', 255), [], ['PCBannotation'], "Annotations"],
+    "Annotations" : [2, getFromSettings_Color_1('AnnotationsColor', 255), None, ['PCBannotation'], "Annotations"],
     "tGlue" : [1, getFromSettings_Color_1('GlueColor', 4290230271), None, ['tGlue'], "Glue, top side"],
-    "bGlue" : [0, getFromSettings_Color_1('GlueColor', 4290230271), None, ['bGlue'], "Glue, bottom side"],
+    "bGlue" : [0, getFromSettings_Color_1('GlueColor', 4290230271), None, ['bGlue'], "Glue, bottom side"]
 }
 
 
@@ -265,6 +265,7 @@ PCBlayers = {
 
 softLayers = {
     "eagle": {
+        0: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
         1: {"side": 1, "mirrorLayer": 16, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
         16: {"side": 0, "mirrorLayer": 1, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
         17: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 

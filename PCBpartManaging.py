@@ -220,9 +220,8 @@ class partsManaging(mathFunctions):
             correctingValue_RX = fileData[3]['rx']  # pos_RX
             correctingValue_RY = fileData[3]['ry']  # pos_RY
             correctingValue_RZ = fileData[3]['rz']  # pos_RZ
-            
             ################################################################
-            # DODANIE OBIEKTU NA PLANSZE
+            # ADDING OBJECT
             ################################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3]['name']))
             step_model.Label = partNameTXT_label
@@ -230,234 +229,100 @@ class partsManaging(mathFunctions):
             #
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3]['name'])
-            step_model.Side = "{0}".format(newPart[0][6])
-            ################################################################
-            # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
-            ################################################################
-            # rotate object according to (RX, RY, RZ) set by user
-            sX = step_model.Shape.BoundBox.Center.x * (-1) + step_model.Placement.Base.x
-            sY = step_model.Shape.BoundBox.Center.y * (-1) + step_model.Placement.Base.y
-            sZ = step_model.Shape.BoundBox.Center.z * (-1) + step_model.Placement.Base.z + gruboscPlytki / 2.
-            
-            rotateX = correctingValue_RX
-            rotateY = correctingValue_RY
-            rotateZ = correctingValue_RZ
-            
-            pla = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(rotateX, rotateY, rotateZ), FreeCAD.Base.Vector(sX, sY, sZ))
-            step_model.Placement = pla
-            
-            ## placement object to 0, 0, PCB_size / 2. (X, Y, Z)
-            sX = step_model.Shape.BoundBox.Center.x * (-1) + step_model.Placement.Base.x
-            sY = step_model.Shape.BoundBox.Center.y * (-1) + step_model.Placement.Base.y
-            sZ = step_model.Shape.BoundBox.Center.z * (-1) + step_model.Placement.Base.z + gruboscPlytki / 2.
-
-            step_model.Placement.Base.x = sX + correctingValue_X
-            step_model.Placement.Base.y = sY + correctingValue_Y
-            #step_model.Placement.Base.z = sZ
-            
-            # move object to correct Z
-            #step_model.Placement.Base.z = step_model.Placement.Base.z + (gruboscPlytki - step_model.Shape.BoundBox.Center.z) + correctingValue_Z
             #################################################################
-            # DODANIE PODSTAWKI
+            # FILTERING OBJECTS BY SIZE L/W/H
+            #################################################################
+            # if partMinX != 0:
+                # minValue = partMinX
+                # if step_model.Side == 'TOP':
+                    # minValue += gruboscPlytki
+                
+                # if step_model.Shape.BoundBox.XLength < minValue:
+                    # doc.removeObject(step_model.Name)
+                    # return
+            # elif partMinY != 0:
+                # minValue = partMinY
+                # if step_model.Side == 'TOP':
+                    # minValue += gruboscPlytki
+                
+                # if step_model.Shape.BoundBox.YLength < minValue:
+                    # doc.removeObject(step_model.Name)
+                    # return
+            # elif partMinZ != 0:
+                # minValue = partMinZ
+                # if step_model.Side == 'TOP':
+                    # minValue += gruboscPlytki
+                
+                # if step_model.Shape.BoundBox.ZLength < minValue:
+                    # doc.removeObject(step_model.Name)
+                    # return
+            ################################################################
+            # PUTTING OBJECT ON PCB
+            ################################################################
+            step_model.Placement.Base.x = correctingValue_X
+            step_model.Placement.Base.y = correctingValue_Y
+            
+            step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(correctingValue_RZ, correctingValue_RY, correctingValue_RX))
+            
+            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+            
+            step_model.Placement.Base.x = xB0 + newPart[0][3]
+            step_model.Placement.Base.y = yB0 + newPart[0][4]
+            #step_model.Placement.Base.z = correctingValue_Z
+            #################################################################
+            # ADDING SOCKET
             #   dodajPodstawke - definicja zachowania dla danego obiektu
             #     0 - brak podstawki
             #     1 - dodanie podstawki
             #################################################################
-            dodajPodstawke = False
+            # dodajPodstawke = False
             
-            if modelData['socketIDSocket'] and self.allSocked == 0 and modelData['socketID'] != fileData[2]:
-                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+            # if modelData['socketIDSocket'] and self.allSocked == 0 and modelData['socketID'] != fileData[2]:
+                # socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                if socketData["isSocket"]:
-                    dial = QtGui.QMessageBox()
-                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
-                    dial.setWindowTitle("Socket")
-                    dial.setIcon(QtGui.QMessageBox.Question)
-                    dial.addButton('No', QtGui.QMessageBox.RejectRole)
-                    podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
-                    zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
-                    nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
-                    dial.exec_()
+                # if socketData["isSocket"]:
+                    # dial = QtGui.QMessageBox()
+                    # dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
+                    # dial.setWindowTitle("Socket")
+                    # dial.setIcon(QtGui.QMessageBox.Question)
+                    # dial.addButton('No', QtGui.QMessageBox.RejectRole)
+                    # podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+                    # zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
+                    # nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
+                    # dial.exec_()
                     
-                    if dial.clickedButton() == nigdyPodstawki:
-                        self.allSocked = -1
-                    elif dial.clickedButton() == zawszePodstawki:
-                        self.allSocked = 1
-                    elif dial.clickedButton() == podstawkaTAK:
-                        dodajPodstawke = True
-                    else:
-                        dodajPodstawke = False
-            #
-            if (dodajPodstawke or self.allSocked == 1) and modelData['socketIDSocket']:
-                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+                    # if dial.clickedButton() == nigdyPodstawki:
+                        # self.allSocked = -1
+                    # elif dial.clickedButton() == zawszePodstawki:
+                        # self.allSocked = 1
+                    # elif dial.clickedButton() == podstawkaTAK:
+                        # dodajPodstawke = True
+                    # else:
+                        # dodajPodstawke = False
+            # #
+            # if (dodajPodstawke or self.allSocked == 1) and modelData['socketIDSocket']:
+                # socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                step_model.Socket.Value = socketData["isSocketHeight"]  # ustawienie wysokosci podstawki
-                EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
+                # step_model.Socket.Value = socketData["isSocketHeight"]  # ustawienie wysokosci podstawki
+                # EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
+                # EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
+                # PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
 
-                self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #################################################################
-            # move object to correct Z
-            step_model.Placement.Base.z = gruboscPlytki + correctingValue_Z + step_model.Socket.Value
-            #################################################################
-            # FILTERING OBJECTS BY SIZE L/W/H
-            #################################################################
-            if partMinX != 0:
-                minValue = partMinX
-                if step_model.Side == 'TOP':
-                    minValue += gruboscPlytki
-                
-                if step_model.Shape.BoundBox.XLength < minValue:
-                    doc.removeObject(step_model.Name)
-                    return
-            elif partMinY != 0:
-                minValue = partMinY
-                if step_model.Side == 'TOP':
-                    minValue += gruboscPlytki
-                
-                if step_model.Shape.BoundBox.YLength < minValue:
-                    doc.removeObject(step_model.Name)
-                    return
-            elif partMinZ != 0:
-                minValue = partMinZ
-                if step_model.Side == 'TOP':
-                    minValue += gruboscPlytki
-                
-                if step_model.Shape.BoundBox.ZLength < minValue:
-                    doc.removeObject(step_model.Name)
-                    return
-            #################################################################
-            # SETTTING OBJECT SIDE ON THE PCB
-            #################################################################
-            if newPart[0][6] == 'BOTTOM':
-                # ROT Y - MIRROR
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, gruboscPlytki / 2.), (0.0, 1.0, 0.0), 180)
-                step_model.Placement = shape.Placement
-                
-                # ROT Z - VALUE FROM EAGLE
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), -partRotation)
-                step_model.Placement = shape.Placement
-            else:
-                # ROT Z - VALUE FROM EAGLE
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), partRotation)
-                step_model.Placement = shape.Placement
-            #################################################################
-            # placement object to X, Y set in eagle
-            #################################################################
-            step_model.Placement.Base.x = step_model.Placement.Base.x + newPart[0][3]
-            step_model.Placement.Base.y = step_model.Placement.Base.y + newPart[0][4]
+                # self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             #################################################################
             # 
             #################################################################
-            step_model.X = step_model.Shape.BoundBox.Center.x
-            step_model.Y = step_model.Shape.BoundBox.Center.y
-            step_model.Proxy.oldX = step_model.Shape.BoundBox.Center.x
-            step_model.Proxy.oldY = step_model.Shape.BoundBox.Center.y
-            step_model.Proxy.offsetX = correctingValue_X
-            step_model.Proxy.offsetY = correctingValue_Y
             step_model.Proxy.offsetZ = correctingValue_Z
-            step_model.Proxy.oldROT = partRotation
-            step_model.Rot = partRotation
-            step_model.Proxy.update_Z = step_model.Placement.Base.z
-            
-            ##################################################################
-            ## part name object
-            ## [txt, x, y, size, rot, side, align, spin, mirror, font]
-            ##################################################################
-            # annotationName = createAnnotation()
-            # annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
-            # annotationName.mode = 'anno_name'
-            # annotationName.Side = newPart[1][5]
-            # annotationName.Rot = self.adjustRotation(newPart[1][4])
-            # annotationName.Text = partNameTXT_label
-            # annotationName.Spin = newPart[1][7]
-            
-            # if adjustParts and "adjust" in modelData.keys() and "Name" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Name"][0])):
-                # values = eval(modelData["adjust"])["Name"]
-                
-                # if step_model.Side == "BOTTOM":
-                    # x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    # annotationName.Mirror = True
-                    
-                    # [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                # else:
-                    # annotationName.Mirror = False
-                    
-                    # [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
-                
-                # annotationName.X = xR
-                # annotationName.Y = yR
-                # annotationName.Z = values[4]
-                # annotationName.Align = str(values[7])
-                # annotationName.Size = values[5]
-                # annotationName.Color = values[6]
-                # annotationName.Visibility = eval(values[1])
-            # else:
-                # annotationName.X = newPart[1][1]
-                # annotationName.Y = newPart[1][2]
-                # annotationName.Z = 0
-                # annotationName.Align = newPart[1][6]
-                # annotationName.Size = newPart[1][3]
-                # annotationName.Mirror = newPart[1][8]
-                # annotationName.Color = (1., 1., 1.)
-                # annotationName.Visibility = newPart[1][10]
-            
-            #annotationName.generate()
-            #################################################################
-            # part value
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            #################################################################
-            # annotationValue = createAnnotation()
-            # annotationValue.defaultName = '{0}_Value'.format(partNameTXT_label)
-            # annotationValue.mode = 'anno_value'
-            # annotationValue.Side = newPart[2][5]
-            # annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            # annotationValue.Text = partValueTXT
-            # annotationValue.Spin = newPart[2][7]
-            
-            # if adjustParts and "adjust" in modelData.keys() and "Value" in eval(modelData["adjust"]).keys() and eval(str(eval(modelData["adjust"])["Value"][0])):
-                # values = eval(modelData["adjust"])["Value"]
-                
-                # if step_model.Side == "BOTTOM":
-                    # x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    # annotationValue.Mirror = True
-                    
-                    # [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                # else:
-                    # annotationValue.Mirror = False
-                    
-                    # [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
-                
-                # annotationValue.X = xR
-                # annotationValue.Y = yR
-                # annotationValue.Z = values[4]
-                # annotationValue.Align = str(values[7])
-                # annotationValue.Size = values[5]
-                # annotationValue.Color = values[6]
-                # annotationValue.Visibility = eval(values[1])
-            # else:
-                # annotationValue.X = newPart[2][1]
-                # annotationValue.Y = newPart[2][2]
-                # annotationValue.Z = 0
-                # annotationValue.Align = newPart[2][6]
-                # annotationValue.Size = newPart[2][3]
-                # annotationValue.Mirror = newPart[2][8]
-                # annotationValue.Color = (1., 1., 1.)
-                # annotationValue.Visibility = newPart[2][10]
-            
-            #annotationValue.generate()
             #
-            # step_model.PartName = annotationName.Annotation
-            # step_model.PartValue = annotationValue.Annotation
-            ################
             viewProviderPartObject(step_model.ViewObject)
+            #
+            step_model.X = newPart[0][3]
+            step_model.Y = newPart[0][4]
+            step_model.Rot = partRotation # after settting X/Y
+            if newPart[0][6] == "BOTTOM":
+                step_model.Side = "{0}".format(newPart[0][6])
+            step_model.Proxy.updatePosition_Z(step_model, gruboscPlytki, True)
             #################################################################
             # KOLORY DLA ELEMENTOW
             #################################################################
@@ -513,9 +378,9 @@ class partsManaging(mathFunctions):
             # annotationName.Mirror = newPart[1][8]
             # annotationName.Visibility = newPart[1][10]
             # annotationName.Color = (1., 1., 1.)
-            #annotationName.generate()
-            # part value
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
+            # #annotationName.generate()
+            # # part value
+            # # [txt, x, y, size, rot, side, align, spin, mirror, font]
             # annotationValue = createAnnotation()
             # annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
             # annotationValue.mode = 'anno_value'
@@ -533,8 +398,8 @@ class partsManaging(mathFunctions):
             # annotationValue.Color = (1., 1., 1.)
             #annotationValue.generate()
             #
-            # step_model.PartName = annotationName.Annotation
-            # step_model.PartValue = annotationValue.Annotation
+            #step_model.PartName = annotationName.Annotation
+            #step_model.PartValue = annotationValue.Annotation
             ######
             ######
             viewProviderPartObject_E(step_model.ViewObject)
@@ -547,7 +412,7 @@ class partsManaging(mathFunctions):
         except:
             self.addPartToGroup(groupParts, False, step_model)  # Missing categoory
         pcb[2].Proxy.addObject(pcb[2], step_model)
-        #self.updateView()
+        self.updateView()
         return result
     
     def addPartToGroup(self, groupParts, categoryID, step_model):

@@ -621,6 +621,7 @@ class EaglePCB(mathFunctions):
             else:
                 side = "BOTTOM"
             ######
+
             EL_Name = ['', i['x'], i['y'], 1.27, i['rot'], side, "bottom-left", False, 'None', '', True]
             EL_Value = ['', i['x'], i['y'], 1.27, i['rot'], side, "bottom-left", False, 'None', '', True]
             ## [txt, x, y, size, rot, side, align, spin, mirror, font, display]
@@ -632,7 +633,7 @@ class EaglePCB(mathFunctions):
                     #elif j[0] == 'VALUE':
                         #EL_Value = j
             else:
-                for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text")):
+                for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text"), mode='param'):
                     x1 = i['x'] + j["x"]
                     y1 = i['y'] + j["y"]
                     
@@ -661,6 +662,20 @@ class EaglePCB(mathFunctions):
             #wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             # <uros@isotel.eu> modified package here and 7 lines below
             newPart = [[i['name'], i['freecad_package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
+            
+            # parts.append({
+                # "name": i['name'],
+                # "package": i['freecad_package'],
+                # "value" : i['value'], 
+                # "x": i['x'], 
+                # "y": i['y'], 
+                # "rot": i['rot'], 
+                # "side": side, 
+                # "library": i['library'],
+                # "EL_Name": None,
+                # "EL_Value": None,
+            # })
+            
             parts.append(newPart)
         ####
         return parts
@@ -1060,7 +1075,7 @@ class EaglePCB(mathFunctions):
                 if 'M' in i.getAttribute('rot'):
                     side = 'BOTTOM'
                 if 'R' in i.getAttribute('rot'):
-                    rot = re.sub("[^0-9]", "", i.getAttribute('rot'))
+                    rot = int(re.sub("[^0-9]", "", i.getAttribute('rot')))
             #
             if i.getAttribute('align'):
                 align = i.getAttribute('align')
@@ -1083,7 +1098,7 @@ class EaglePCB(mathFunctions):
                     display = True
             else:
                 display = True
-            
+            #
             adnotacje.append({
                 "text": txt,
                 "x": x,

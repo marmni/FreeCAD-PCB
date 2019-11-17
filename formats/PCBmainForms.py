@@ -160,12 +160,11 @@ class mainPCB(partsManaging):
                     elif layerFunction == "constraint":
                         self.generateConstraintAreas(doc, layerNumber, grp, layerName, layerColor, layerTransp)
                     elif layerFunction == "annotations":
-                        self.addAnnotations(self.wersjaFormatu.getNormalAnnotations(), doc, layerColor)
+                        self.addAnnotations(self.wersjaFormatu.getNormalAnnotations(), layerColor)
                 except Exception as e:
                     self.printInfo('{0}'.format(e), 'error')
                 else:
                     self.printInfo('done')
-                    
     
     def importParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
         self.printInfo('\nImporting parts: ')
@@ -481,7 +480,7 @@ class mainPCB(partsManaging):
                 pass
         ##############
         
-    def addAnnotations(self, annotations, doc, color):
+    def addAnnotations(self, annotations, color):
         for i in annotations:
             #FreeCAD.Console.PrintWarning("{0}\n".format(i))
             annotation = createAnnotation()
