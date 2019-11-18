@@ -194,54 +194,35 @@ class pcbToolBarView(pcbToolBarMain):
     
     def ungroupParts(self):
         pcb = getPCBheight()
-        groupsToDelete = []
-        
         if pcb[0]:  # board is available
+            groupsToDelete = []
+            pM = partsManaging()
+            
             for i in pcb[2].Group:
-                try:
-                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                        if i.Name == "Parts":
-                            continue
-                        if not i.getParentGroup().Name in groupsToDelete:
-                            groupsToDelete.append(i.getParentGroup().Name)
-                        
-                        aa = partsManaging()
-                        aa.addPartToGroup(False, 0, i)
-                except Exception as e:
-                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    if not i.getParentGroup().Name in groupsToDelete:
+                        groupsToDelete.append(i.getParentGroup().Name)
+                    
+                    pM.addPartToGroup(False, i)
             
             for i in groupsToDelete:
                 if i == "Parts":
                     continue
+                
                 try:
                     FreeCAD.ActiveDocument.removeObject(i)
                 except Exception as e:
                     FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
+
     def groupParts(self):
         pcb = getPCBheight()
-        
         if pcb[0]:  # board is available
+            pM = partsManaging()
+            pM.setDatabase()
+            
             for i in pcb[2].Group:
-                try:
-                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                        aa = partsManaging()
-                        aa.setDatabase()
-                        fileData = aa.__SQL__.findPackage(i.Package, "*")
-                        
-                        if fileData:
-                            model = aa.__SQL__.getModelByID(fileData.modelID)
-                            category = aa.__SQL__.getCategoryByID(model[1].categoryID)
-                            
-                            if category.id != -1:
-                                aa.addPartToGroup(True, category.id, i)
-                            else:
-                                aa.addPartToGroup(True, 0, i)
-                        else:
-                            aa.addPartToGroup(True, 0, i)
-                    
-                except Exception as e:
-                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    pM.addPartToGroup(True, i)
     
     def exportAssembly(self):
         exportAssembly()
@@ -777,19 +758,24 @@ class pcbToolBar(pcbToolBarMain):
         
     def wyszukajObiekty(self, fraza):
         ''' find object in current document '''
-        FreeCADGui.Selection.clearSelection()
-        self.szukaneFrazy = []
-        self.szukaneFrazyNr = 0
-        
-        fraza = str(fraza).strip()
-        if fraza != "":
-            for i in FreeCAD.ActiveDocument.Objects:
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
-                    if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
-                        self.szukaneFrazy.append(i)
-        
-        if len(self.szukaneFrazy):
-            FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
+        try:
+            FreeCADGui.Selection.clearSelection()
+            self.szukaneFrazy = []
+            self.szukaneFrazyNr = 0
+            
+            fraza = str(fraza).strip()
+            if fraza != "":
+                pcb = getPCBheight()
+                if pcb[0]:
+                    for i in pcb[2].Group:
+                        if i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
+                            if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
+                                self.szukaneFrazy.append(i)
+
+            if len(self.szukaneFrazy):
+                FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
 
     #def convertDB(self):
         #''' convert old database format ot new one '''

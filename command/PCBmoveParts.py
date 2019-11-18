@@ -111,11 +111,12 @@ class moveParts(partsManaging):
         self.setDatabase()
         
         self.elemPackage = []
-        doc = FreeCAD.activeDocument()
-        for i in doc.Objects:
-            if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
-                self.elemPackage.append([i, i.Placement, i.Proxy.oldX, i.Proxy.oldY, i.Proxy.oldROT, i.Proxy.offsetZ])
-    
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
+                    self.elemPackage.append([i, i.Placement, i.Proxy.oldX, i.Proxy.oldY, i.Proxy.oldROT, i.Proxy.offsetZ])
+        
     def loadData(self):
         ''' load all packages types to list '''
         packageID = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
@@ -160,33 +161,17 @@ class moveParts(partsManaging):
         self.form.connect(self.form.listaBibliotek, QtCore.SIGNAL('currentIndexChanged (int)'), self.loadData)
         
     def changePos(self, val):
-        #################################################################
-        #        polaczyc z innymi podobnymi czesciami kodu !!!!!       #
-        #################################################################
         gruboscPlytki = getPCBheight()[1]
         
         for i in self.elemPackage:
             step_model = i[0]
             #
-            step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))
-            
-            step_model.Placement.Base.x = self.form.positionX.value()
-            step_model.Placement.Base.y = self.form.positionY.value()
-            
-            step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(self.form.rotationRZ.value(), self.form.rotationRY.value(), self.form.rotationRX.value()))
-            
-            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
-            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
-            
-            step_model.Placement.Base.x = xB0 + step_model.X.Value
-            step_model.Placement.Base.y = yB0 + step_model.Y.Value
-            #
-            step_model.Proxy.offsetZ = self.form.positionZ.value()
+            self.partPlacement(step_model, self.form.positionX.value(), self.form.positionY.value(), self.form.positionZ.value(), self.form.rotationRX.value(), self.form.rotationRY.value(), self.form.rotationRZ.value(), step_model.X.Value, step_model.Y.Value)
+            if step_model.Side == "BOTTOM":
+                step_model.Proxy.changeSide(step_model)
             step_model.Proxy.oldROT = 0
             step_model.Rot = step_model.Rot.Value # rot around Z
             step_model.Proxy.updatePosition_Z(step_model, gruboscPlytki, True)
-            #
-            #step_model.recompute()
             
     def resetObj(self):
         for i in self.elemPackage:

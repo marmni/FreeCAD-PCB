@@ -876,6 +876,21 @@ class mathFunctions(object):
                 y_T1 = y1 - distance * sin(alfa)
 
         return [x_T1, y_T1]
+    
+    def rotateObject(self, angle, center):
+        cK = self.cosinus(angle)
+        sK = self.sinus(angle)
+        
+        x = center.x
+        y = center.y
+        z = center.z
+        
+        matrix = FreeCAD.Matrix( cK + x ** 2 * (1 - cK),  x * y * (1 - cK) - z * sK,   x * z * (1 - cK + y * sK),   0,
+                          y * x * (1 - cK) + z * sK, cK + y ** 2 * (1 - cK),  y * z * (1 - cK) - x * sK,   0,
+                          z * x * (1 - cK) - y * sK, z * y * (1 - cK) + x * sK, cK + z ** 2 * (1 - cK),  0)
+
+        return matrix
+        
         
     def obrocPunkt2(self, punkt, srodek, angle):
         sinKAT = self.sinus(angle)

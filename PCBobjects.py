@@ -53,9 +53,10 @@ objectSides = ["TOP", "BOTTOM"]
 class partsObject(mathFunctions):
     def __init__(self, obj, typeL):
         self.Type = typeL
-        self.oldX = 0
-        self.oldY = 0
+        self.oldX = None
+        self.oldY = None
         self.oldROT = 0
+        self.offsetZ = 0
         
         obj.addProperty("App::PropertyString", "Package", "PCB", "Package").Package = ""
         obj.addProperty("App::PropertyEnumeration", "Side", "PCB", "Side").Side = 0
@@ -78,32 +79,9 @@ class partsObject(mathFunctions):
         obj.setEditorMode("PartValue", 1)
         
         obj.Side = objectSides
-        self.offsetZ = 0
         obj.Proxy = self
         self.Object = obj
-
-    def execute(self, fp):
-        pass
-
-    def __getstate__(self):
-        return [self.Type, self.oldROT, self.offsetZ, self.offsetX, self.offsetY, self.oldX, self.oldY, self.oldSocket]
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state[0]
-            self.oldROT = state[1]
-            self.offsetZ = state[2]
-            self.offsetX = state[3]
-            self.offsetY = state[4]
-            self.oldX = state[5]
-            self.oldY = state[6]
-            self.oldSocket = state[7]
-
-
-class partObject(partsObject):
-    def __init__(self, obj):
-        partsObject.__init__(self, obj, "PCBpart")
-        
+    
     def updatePosition_Z(self, fp, thickness, forceUpdate=False):
         try:
             if fp.Side == objectSides[0]:  # TOP
@@ -117,7 +95,7 @@ class partObject(partsObject):
         shape = fp.Shape.copy()
         shape.Placement = fp.Placement
 
-        if fp.Side == objectSides[0]: # TOP
+        if fp.Side == "TOP": # TOP
             shape.rotate((fp.X.Value, fp.Y.Value, 0), (0.0, 0.0, 1.0), fp.Rot.Value - self.oldROT)
         else: # BOTTOM
             shape.rotate((fp.X.Value, fp.Y.Value, 0), (0.0, 0.0, 1.0),-(fp.Rot.Value - self.oldROT))
@@ -133,23 +111,42 @@ class partObject(partsObject):
         fp.Placement = shape.Placement
         self.oldROT = fp.Rot.Value
 
+    def execute(self, fp):
+        pass
+
+    def __getstate__(self):
+        return [self.Type, self.oldROT, self.oldX, self.oldY, self.offsetZ]
+
+    def __setstate__(self, state):
+        if state:
+            self.Type = state[0]
+            self.oldROT = state[1]
+            self.oldX = state[2]
+            self.oldY = state[3]
+            self.offsetZ = state[4]
+
+
+class partObject(partsObject):
+    def __init__(self, obj):
+        partsObject.__init__(self, obj, "PCBpart")
+    
     def onChanged(self, fp, prop):
         try:
             if prop == "Rot":
                 self.rotateZ(fp)
-            elif prop == "Side":  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            elif prop == "Side":  # REWRITE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 self.changeSide(fp)
                 #Draft.rotate([fp], 180, FreeCAD.Vector(fp.X.Value, fp.Y.Value, 0), axis=FreeCAD.Vector(0.0, 1.0, 0.0), copy=False)
                 self.updatePosition_Z(fp, getPCBheight()[1], True)
                 self.rotateZ(fp)
             elif prop == "X":
-                if self.oldX == 0:
+                if self.oldX == None:
                     self.oldX = fp.X.Value
                 
                 fp.Placement.Base.x += fp.X.Value - self.oldX
                 self.oldX = fp.X.Value
             elif prop == "Y":
-                if self.oldY == 0:
+                if self.oldY == None:
                     self.oldY = fp.Y.Value
                 
                 fp.Placement.Base.y += fp.Y.Value - self.oldY
@@ -164,19 +161,16 @@ class partObject(partsObject):
 class partObject_E(partsObject):
     def __init__(self, obj):
         partsObject.__init__(self, obj, "PCBpart_E")
+        
+        obj.setEditorMode("Placement", 2)
+        obj.setEditorMode("Package", 1)
+        obj.setEditorMode("Side", 1)
+        obj.setEditorMode("X", 1)
+        obj.setEditorMode("Y", 1)
+        obj.setEditorMode("Rot", 1)
+        obj.setEditorMode("Label", 2)
+        obj.setEditorMode("Socket", 1)
 
-    def onChanged(self, fp, prop):
-        try:
-            fp.setEditorMode("Placement", 2)
-            fp.setEditorMode("Package", 1)
-            fp.setEditorMode("Side", 1)
-            fp.setEditorMode("X", 1)
-            fp.setEditorMode("Y", 1)
-            fp.setEditorMode("Rot", 1)
-            fp.setEditorMode("Label", 2)
-            fp.setEditorMode("Socket", 1)
-        except:
-            pass
 
 
 class viewProviderPartObject:

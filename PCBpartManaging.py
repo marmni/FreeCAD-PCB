@@ -71,7 +71,7 @@ class partsManaging(mathFunctions):
         standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
         ################################################################
         ################################################################
-        # check if model was has already been imported
+        # check if model was already imported
         ################################################################
         ################################################################
         if filePath in self.objColors.keys():
@@ -178,6 +178,22 @@ class partsManaging(mathFunctions):
         FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
         
         return step_model
+    
+    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y):
+
+        step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
+            
+        step_model.Placement.Base.x = cX
+        step_model.Placement.Base.y = cY
+        
+        step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(cRZ, cRY, cRX)) # rotation correction
+        
+        xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+        yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+        
+        step_model.Placement.Base.x = xB0 + X # final position X-axis
+        step_model.Placement.Base.y = yB0 + Y # final position Y-axis
+        step_model.Proxy.offsetZ = cZ
         
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         doc = FreeCAD.activeDocument()
@@ -229,47 +245,47 @@ class partsManaging(mathFunctions):
             #
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3]['name'])
+            ################################################################
+            # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
+            ################################################################
+            # step_model.Placement.Base.x = correctingValue_X
+            # step_model.Placement.Base.y = correctingValue_Y
+            
+            # step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(correctingValue_RZ, correctingValue_RY, correctingValue_RX))
+            
+            # xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+            # yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+            
+            # step_model.Placement.Base.x = xB0 + newPart[0][3]
+            # step_model.Placement.Base.y = yB0 + newPart[0][4]
+            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart[0][3], newPart[0][4])
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
-            # if partMinX != 0:
-                # minValue = partMinX
-                # if step_model.Side == 'TOP':
-                    # minValue += gruboscPlytki
+            if partMinX != 0:
+                minValue = partMinX
+                if step_model.Side == 'TOP':
+                    minValue += gruboscPlytki
                 
-                # if step_model.Shape.BoundBox.XLength < minValue:
-                    # doc.removeObject(step_model.Name)
-                    # return
-            # elif partMinY != 0:
-                # minValue = partMinY
-                # if step_model.Side == 'TOP':
-                    # minValue += gruboscPlytki
+                if step_model.Shape.BoundBox.XLength < minValue:
+                    doc.removeObject(step_model.Name)
+                    return
+            elif partMinY != 0:
+                minValue = partMinY
+                if step_model.Side == 'TOP':
+                    minValue += gruboscPlytki
                 
-                # if step_model.Shape.BoundBox.YLength < minValue:
-                    # doc.removeObject(step_model.Name)
-                    # return
-            # elif partMinZ != 0:
-                # minValue = partMinZ
-                # if step_model.Side == 'TOP':
-                    # minValue += gruboscPlytki
+                if step_model.Shape.BoundBox.YLength < minValue:
+                    doc.removeObject(step_model.Name)
+                    return
+            elif partMinZ != 0:
+                minValue = partMinZ
+                if step_model.Side == 'TOP':
+                    minValue += gruboscPlytki
                 
-                # if step_model.Shape.BoundBox.ZLength < minValue:
-                    # doc.removeObject(step_model.Name)
-                    # return
-            ################################################################
-            # PUTTING OBJECT ON PCB
-            ################################################################
-            step_model.Placement.Base.x = correctingValue_X
-            step_model.Placement.Base.y = correctingValue_Y
-            
-            step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(correctingValue_RZ, correctingValue_RY, correctingValue_RX))
-            
-            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
-            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
-            
-            step_model.Placement.Base.x = xB0 + newPart[0][3]
-            step_model.Placement.Base.y = yB0 + newPart[0][4]
-            #step_model.Placement.Base.z = correctingValue_Z
+                if step_model.Shape.BoundBox.ZLength < minValue:
+                    doc.removeObject(step_model.Name)
+                    return
             #################################################################
             # ADDING SOCKET
             #   dodajPodstawke - definicja zachowania dla danego obiektu
@@ -313,8 +329,6 @@ class partsManaging(mathFunctions):
             #################################################################
             # 
             #################################################################
-            step_model.Proxy.offsetZ = correctingValue_Z
-            #
             viewProviderPartObject(step_model.ViewObject)
             #
             step_model.X = newPart[0][3]
@@ -407,35 +421,41 @@ class partsManaging(mathFunctions):
             result = ['Error']
         ######
         result.append(step_model)
-        try:
-            self.addPartToGroup(groupParts, fileData[4], step_model)
-        except:
-            self.addPartToGroup(groupParts, False, step_model)  # Missing categoory
+        self.addPartToGroup(groupParts, step_model)
         pcb[2].Proxy.addObject(pcb[2], step_model)
         self.updateView()
         return result
     
-    def addPartToGroup(self, groupParts, categoryID, step_model):
+    def addPartToGroup(self, groupParts, step_model):
+        if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+            return
+        #
         partsFolder = createGroup_Parts()
-        
-        if groupParts:
-            try:
-                if categoryID in [-1, 0]:
-                    grp_2 = createGroup_Others()
+        #
+        try:
+            if groupParts and getPCBheight()[0]:
+                if step_model.Proxy.Type == "PCBpart_E":
+                    grp_2 = createGroup_Missing()
                 else:
-                    categoryData = self.__SQL__.getCategoryByID(int(categoryID))
+                    fileData = self.__SQL__.findPackage(step_model.Package, "*")
                     
-                    if categoryData:
-                        grp_2 = createGroup(categoryData.name)
+                    if fileData:
+                        model = self.__SQL__.getModelByID(fileData.modelID)
+                        categoryData = self.__SQL__.getCategoryByID(int(model[1].categoryID))
+                        
+                        if categoryData == 0:
+                            grp_2 = createGroup_Others()
+                        else:
+                            grp_2 = createGroup(categoryData.name)
                     else:
-                        grp_2 = createGroup_Others()
-            except:
-                grp_2 = createGroup_Missing()
-            
-            grp_2.addObject(step_model)
-            partsFolder.addObject(grp_2)
-        else:
-            partsFolder.addObject(step_model)
+                        grp_2 = createGroup_Missing()
+                
+                grp_2.addObject(step_model)
+                partsFolder.addObject(grp_2)
+            else:
+                partsFolder.addObject(step_model)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
 
     def getObjRot(self, obj):
         rx = obj.Placement.Rotation.Q[0]

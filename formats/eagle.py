@@ -611,6 +611,7 @@ class EaglePCB(mathFunctions):
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
 
     def getParts(self):
+        # REWRITE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.getLibraries()
         self.getElements()
         parts = []

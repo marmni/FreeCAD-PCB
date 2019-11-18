@@ -172,7 +172,6 @@ class createGlue:
         #
         self.base.ViewObject.Visibility = False
         #
-        
         pcb[2].Proxy.addObject(pcb[2], a)
 
 

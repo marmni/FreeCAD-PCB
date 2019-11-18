@@ -92,7 +92,7 @@ class addModel(QtGui.QWidget, partsManaging):
         
         self.error = QtGui.QLabel(u'')
         
-        self.updateView = QtGui.QCheckBox(u'Update active view')
+        self.updateViewQC = QtGui.QCheckBox(u'Update active view')
         
         self.loadModelColors = QtGui.QCheckBox(u'Colorize elements')
         self.loadModelColors.setChecked(freecadSettings.GetBool("partsColorize", True))
@@ -132,7 +132,7 @@ class addModel(QtGui.QWidget, partsManaging):
         
         lay_2 = QtGui.QHBoxLayout()
         lay_2.addWidget(self.groupParts)
-        lay_2.addWidget(self.updateView)
+        lay_2.addWidget(self.updateViewQC)
         lay_2.setContentsMargins(0, 0, 0, 0)
         lay.addLayout(lay_2, 17, 0, 1, 2)
         
@@ -151,13 +151,13 @@ class addModel(QtGui.QWidget, partsManaging):
         self.connect(self.val_x, QtCore.SIGNAL('valueChanged (double)'), self.addArrow)
         self.connect(self.val_y, QtCore.SIGNAL('valueChanged (double)'), self.addArrow)
         self.connect(self.side, QtCore.SIGNAL('currentIndexChanged (int)'), self.addArrow)
-        self.connect(self.updateView, QtCore.SIGNAL('stateChanged (int)'), self.changeView)
+        self.connect(self.updateViewQC, QtCore.SIGNAL('stateChanged (int)'), self.changeView)
         
         self.readLibs()
         self.addArrow()
         
     def changeView(self):
-        if self.updateView.isChecked():
+        if self.updateViewQC.isChecked():
             if self.side.itemText(self.side.currentIndex()) == "TOP":
                 FreeCADGui.activeDocument().activeView().viewTop()
             else:
