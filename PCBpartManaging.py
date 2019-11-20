@@ -194,30 +194,111 @@ class partsManaging(mathFunctions):
         step_model.Placement.Base.x = xB0 + X # final position X-axis
         step_model.Placement.Base.y = yB0 + Y # final position Y-axis
         step_model.Proxy.offsetZ = cZ
+    
+    def partStandardDictionary(self):
+        return {
+            'name': '', 
+            'library': '', 
+            'package': '', 
+            'value': '', 
+            'x': 0, 
+            'y': 0, 
+            'locked': False, 
+            'populated': False,  
+            'smashed': False, 
+            'rot': 0, 
+            'side': 'TOP', 
+            'dataElement': None,
+            'EL_Name': {
+                'text': 'NAME', 
+                'x': 0,
+                'y': 0, 
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'center', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }, 
+            'EL_Value': {
+                'text': 'VALUE', 
+                'x': 0, 
+                'y': 0,
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'bottom-left', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }
+        }
         
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
+        #newPart = {
+            # 'name': 'E$2', 
+            # 'library': 'eagle-ltspice', 
+            # 'package': 'R0806', 
+            # 'value': '', 
+            # 'x': 19.0, 
+            # 'y': 5.5, 
+            # 'locked': False, 
+            # 'populated': False,  
+            # 'smashed': False, 
+            # 'rot': 90, 
+            # 'side': 'TOP', 
+            # 'dataElement': <DOM Element: element at 0x1bc2634cf20>, 
+            # 'EL_Name': {
+                # 'text': 'NAME', 
+                # 'x': 16.73,
+                # 'y': 6.23, 
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 135, 
+                # 'side': 'TOP', 
+                # 'align': 'center', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'
+            # }, 
+            # 'EL_Value': {
+                # 'text': 'VALUE', 
+                # 'x': 21.54, 
+                # 'y': 4.23,
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 90, 
+                # 'side': 'TOP', 
+                # 'align': 'bottom-left', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'}
+        # }
+        ###############################################################
         doc = FreeCAD.activeDocument()
         pcb = getPCBheight()
-        gruboscPlytki = pcb[1]
         result = ['OK']
         
-        #grp = doc.addObject("App::DocumentObjectGroup", "Parts")
-        
-        # basic data
-        partNameTXT = partNameTXT_label = self.generateNewLabel(newPart[0][0])
-        if isinstance(partNameTXT, str):
-            partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-        #
-        partValueTXT = newPart[0][2]
-        #if isinstance(partValueTXT, str):
-            #partValueTXT = unicodedata.normalize('NFKD', partValueTXT).encode('ascii', 'ignore')
-        partRotation = self.adjustRotation(newPart[0][5])  # rotation around Z
-        # check if 3D model exist
-        #################################################################
-        #################################################################
-        fileData = self.partExist(newPart[0], u"{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
-        #fileData [True, u'/home/mariusz/.FreeCAD/Mod/PCB/parts/resistors/R1206.stp', 8, {'software': u'Eagle', 'name': u'R1206', 'rx': 0.0, 'ry': 0.0, 'rz': 0.0, 'y': 0.02, 'x': 0.0, 'z': 0.28, 'id': 22, 'modelID': 8}, 2].
-        
+        partNameTXT = self.generateNewLabel(newPart['name'])
+        ###############################################################
+        # checking if 3D model exist
+        ###############################################################
+        fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']))
         if fileData[0]:
             if fileData[2] > 0:
                 modelData = self.__SQL__.getModelByID(fileData[2])
@@ -228,7 +309,8 @@ class partsManaging(mathFunctions):
                     modelData = {'sockedID': 0, 'socketIDSocket': False}
             else:
                 modelData = {'add_socket':'[False,None]'}
-            
+            #
+            newPart['rot'] = self.adjustRotation(newPart['rot'])
             filePath = fileData[1]
             correctingValue_X = fileData[3]['x']  # pos_X
             correctingValue_Y = fileData[3]['y']  # pos_Y
@@ -236,29 +318,19 @@ class partsManaging(mathFunctions):
             correctingValue_RX = fileData[3]['rx']  # pos_RX
             correctingValue_RY = fileData[3]['ry']  # pos_RY
             correctingValue_RZ = fileData[3]['rz']  # pos_RZ
-            ################################################################
+            ############################################################
             # ADDING OBJECT
-            ################################################################
+            ############################################################
             step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3]['name']))
-            step_model.Label = partNameTXT_label
+            step_model.Label = partNameTXT
             step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
             #
             obj = partObject(step_model)
             step_model.Package = u"{0}".format(fileData[3]['name'])
-            ################################################################
+            ############################################################
             # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
-            ################################################################
-            # step_model.Placement.Base.x = correctingValue_X
-            # step_model.Placement.Base.y = correctingValue_Y
-            
-            # step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(correctingValue_RZ, correctingValue_RY, correctingValue_RX))
-            
-            # xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
-            # yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
-            
-            # step_model.Placement.Base.x = xB0 + newPart[0][3]
-            # step_model.Placement.Base.y = yB0 + newPart[0][4]
-            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart[0][3], newPart[0][4])
+            ############################################################
+            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart["x"], newPart["y"])
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
@@ -326,100 +398,43 @@ class partsManaging(mathFunctions):
                 # PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
 
                 # self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #################################################################
+            ############################################################
             # 
-            #################################################################
+            ############################################################
             viewProviderPartObject(step_model.ViewObject)
             #
-            step_model.X = newPart[0][3]
-            step_model.Y = newPart[0][4]
-            step_model.Rot = partRotation # after settting X/Y
-            if newPart[0][6] == "BOTTOM":
-                step_model.Side = "{0}".format(newPart[0][6])
-            step_model.Proxy.updatePosition_Z(step_model, gruboscPlytki, True)
-            #################################################################
-            # KOLORY DLA ELEMENTOW
-            #################################################################
-            #if koloroweElemnty:
-                #if filePath.upper().endswith('.IGS') or filePath.upper().endswith('IGES'):
-                    #step_model = self.getColorFromIGS(filePath, step_model)
-                #elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
-                    #step_model = self.getColorFromSTP(filePath, step_model)
-        else:
+            step_model.X = newPart["x"]
+            step_model.Y = newPart["y"]
+            step_model.Rot = newPart['rot'] # after settting X/Y
+            if newPart["side"] == "BOTTOM":
+                step_model.Side = newPart["side"]
+            step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
+        else: # there is no suitable model in library
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
             if partMinX != 0 or partMinY or partMinZ:
                 return
-            #################################################################
-            #################################################################
-            ## DODANIE OBIEKTU NA PLANSZE
-            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, newPart[0][1]))
-            step_model.Label = partNameTXT_label
-            obj = partObject_E(step_model)
-            #step_model.Label = partNameTXT
-            step_model.Package = "{0}".format(newPart[0][1])
-            #step_model.Value = "{0}".format(i[0][2])
-            #####
-            # placement object to X, Y set in eagle
-            step_model.Placement.Base.x = step_model.Placement.Base.x + newPart[0][3]
-            step_model.Placement.Base.y = step_model.Placement.Base.y + newPart[0][4]
+            ############################################################
+            # ADDING OBJECT
+            ############################################################
+            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, newPart["package"]))
+            step_model.Label = partNameTXT
             
-            # move object to correct Z
-            step_model.Placement.Base.z = step_model.Placement.Base.z + gruboscPlytki
-            #####
-            step_model.Side = "{0}".format(newPart[0][6])
-            step_model.X = newPart[0][3]
-            step_model.Y = newPart[0][4]
-            step_model.Rot = partRotation
-            step_model.Proxy.update_Z = 0
-            ######
-            ######
-            # part name object
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            # annotationName = createAnnotation()
-            # annotationName.defaultName = u'{0}_Name'.format(partNameTXT_label)
-            # annotationName.mode = 'anno_name'
-            # annotationName.X = newPart[1][1]
-            # annotationName.Y = newPart[1][2]
-            # annotationName.Z = 0
-            # annotationName.Side = newPart[1][5]
-            # annotationName.Rot = self.adjustRotation(newPart[1][4])
-            # annotationName.Text = partNameTXT_label
-            # annotationName.Align = newPart[1][6]
-            # annotationName.Size = newPart[1][3]
-            # annotationName.Spin = newPart[1][7]
-            # annotationName.Mirror = newPart[1][8]
-            # annotationName.Visibility = newPart[1][10]
-            # annotationName.Color = (1., 1., 1.)
-            # #annotationName.generate()
-            # # part value
-            # # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            # annotationValue = createAnnotation()
-            # annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
-            # annotationValue.mode = 'anno_value'
-            # annotationValue.X = newPart[2][1]
-            # annotationValue.Y = newPart[2][2]
-            # annotationValue.Z = 0
-            # annotationValue.Side = newPart[2][5]
-            # annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            # annotationValue.Text = partValueTXT
-            # annotationValue.Align = newPart[2][6]
-            # annotationValue.Size = newPart[2][3]
-            # annotationValue.Spin = newPart[2][7]
-            # annotationValue.Mirror = newPart[2][8]
-            # annotationValue.Visibility = newPart[2][10]
-            # annotationValue.Color = (1., 1., 1.)
-            #annotationValue.generate()
-            #
-            #step_model.PartName = annotationName.Annotation
-            #step_model.PartValue = annotationValue.Annotation
-            ######
-            ######
+            obj = partObject_E(step_model)
+            step_model.Package = "{0}".format(newPart["package"])
+            
             viewProviderPartObject_E(step_model.ViewObject)
-            #################################################################
+            #
+            step_model.X = newPart["x"]
+            step_model.Y = newPart["y"]
+            step_model.Rot = newPart['rot'] # after settting X/Y
+            if newPart["side"] == "BOTTOM":
+                step_model.Side = newPart["side"]
+            step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
+            #
             result = ['Error']
-        ######
+        ################################################################
         result.append(step_model)
         self.addPartToGroup(groupParts, step_model)
         pcb[2].Proxy.addObject(pcb[2], step_model)
@@ -770,13 +785,11 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.connect()
 
-    def partExist(self, info, model, showDial=True):
+    def partExist(self, package, model, showDial=True):
         if not self.databaseType:
             return [False]
         
         try:
-            name = info[1]
-            
             databaseType = self.databaseType
             if databaseType in ['kicad_v3', 'kicad_v4']:
                 databaseType = 'kicad'
@@ -817,7 +830,7 @@ class partsManaging(mathFunctions):
 
                     #return [True, path, '', modelSoft, -1]; 
             #################
-            package = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
+            package = self.__SQL__.findPackage(package, supSoftware[databaseType]['name'])
             
             if package:
                 modelData = self.__SQL__.getModelByID(package.modelID)

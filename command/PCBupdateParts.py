@@ -202,7 +202,7 @@ class updateParts(partsManaging):
                 if self.form.listaElementow.item(j).checkState() == 2:
                     package = self.form.listaElementow.item(j).text()
                     
-                    fileData = self.partExist(["", package], u"")
+                    fileData = self.partExist(package, u"")
                     ####
                     for i in self.listOfModels[package]:
                         if i.Proxy.Type == "PCBpart" and fileData[0]:
@@ -237,16 +237,16 @@ class updateParts(partsManaging):
                             i.Proxy.updatePosition_Z(i, pcb[1], True)
                             self.addPartToGroup(groupParts, i)
                         elif i.Proxy.Type == "PCBpart_E" and fileData[0]:
-                            name = i.Label
-                            rot = i.Rot.Value
-                            side = i.Side
-                            socket = 0
-                            x = i.X.Value
-                            y = i.Y.Value
-                            library = i.Package 
-                            value = ""
+                            newPart = self.partStandardDictionary()
+                            newPart['name'] = i.Label
+                            newPart['library'] = i.Package
+                            newPart['package'] = package
+                            newPart['value'] = i.Rot.Value
+                            newPart['x'] = i.X.Value
+                            newPart['y'] = i.Y.Value
+                            newPart['rot'] = i.Rot.Value
+                            newPart['side'] = i.Side
                             
-                            newPart = [[name, library, value, x, y, rot, side, package], [], []]
                             result = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
                             if result[0] == 'OK':
                                 try:

@@ -49,17 +49,17 @@ from command.PCBconstraintAreas import createConstraintArea
 from PCBobjects import *
 
 from formats.eagle import EaglePCB
-#from formats.freepcb import FreePCB
-#from formats.geda import gEDA_PCB
-#from formats.fidocadj import FidoCadJ_PCB
-#from formats.razen import Razen_PCB
-from formats.kicad_v3 import KiCadv3_PCB
-from formats.kicad_v4 import KiCadv4_PCB
-#from formats.idf_v2 import IDFv2_PCB
-#from formats.idf_v3 import IDFv3_PCB
-#from formats.idf_v4 import IDFv4_PCB
-#from formats.diptrace import DipTrace_PCB
-#from formats.hyp import HYP_PCB
+# from formats.freepcb import FreePCB
+# from formats.geda import gEDA_PCB
+# from formats.fidocadj import FidoCadJ_PCB
+# from formats.razen import Razen_PCB
+# from formats.kicad_v3 import KiCadv3_PCB
+# from formats.kicad_v4 import KiCadv4_PCB
+# from formats.idf_v2 import IDFv2_PCB
+# from formats.idf_v3 import IDFv3_PCB
+# from formats.idf_v4 import IDFv4_PCB
+# from formats.diptrace import DipTrace_PCB
+# from formats.hyp import HYP_PCB
 
 
 
@@ -75,28 +75,28 @@ class mainPCB(partsManaging):
         
         if wersjaFormatu == "eagle":
             self.wersjaFormatu = EaglePCB(filename, self)
-        #elif wersjaFormatu == "freepcb":
-            #self.wersjaFormatu = FreePCB()
-        #elif wersjaFormatu == "geda":
-            #self.wersjaFormatu = gEDA_PCB(filename)
-        #elif wersjaFormatu == "fidocadj":
-            #self.wersjaFormatu = FidoCadJ_PCB(filename)
-        #elif wersjaFormatu == "razen":
-            #self.wersjaFormatu = Razen_PCB()
-        elif wersjaFormatu == "kicad_v3":
-            self.wersjaFormatu = KiCadv3_PCB(filename, self)
-        elif wersjaFormatu == "kicad_v4":
-            self.wersjaFormatu = KiCadv4_PCB(filename, self)
-        #elif wersjaFormatu == "idf_v2":
-            #self.wersjaFormatu = IDFv2_PCB(filename)
-        #elif wersjaFormatu == "idf_v3":
-            #self.wersjaFormatu = IDFv3_PCB(filename)
-        #elif wersjaFormatu == "idf_v4":
-            #self.wersjaFormatu = IDFv4_PCB(filename)
-        #elif wersjaFormatu == "diptrace":
-            #self.wersjaFormatu = DipTrace_PCB(filename)
-        #elif wersjaFormatu == "hyp_v2":
-            #self.wersjaFormatu = HYP_PCB(filename)
+        # elif wersjaFormatu == "freepcb":
+            # self.wersjaFormatu = FreePCB()
+        # elif wersjaFormatu == "geda":
+            # self.wersjaFormatu = gEDA_PCB(filename)
+        # elif wersjaFormatu == "fidocadj":
+            # self.wersjaFormatu = FidoCadJ_PCB(filename)
+        # elif wersjaFormatu == "razen":
+            # self.wersjaFormatu = Razen_PCB()
+        # elif wersjaFormatu == "kicad_v3":
+            # self.wersjaFormatu = KiCadv3_PCB(filename, self)
+        # elif wersjaFormatu == "kicad_v4":
+            # self.wersjaFormatu = KiCadv4_PCB(filename, self)
+        # elif wersjaFormatu == "idf_v2":
+            # self.wersjaFormatu = IDFv2_PCB(filename)
+        # elif wersjaFormatu == "idf_v3":
+            # self.wersjaFormatu = IDFv3_PCB(filename)
+        # elif wersjaFormatu == "idf_v4":
+            # self.wersjaFormatu = IDFv4_PCB(filename)
+        # elif wersjaFormatu == "diptrace":
+            # self.wersjaFormatu = DipTrace_PCB(filename)
+        # elif wersjaFormatu == "hyp_v2":
+            # self.wersjaFormatu = HYP_PCB(filename)
 
         self.setDatabase()
         
@@ -171,17 +171,16 @@ class mainPCB(partsManaging):
         errors = []
         
         for i in self.wersjaFormatu.getParts():
-            self.printInfo('\n    {0} ({1}): '.format(i[0][0], i[0][1]))
-            
+            self.printInfo('\n    {0} ({1}): '.format(i["name"], i["package"]))
             result = self.addPart(i, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
         
             if self.wersjaFormatu.dialogMAIN.plytkaPCB_plikER.isChecked() and result[0] == 'Error':
-                partNameTXT = partNameTXT_label = self.generateNewLabel(i[0][0])
+                partNameTXT = self.generateNewLabel(i["name"])
                 if isinstance(partNameTXT, str):
                     partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                 
                 #errors.append([partNameTXT, i['package'], i['value'], i['library']])
-                errors.append([partNameTXT, i[0][1], i[1], i[6]])
+                errors.append([partNameTXT, i["package"], i["value"], i["library"]])
                 self.printInfo('error', 'error')
             else:
                 self.printInfo('done')
@@ -313,7 +312,7 @@ class mainPCB(partsManaging):
             doc.Board.Holes = doc.PCB_Holes
             doc.recompute()
         except Exception as e:
-            self.printInfo(u'{0}'.format(e), 'error')
+            self.printInfo(u'\t{0}'.format(e), 'error')
         else:
             self.printInfo('done')
     

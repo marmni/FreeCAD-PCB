@@ -205,48 +205,44 @@ class EaglePCB(mathFunctions):
                     if not j.getAttribute('name') in self.libraries[i.getAttribute('name')]:
                         self.libraries[i.getAttribute('name')][j.getAttribute('name')] = j
 
+    def translateBoolValue(self, value):
+        value = value.strip()
+        
+        if value in ['no', '']:
+            value = False
+        elif value in ['yes']:
+            value = True
+        
+        return value
+
     def getElements(self):
         if len(self.elements) == 0:
             for i in self.projektBRD.getElementsByTagName("element"):
-                name = i.getAttribute('name')
-                library = i.getAttribute('library')
-                package = i.getAttribute('package')
-                freecad_package = package
-                value = i.getAttribute('value')
-                x = float(i.getAttribute('x'))
-                y = float(i.getAttribute('y'))
-                locked = i.getAttribute('locked')
-                populated = i.getAttribute('populate')
-                smashed = i.getAttribute('smashed')
-        
-                rot = i.getAttribute('rot')
-                if rot.startswith('R'):
-                    rot = float(rot[1:])
-                    side = 1  # TOP
-                elif rot.startswith('MR'):
-                    rot = float(rot[2:])
-                    side = 0  # BOTTOM
-                else:
-                    rot = 0.
-                    side = 1  # TOP
+                rot = 0
+                side = 1
+                name = i.getAttribute('name').strip()
+                package = i.getAttribute('package').strip()
+                #
+                if 'R' in i.getAttribute('rot'):
+                    rot = int(re.sub("[^0-9]", "", i.getAttribute('rot')))
+                if 'M' in i.getAttribute('rot'):
+                    side = 0
+                #
+                self.elements.append({
+                    'name': name, 
+                    'library': i.getAttribute('library'), 
+                    'package': package, 
+                    'value': i.getAttribute('value'), 
+                    'x': float(i.getAttribute('x')), 
+                    'y': float(i.getAttribute('y')), 
+                    'locked': self.translateBoolValue(i.getAttribute('locked')),
+                    'populated': self.translateBoolValue(i.getAttribute('populate')), 
+                    'smashed': self.translateBoolValue(i.getAttribute('smashed')), 
+                    'rot': rot, 
+                    'side': side,
+                    'dataElement': i
+                })
                 
-                # <uros@isotel.eu> fix to get a FREECAD attribute out, it's overall all ugly since original
-                # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
-                for attr in i.getElementsByTagName('attribute'):
-                    if attr.getAttribute('name') == 'FREECAD':
-                        if attr.getAttribute('value').strip() == "":
-                            FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(name))
-                        else:
-                            #if self.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                            if self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                                FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(name, attr.getAttribute('value').strip(), package))
-                                freecad_package = attr.getAttribute('value').strip()
-                            else:
-                                FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(name, attr.getAttribute('value').strip()))
-
-                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, "freecad_package" : freecad_package})
-                #self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'locked': locked, 'populated': populated, 'smashed': smashed, 'rot': rot, 'side': side, 'attr': attribute})
-    
     def getSection(self, sectionName):
         if sectionName.strip() == "":
             FreeCAD.Console.PrintWarning("Incorrect parameter (Section)!\n")
@@ -611,74 +607,121 @@ class EaglePCB(mathFunctions):
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
 
     def getParts(self):
-        # REWRITE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.getLibraries()
         self.getElements()
         parts = []
-        
-        for i in self.elements:
+        #
+        for k in self.elements:
+            i = dict(k)
+            #
             if i['side'] == 1:
-                side = "TOP"
+                i['side'] = "TOP"
             else:
-                side = "BOTTOM"
-            ######
-
-            EL_Name = ['', i['x'], i['y'], 1.27, i['rot'], side, "bottom-left", False, 'None', '', True]
-            EL_Value = ['', i['x'], i['y'], 1.27, i['rot'], side, "bottom-left", False, 'None', '', True]
-            ## [txt, x, y, size, rot, side, align, spin, mirror, font, display]
-            if i['smashed'] == "yes":
-                pass
-                #for j in self.getAnnotations(re.findall('<attribute (.+?)\n', i['attr']), mode='attr'):
-                    #if j[0] == 'NAME':
-                        #EL_Name = j
-                    #elif j[0] == 'VALUE':
-                        #EL_Value = j
-            else:
-                for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text"), mode='param'):
+                i['side'] = "BOTTOM"
+            #
+            if i['smashed'] != "yes":
+                for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text")):
                     x1 = i['x'] + j["x"]
                     y1 = i['y'] + j["y"]
                     
-                    if side == "BOTTOM":
+                    if i['side'] == "BOTTOM":
                         x1 = self.odbijWspolrzedne(x1, i['x'])
                         j["side"] = "BOTTOM"
-                        j["mirror"] = True
+                        #j["mirror"] = True
                         
                         [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], -i['rot'])
                     else:
                         [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], i['rot'])
-                    
-                    
+                    #
                     j["rot"] = j["rot"] + i['rot']
                     j["x"] = xR
                     j["y"] = yR
+                    #
+                    j["mode"] = 'param'
                     
-                    if j["text"] == '&gt;NAME' and EL_Name[0] == '':
+                    if j["text"] in ['&gt;NAME', ">NAME"]:
                         j["text"] = 'NAME'
-                        EL_Name = j
-                    elif j["text"] == '&gt;VALUE' and EL_Value[0] == '':
+                        i['EL_Name'] = j
+                    elif j["text"] in ['&gt;VALUE', ">VALUE"]:
                         j["text"] = 'VALUE'
-                        EL_Value = j
-                
-            #newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
-            #wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            # <uros@isotel.eu> modified package here and 7 lines below
-            newPart = [[i['name'], i['freecad_package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
-            
-            # parts.append({
-                # "name": i['name'],
-                # "package": i['freecad_package'],
-                # "value" : i['value'], 
-                # "x": i['x'], 
-                # "y": i['y'], 
-                # "rot": i['rot'], 
-                # "side": side, 
-                # "library": i['library'],
-                # "EL_Name": None,
-                # "EL_Value": None,
-            # })
-            
-            parts.append(newPart)
-        ####
+                        i["EL_Value"] = j
+            #
+            for attr in i['dataElement'].getElementsByTagName('attribute'):
+                # <uros@isotel.eu> fix to get a FREECAD attribute out, it's overall all ugly since original
+                # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
+                if attr.getAttribute('name') == 'FREECAD': # use different 3D model for current package
+                    if attr.getAttribute('value').strip() == "":
+                        FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(i["name"]))
+                    else:
+                        FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
+                        i['package'] = attr.getAttribute('value').strip()
+                        #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
+                        #    FreeCAD.Console.PrintWarning(u"\tIncorrect package '{1}' set for the element {0}.\n".format(i["name"], attr.getAttribute('value').strip()))
+                        
+                        #if self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
+                            # FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
+                            # package = attr.getAttribute('value').strip()
+                        # else:
+                            # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
+                elif attr.getAttribute('name') in ['NAME', 'VALUE'] and i['smashed'] == "yes":
+                    data = self.getAnnotations([attr], mode='param')[0]
+                    
+                    if data["text"] == "NAME":
+                        i['EL_Name'] = data
+                    elif attr.getAttribute('name') == "VALUE":
+                        i['EL_Value'] = data
+            #####################
+            # RESULT - EXAMPLE
+            #####################
+            # i = {
+                # 'name': 'E$2', 
+                # 'library': 'eagle-ltspice', 
+                # 'package': 'R0806', 
+                # 'value': '', 
+                # 'x': 19.0, 
+                # 'y': 5.5, 
+                # 'locked': '', 
+                # 'populated': '', 
+                # 'smashed': 'yes',
+                # 'rot': 90, 
+                # 'side': 'TOP', 
+                # 'dataElement': <DOM Element: element at 0x1bc2634cf20>, 
+                # 'EL_Name': {
+                    # 'text': 'NAME', 
+                    # 'x': 16.73,
+                    # 'y': 6.23, 
+                    # 'z': 0, 
+                    # 'size': 1.27, 
+                    # 'rot': 135, 
+                    # 'side': 'TOP', 
+                    # 'align': 'center', 
+                    # 'spin': True, 
+                    # 'font': 'Proportional', 
+                    # 'display': True, 
+                    # 'distance': 50, 
+                    # 'tracking': 0, 
+                    # 'mode': 'param'
+                # }, 
+                # 'EL_Value': {
+                    # 'text': 'VALUE', 
+                    # 'x': 21.54, 
+                    # 'y': 4.23,
+                    # 'z': 0, 
+                    # 'size': 1.27, 
+                    # 'rot': 90, 
+                    # 'side': 'TOP', 
+                    # 'align': 'bottom-left', 
+                    # 'spin': True, 
+                    # 'font': 'Proportional', 
+                    # 'display': True, 
+                    # 'distance': 50, 
+                    # 'tracking': 0, 
+                    # 'mode': 'param'}
+            # }
+            ##########################################
+            ##########################################
+            parts.append(i)
+        #
         return parts
 
     #def getPolygons(self, layerNumber):

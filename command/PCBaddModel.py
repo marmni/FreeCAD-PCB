@@ -272,31 +272,64 @@ class addModel(QtGui.QWidget, partsManaging):
             FreeCAD.Console.PrintWarning("Mandatory field is empty!\n")
             return False
         #
-        name = self.label.text()
-        package = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
-        value = self.value.text()
-        x = self.val_x.value()
-        y = self.val_y.value()
-        rot = self.rotation.value()
-        side = str(self.side.itemText(self.side.currentIndex()))
-        library = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
-        
-        EL_Name = ['', x, y + 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
-        EL_Value = ['', x, y - 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
-        
-        koloroweElemnty = self.loadModelColors.isChecked()
-        adjustParts = self.adjustParts.isChecked()
-        groupParts = self.groupParts.isChecked()
         self.databaseType = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole + 1)
+        #
+        newPart = self.partStandardDictionary()
+        newPart['name'] = self.label.text()
+        newPart['library'] = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        newPart['package'] = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        newPart['value'] = self.value.text()
+        newPart['x'] = self.val_x.value()
+        newPart['y'] = self.val_y.value()
+        newPart['rot'] = self.rotation.value()
+        newPart['side'] = str(self.side.itemText(self.side.currentIndex()))
         
-        newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
-        self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
+        newPart['EL_Name'] = self.val_x.value()
+        newPart['EL_Name'] = self.val_y.value()
+        newPart['EL_Name'] = self.rotation.value()
+        newPart['EL_Name'] = str(self.side.itemText(self.side.currentIndex()))
+        
+        newPart['EL_Value'] = self.val_x.value()
+        newPart['EL_Value'] = self.val_y.value()
+        newPart['EL_Value'] = self.rotation.value()
+        newPart['EL_Value'] = str(self.side.itemText(self.side.currentIndex()))
+        
+        self.addPart(newPart, self.loadModelColors.isChecked(), self.adjustParts.isChecked(), self.groupParts.isChecked())
         #
         if self.continueCheckBox.isChecked():
             self.label.setText('')
         else:
             self.removeRoot()
             return True
+        
+        
+        
+        
+        # name = self.label.text()
+        # package = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        # value = self.value.text()
+        # x = self.val_x.value()
+        # y = self.val_y.value()
+        # rot = self.rotation.value()
+        # side = str(self.side.itemText(self.side.currentIndex()))
+        # library = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        
+        # EL_Name = ['', x, y + 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
+        # EL_Value = ['', x, y - 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
+        
+        # koloroweElemnty = self.loadModelColors.isChecked()
+        # adjustParts = self.adjustParts.isChecked()
+        # groupParts = self.groupParts.isChecked()
+        # self.databaseType = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole + 1)
+        
+        # newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
+        # self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
+        # #
+        # if self.continueCheckBox.isChecked():
+            # self.label.setText('')
+        # else:
+            # self.removeRoot()
+            # return True
             
     def removeRoot(self):
         if self.root:

@@ -134,7 +134,7 @@ class partObject(partsObject):
         try:
             if prop == "Rot":
                 self.rotateZ(fp)
-            elif prop == "Side":  # REWRITE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            elif prop == "Side":
                 self.changeSide(fp)
                 #Draft.rotate([fp], 180, FreeCAD.Vector(fp.X.Value, fp.Y.Value, 0), axis=FreeCAD.Vector(0.0, 1.0, 0.0), copy=False)
                 self.updatePosition_Z(fp, getPCBheight()[1], True)
