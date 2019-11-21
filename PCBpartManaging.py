@@ -91,6 +91,7 @@ class partsManaging(mathFunctions):
         ################################################################
         ################################################################
         colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+        #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
         
         try:
             if os.path.exists(colFile):

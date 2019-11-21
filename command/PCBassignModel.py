@@ -27,7 +27,7 @@
 
 from PySide import QtCore, QtGui
 import os
-import FreeCAD
+import FreeCAD, FreeCADGui, Part
 import glob
 import sys
 #
@@ -35,8 +35,8 @@ from PCBdataBase import dataBase
 from PCBconf import supSoftware, defSoftware, partPaths
 from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScriptCopy, importScriptCopy, configParserRead, configParserWrite
 from PCBcategories import addCategoryGui, removeCategoryGui, updateCategoryGui, setOneCategoryGui
-from PCBpartManaging import partExistPath
-
+from PCBpartManaging import partExistPath, partsManaging
+from PCBobjects import *
 __currentPath__ = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -733,11 +733,13 @@ class flatButton(QtGui.QPushButton):
         self.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
 
 
-class dodajElement(QtGui.QDialog):
+class dodajElement(QtGui.QDialog, partsManaging):
     def __init__(self, parent=None):
+        partsManaging.__init__(self)
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u"Assign models")
         self.setWindowIcon(QtGui.QIcon(":/data/img/uklad.png"))
+        self.modelPreview = None
         
         self.elementID = None
         self.szukaneFrazy = []
@@ -834,6 +836,10 @@ class dodajElement(QtGui.QDialog):
                    "software" : []
                 }
         self.showData(tablica)
+        
+        self.RightSide_tab.setCurrentIndex(0)
+        self.pathsList.clear()
+        self.modelPreview.Shape = Part.Shape()
     
     def readFormData(self):
         try:
@@ -1248,7 +1254,7 @@ class dodajElement(QtGui.QDialog):
                     modelData = self.sql.packagesDataToDictionary(modelData)
                     self.showData(modelData)
             except Exception as e:
-                FreeCAD.Console.PrintWarning("ERROR: {0}.\n".format(e))
+                FreeCAD.Console.PrintWarning("ERROR (LD): {0}.\n".format(e))
 
     def reloadCategoryList(self):
         currentIndex = self.modelCategory.currentIndex()
@@ -1287,10 +1293,27 @@ class dodajElement(QtGui.QDialog):
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error 6: {0} \n".format(e))
     
+    def loadModelPreview(self, data):
+        [boolValue, path] = partExistPath(data)
+        if boolValue:
+            self.modelPreview = self.getPartShape(path, self.modelPreview, False)
+        else:
+            self.modelPreview.Shape = Part.Shape()
+
     def checkSockets(self, tabID):
         if tabID == 1 and self.socketModelName.count() == 0:
             self.boxAddSocket.setDisabled(True)
+        if tabID == 2: # preview
+            self.pathsList.clear()
+            if len(self.pathToModel.text().split(';')):
+                self.pathsList.addItems(self.pathToModel.text().split(';'))
+                self.connect(self.pathsList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadModelPreview)
+                self.pathsList.setCurrentIndex(-1)
+                self.pathsList.setCurrentIndex(0)
+            else:
+                self.modelPreview.Shape = Part.Shape()
         else:
+            self.pathsList.clear()
             self.boxAddSocket.setDisabled(False)
             
     def reloadSockets(self):
@@ -1451,6 +1474,52 @@ class dodajElement(QtGui.QDialog):
         layRightSide_Main.addWidget(modelSettingsDelete, 7, 2, 1, 1)
         layRightSide_Main.addWidget(modelSettingsEdit, 8, 2, 1, 1)
         layRightSide_Main.addWidget(modelSettingsCopy, 9, 2, 1, 1)
+        ##################
+        ##################
+        active = None
+        if FreeCAD.ActiveDocument:
+            active = FreeCAD.ActiveDocument.Name
+        #
+        doc = FreeCAD.newDocument('modelPreview')
+        FreeCAD.setActiveDocument('modelPreview')
+        FreeCAD.ActiveDocument = FreeCAD.getDocument('modelPreview')
+        FreeCADGui.ActiveDocument = FreeCADGui.getDocument('modelPreview')
+        
+        step_model = doc.addObject("Part::FeaturePython", "preview")
+        #step_model = self.getPartShape("D:\Program Files\FreeCAD 0.18\Mod\PCB\parts/batteries\CR2032V.stp", step_model, False)
+        self.modelPreview = step_model
+        viewProviderPartObject(step_model.ViewObject)
+        
+        FreeCADGui.SendMsgToActiveView("ViewFit")
+        FreeCADGui.ActiveDocument.ActiveView.setAxisCross(True)
+        
+        #
+        rightSide_Trash = QtGui.QWidget()
+        layRightSide_Trash = QtGui.QGridLayout(rightSide_Trash)
+        
+        
+        self.pathsList = QtGui.QComboBox()
+        
+        
+        rightSide_Preview = QtGui.QWidget()
+        layRightSide_Preview = QtGui.QGridLayout(rightSide_Preview)
+        layRightSide_Preview.addWidget(self.pathsList, 0, 0, 1, 1)
+        
+        wL = FreeCADGui.getMainWindow().findChild(QtGui.QMdiArea).subWindowList()
+        for i in wL:
+            if 'modelPreview' in i.windowTitle():
+                layRightSide_Trash.addWidget(i, 0, 0, 1, 1)
+                layRightSide_Preview.addWidget(i.widget(), 1, 0, 10, 1)
+                break
+
+        layRightSide_Preview.setRowStretch(1, 10);
+        #
+        if active:
+            FreeCAD.setActiveDocument(active)
+            FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+            FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+        ##################
+        ##################
         
         #  rightSide_Other
         rightSide_Other = QtGui.QWidget()
@@ -1466,6 +1535,10 @@ class dodajElement(QtGui.QDialog):
         self.RightSide_tab = QtGui.QTabWidget()
         self.RightSide_tab.addTab(rightSide_Main, u"Main")
         self.RightSide_tab.addTab(rightSide_Other, u"Other")
+        self.RightSide_tab.addTab(rightSide_Preview, u"Preview")
+        #self.RightSide_tab.addTab(rightSide_Trash, u"Trash")
+        #self.RightSide_tab.
+        
         self.connect(self.RightSide_tab, QtCore.SIGNAL("currentChanged (int)"), self.checkSockets)
         
         mainWidgetRightSide = QtGui.QWidget()
