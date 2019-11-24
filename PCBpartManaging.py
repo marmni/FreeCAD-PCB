@@ -53,7 +53,7 @@ class partsManaging(mathFunctions):
         #   -1 - brak podstawek
         #    0 - zapytaj o dodanie podstawki (def)
         #    1 - dodaj podstawki dla wszystkich obiektow
-        self.allSocked = 0
+        self.allSocket = 0
         self.databaseType = databaseType
         self.colFileVersion = 3
     
@@ -361,44 +361,62 @@ class partsManaging(mathFunctions):
                     return
             #################################################################
             # ADDING SOCKET
-            #   dodajPodstawke - definicja zachowania dla danego obiektu
-            #     0 - brak podstawki
-            #     1 - dodanie podstawki
+            #   addSocket = 
+            #               False - no socket
+            #               True  - add socket
+            #
             #################################################################
-            # dodajPodstawke = False
+            addSocket = False
             
-            # if modelData['socketIDSocket'] and self.allSocked == 0 and modelData['socketID'] != fileData[2]:
-                # socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+            if modelData['socketIDSocket'] and self.allSocket == 0 and modelData['socketID'] != fileData[2]:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                # if socketData["isSocket"]:
-                    # dial = QtGui.QMessageBox()
-                    # dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
-                    # dial.setWindowTitle("Socket")
-                    # dial.setIcon(QtGui.QMessageBox.Question)
-                    # dial.addButton('No', QtGui.QMessageBox.RejectRole)
-                    # podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
-                    # zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
-                    # nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
-                    # dial.exec_()
+                if socketData["isSocket"]:
+                    dial = QtGui.QMessageBox()
+                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart['package'], newPart["library"]))
+                    dial.setWindowTitle("Socket")
+                    dial.setIcon(QtGui.QMessageBox.Question)
+                    dial.addButton('No', QtGui.QMessageBox.RejectRole)
+                    podstawkaTAK = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
+                    zawszePodstawki = dial.addButton('Yes for all', QtGui.QMessageBox.YesRole)
+                    nigdyPodstawki = dial.addButton('No for all', QtGui.QMessageBox.RejectRole)
+                    dial.exec_()
                     
-                    # if dial.clickedButton() == nigdyPodstawki:
-                        # self.allSocked = -1
-                    # elif dial.clickedButton() == zawszePodstawki:
-                        # self.allSocked = 1
-                    # elif dial.clickedButton() == podstawkaTAK:
-                        # dodajPodstawke = True
-                    # else:
-                        # dodajPodstawke = False
-            # #
-            # if (dodajPodstawke or self.allSocked == 1) and modelData['socketIDSocket']:
-                # socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
+                    if dial.clickedButton() == nigdyPodstawki:
+                        self.allSocket = -1
+                    elif dial.clickedButton() == zawszePodstawki:
+                        self.allSocket = 1
+                    elif dial.clickedButton() == podstawkaTAK:
+                        addSocket = True
+                    else:
+                        addSocket = False
+            #
+            if (addSocket or self.allSocket == 1) and modelData['socketIDSocket']:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                # step_model.Socket.Value = socketData["isSocketHeight"]  # ustawienie wysokosci podstawki
-                # EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                # EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                # PCB_EL = [[socketData["name"], socketData["name"], "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
-
-                # self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+                step_model.Socket.Value = socketData["isSocketHeight"]  # socket height
+                #
+                socketModel = self.partStandardDictionary()
+                socketModel['name'] = "{0}_socket".format(partNameTXT)
+                socketModel['library'] = ""
+                socketModel['package'] = socketData["name"]
+                socketModel['value'] = ""
+                socketModel['x'] = newPart["x"]
+                socketModel['y'] = newPart["y"]
+                socketModel['rot'] = newPart['rot']
+                socketModel['side'] = newPart["side"]
+                
+                socketModel['EL_Name']["x"] = newPart["x"]
+                socketModel['EL_Name']["y"] = newPart["y"]
+                socketModel['EL_Name']["rot"] = newPart['rot']
+                socketModel['EL_Name']["side"] = newPart["side"]
+                
+                socketModel['EL_Value']["x"] = newPart["x"]
+                socketModel['EL_Value']["y"] = newPart["y"]
+                socketModel['EL_Value']["rot"] = newPart['rot']
+                socketModel['EL_Value']["side"] = newPart["side"]
+                #
+                self.addPart(socketModel, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
             ############################################################
             # 
             ############################################################

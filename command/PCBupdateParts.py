@@ -247,6 +247,16 @@ class updateParts(partsManaging):
                             newPart['rot'] = i.Rot.Value
                             newPart['side'] = i.Side
                             
+                            newPart['EL_Name']["x"] = i.X.Value
+                            newPart['EL_Name']["y"] = i.Y.Value
+                            newPart['EL_Name']["rot"] = i.Rot.Value
+                            newPart['EL_Name']["side"] = i.Side
+                            
+                            newPart['EL_Value']["x"] = i.X.Value
+                            newPart['EL_Value']["y"] = i.Y.Value
+                            newPart['EL_Value']["rot"] = i.Rot.Value
+                            newPart['EL_Value']["side"] = i.Side
+                            
                             result = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
                             if result[0] == 'OK':
                                 try:

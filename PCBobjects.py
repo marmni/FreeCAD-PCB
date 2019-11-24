@@ -197,7 +197,8 @@ class viewProviderPartObject:
         self.Object = obj.Object
     
     def claimChildren(self):
-        return [self.Object.PartName, self.Object.PartValue]
+        return []
+        #return [self.Object.PartName, self.Object.PartValue]
         
         #self.heightFlag = SoSeparator()
         #obj.addProperty("App::PropertyBool", "ShowHeight", "Base", "ShowHeight").ShowHeight = False

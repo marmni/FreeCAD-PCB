@@ -284,15 +284,15 @@ class addModel(QtGui.QWidget, partsManaging):
         newPart['rot'] = self.rotation.value()
         newPart['side'] = str(self.side.itemText(self.side.currentIndex()))
         
-        newPart['EL_Name'] = self.val_x.value()
-        newPart['EL_Name'] = self.val_y.value()
-        newPart['EL_Name'] = self.rotation.value()
-        newPart['EL_Name'] = str(self.side.itemText(self.side.currentIndex()))
+        newPart['EL_Name']["x"] = self.val_x.value()
+        newPart['EL_Name']["y"] = self.val_y.value()
+        newPart['EL_Name']["rot"] = self.rotation.value()
+        newPart['EL_Name']["side"] = str(self.side.itemText(self.side.currentIndex()))
         
-        newPart['EL_Value'] = self.val_x.value()
-        newPart['EL_Value'] = self.val_y.value()
-        newPart['EL_Value'] = self.rotation.value()
-        newPart['EL_Value'] = str(self.side.itemText(self.side.currentIndex()))
+        newPart['EL_Value']["x"] = self.val_x.value()
+        newPart['EL_Value']["y"] = self.val_y.value()
+        newPart['EL_Value']["rot"] = self.rotation.value()
+        newPart['EL_Value']["side"] = str(self.side.itemText(self.side.currentIndex()))
         
         self.addPart(newPart, self.loadModelColors.isChecked(), self.adjustParts.isChecked(), self.groupParts.isChecked())
         #

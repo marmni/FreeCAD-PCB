@@ -672,7 +672,11 @@ class modelsList(QtGui.QTreeWidget):
         self.checkItems = True
     
     def addNewModel(self, model):
-        mainItem = QtGui.QTreeWidgetItem([model.name, model.description])
+        description = model.description
+        description = description.replace("\n", " ")
+        description = description[:50]
+        
+        mainItem = QtGui.QTreeWidgetItem([model.name, description])
         mainItem.setData(0, QtCore.Qt.UserRole, model.id)
         mainItem.setData(0, QtCore.Qt.UserRole + 1, "P")
         if self.checkItems:
@@ -1296,7 +1300,21 @@ class dodajElement(QtGui.QDialog, partsManaging):
     def loadModelPreview(self, data):
         [boolValue, path] = partExistPath(data)
         if boolValue:
+            active = None
+            if FreeCAD.ActiveDocument:
+                active = FreeCAD.ActiveDocument.Name
+            FreeCAD.setActiveDocument('modelPreview')
+            FreeCAD.ActiveDocument = FreeCAD.getDocument('modelPreview')
+            FreeCADGui.ActiveDocument = FreeCADGui.getDocument('modelPreview')
+            FreeCADGui.activeDocument().activeView().viewIsometric()
+            
             self.modelPreview = self.getPartShape(path, self.modelPreview, False)
+            
+            FreeCADGui.SendMsgToActiveView("ViewFit")
+            if active:
+                FreeCAD.setActiveDocument(active)
+                FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+                FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
         else:
             self.modelPreview.Shape = Part.Shape()
 
@@ -1490,16 +1508,13 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.modelPreview = step_model
         viewProviderPartObject(step_model.ViewObject)
         
-        FreeCADGui.SendMsgToActiveView("ViewFit")
+        #FreeCADGui.SendMsgToActiveView("ViewFit")
         FreeCADGui.ActiveDocument.ActiveView.setAxisCross(True)
-        
         #
-        rightSide_Trash = QtGui.QWidget()
-        layRightSide_Trash = QtGui.QGridLayout(rightSide_Trash)
-        
-        
         self.pathsList = QtGui.QComboBox()
         
+        rightSide_Trash = QtGui.QWidget()
+        layRightSide_Trash = QtGui.QGridLayout(rightSide_Trash)
         
         rightSide_Preview = QtGui.QWidget()
         layRightSide_Preview = QtGui.QGridLayout(rightSide_Preview)
@@ -1508,6 +1523,13 @@ class dodajElement(QtGui.QDialog, partsManaging):
         wL = FreeCADGui.getMainWindow().findChild(QtGui.QMdiArea).subWindowList()
         for i in wL:
             if 'modelPreview' in i.windowTitle():
+                #widget = i.widget()
+                #wL = widget.layout()
+                #wI = wL.itemAt(0).widget().currentWidget()
+                #i.event = self.ppm
+                #FreeCAD.Console.PrintWarning(u"{0}\n".format(wI))
+                #i.widget().mouseMoveEvent = self.ppm
+                
                 layRightSide_Trash.addWidget(i, 0, 0, 1, 1)
                 layRightSide_Preview.addWidget(i.widget(), 1, 0, 10, 1)
                 break
@@ -1538,7 +1560,6 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.RightSide_tab.addTab(rightSide_Preview, u"Preview")
         #self.RightSide_tab.addTab(rightSide_Trash, u"Trash")
         #self.RightSide_tab.
-        
         self.connect(self.RightSide_tab, QtCore.SIGNAL("currentChanged (int)"), self.checkSockets)
         
         mainWidgetRightSide = QtGui.QWidget()
@@ -1550,7 +1571,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         mainLayRightSide.setContentsMargins(10, 10, 10, 10)
         
         return mainWidgetRightSide
-
+    
     ##########################
     # left menu - options
     ##########################

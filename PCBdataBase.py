@@ -335,7 +335,7 @@ class dataBase:
             else:
                 return query[0]
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (findPackage).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (FP): {0} (findPackage).\n".format(self.errorsDescription(e)))
             return False
             
     def packagesDataToDictionary(self, modelData):
@@ -353,7 +353,7 @@ class dataBase:
         query = self.session.query(Packages).filter(Packages.id == int(param))
         
         if query.count() == 0:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get package).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GPB_ID): {0} (get package).\n".format(self.errorsDescription(e)))
             return False
             
         return query[0]
@@ -367,7 +367,7 @@ class dataBase:
             
             return query
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get package).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
             return []
 
     def addPackage(self, data, modelID=0, modelName=0):
@@ -393,7 +393,7 @@ class dataBase:
             self.session.commit()
             self.lastInsertedID = package.id
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (add package).\n".format(e))
+            FreeCAD.Console.PrintWarning("ERROR (AP): {0} (add package).\n".format(e))
             return [False]
         
     def updatePackage(self, packageID, data):
@@ -419,7 +419,7 @@ class dataBase:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (update package).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update package).\n".format(self.errorsDescription(e)))
             return False
         
     def deletePackage(self, packageID):
@@ -428,7 +428,7 @@ class dataBase:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (delete package).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (DP): {0} (delete package).\n".format(self.errorsDescription(e)))
             return False
         else:
             return True
@@ -441,7 +441,7 @@ class dataBase:
             
             return query
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get all sockets).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GAS): {0} (get all sockets).\n".format(self.errorsDescription(e)))
             return []
     
     def getAllModels(self):
@@ -458,7 +458,7 @@ class dataBase:
             
             return [True, query[0]]
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GMBID): {0} (get model).\n".format(self.errorsDescription(e)))
             return [False]
 
     def getModelByName(self, param):
@@ -470,7 +470,7 @@ class dataBase:
             return [True, query[0]]
             
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GMBN): {0} (get model).\n".format(self.errorsDescription(e)))
             return [False]
     
     def deleteModel(self, modelID):
@@ -483,7 +483,7 @@ class dataBase:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (delete model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (DM): {0} (delete model).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Model was deleted.\n")
@@ -535,7 +535,7 @@ class dataBase:
 
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (add new model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (AM): {0} (add new model).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Model {0} was added.\n".format(name))
@@ -555,7 +555,7 @@ class dataBase:
             
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (update model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (SCFM): {0} (update model).\n".format(self.errorsDescription(e)))
             return False
         else:
             return True
@@ -573,7 +573,7 @@ class dataBase:
             
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (update model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (UMS): {0} (update model).\n".format(self.errorsDescription(e)))
             return False
     
     def updateModel(self, modelID, data):
@@ -618,7 +618,7 @@ class dataBase:
             
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (update model).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update model).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Model {0} was updated.\n".format(name))
@@ -633,7 +633,7 @@ class dataBase:
             return [True, query[0]]
             
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR: {0} (get category).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (GCBN): {0} (get category).\n".format(self.errorsDescription(e)))
             return [False]
     
     def getCategoryByID(self, catID=0):
@@ -643,7 +643,7 @@ class dataBase:
         query = self.session.query(Categories).filter(Categories.id == int(catID))
         
         if query.count() == 0:
-            FreeCAD.Console.PrintWarning("ERROR: Category does not exist.\n")
+            FreeCAD.Console.PrintWarning("ERROR (GCBID): Category does not exist.\n")
             return False
         
         return query[0]
@@ -678,7 +678,7 @@ class dataBase:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (delete category).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (DC): {0} (delete category).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Category {0} was deleted.\n".format(categoryData.name))
@@ -701,7 +701,7 @@ class dataBase:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (update category).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (UC): {0} (update category).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Category {0} was updated.\n".format(name))
@@ -725,7 +725,7 @@ class dataBase:
             self.lastInsertedID = categories.id
         except Exception as e:
             self.session.rollback()
-            FreeCAD.Console.PrintWarning("ERROR: {0} (add new category).\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR (AC): {0} (add new category).\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Category {0} was added.\n".format(name))
