@@ -428,6 +428,14 @@ class PCBannotation(_DraftObject):
         ##
         obj.Proxy = self
     
+    def __getstate__(self):
+        return [self.Type, self.block]
+
+    def __setstate__(self, state):
+        if state:
+            self.Type = state[0]
+            self.block  = state[1]
+    
     def textAlign(self):
         FreeCAD.Console.PrintWarning("{0}\n".format(self.alignParam))
     

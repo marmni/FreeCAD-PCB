@@ -277,7 +277,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
                 else:
                     self.spisWarstw.cellWidget(i, 0).setCheckState(QtCore.Qt.Unchecked)
 
-    def generateLayers(self, forbidden=[-1]):
+    def generateLayers(self, forbidden=[]):
         ''' '''
         for i, j in self.layersNames.items():
             layerID = int(i)
@@ -285,6 +285,17 @@ class dialogMAIN_FORM(QtGui.QDialog):
             
             if layerID in forbidden:
                 continue
+            
+            ######################################
+            # gEDA
+            if self.databaseType == "geda":
+                layerID = j["type"]
+                
+                if "bottom" in layerName.lower():
+                    layerID += "B"
+                elif "top" in layerName.lower():
+                    layerID += "T"
+            ######################################
             
             if layerID in PCBconf.softLayers[self.databaseType]:
                 if "name" in PCBconf.softLayers[self.databaseType][layerID].keys():
@@ -301,6 +312,12 @@ class dialogMAIN_FORM(QtGui.QDialog):
                 
                 layerValue = ['double', u'μm', 34.6, 0, 350]
                 layerSide = [1, False]  # [layer side, block drop down list TRUE/FALSE]
+            
+            ######################################
+            # gEDA
+            if self.databaseType == "geda":
+                layerID += "_" + str(j["number"])
+            ######################################
             
             self.spisWarstwAddRow(layerID, layerColor, layerValue, layerName, layerSide)
 

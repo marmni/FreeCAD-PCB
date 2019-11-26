@@ -194,9 +194,6 @@ def wersjaFormatuF(filename):
             except:
                 return [False]
     elif rozsz == ".pcb":  # geda
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
         projektBRD = builtins.open(filename, "r").read()
         try:
             wersjaProgramu = re.search(r"# release: pcb (.*)", projektBRD).groups()[0]
@@ -208,6 +205,18 @@ def wersjaFormatuF(filename):
                     wersjaProgramu = re.search(r"# release: pcb.exe (.*)", projektBRD).groups()[0]
                 except:
                     return [False]
+        ##########################
+        # min. required file version 
+        fileVersion = 0
+        try:
+            fileVersion = re.findall(r'FileVersion\[(.+?)\]', projektBRD)[0]
+        except:
+            pass
+            
+        if int(fileVersion) < 20170218:
+            FreeCAD.Console.PrintError("File version is too old - min. required version is 20170218. Save file in newer gEDA version. ")
+            return [False]
+        ##########################
         return ["geda", "gEDA {0}".format(wersjaProgramu)]
     else:
         return [False]

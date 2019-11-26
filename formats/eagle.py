@@ -483,7 +483,6 @@ class EaglePCB(mathFunctions):
         else:
             return False
         
-        
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
         if types['IH']:  # detecting collisions between holes - intersections

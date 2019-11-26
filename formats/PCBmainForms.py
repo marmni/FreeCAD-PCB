@@ -50,7 +50,7 @@ from PCBobjects import *
 
 from formats.eagle import EaglePCB
 # from formats.freepcb import FreePCB
-# from formats.geda import gEDA_PCB
+from formats.geda import gEDA_PCB
 # from formats.fidocadj import FidoCadJ_PCB
 # from formats.razen import Razen_PCB
 # from formats.kicad_v3 import KiCadv3_PCB
@@ -77,8 +77,8 @@ class mainPCB(partsManaging):
             self.wersjaFormatu = EaglePCB(filename, self)
         # elif wersjaFormatu == "freepcb":
             # self.wersjaFormatu = FreePCB()
-        # elif wersjaFormatu == "geda":
-            # self.wersjaFormatu = gEDA_PCB(filename)
+        elif wersjaFormatu == "geda":
+            self.wersjaFormatu = gEDA_PCB(filename, self)
         # elif wersjaFormatu == "fidocadj":
             # self.wersjaFormatu = FidoCadJ_PCB(filename)
         # elif wersjaFormatu == "razen":
@@ -130,7 +130,12 @@ class mainPCB(partsManaging):
         grp_2 = createGroup_Areas()
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
-                layerNumber = int(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text())
+                ################
+                if self.databaseType == "geda":
+                    layerNumber = self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text()
+                else:
+                    layerNumber = int(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text())
+                #
                 layerName = str(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 5).text())
                 
                 try:
@@ -148,7 +153,10 @@ class mainPCB(partsManaging):
                     layerTransp = None
                 #
                 layerFunction = self.wersjaFormatu.defineFunction(layerNumber)
-                
+                # ################
+                # if self.databaseType == "geda":
+                    # layerNumber = int(layerNumber.split("_")[1])
+                # ################
                 self.printInfo("\nImporting layer '{0}': ".format(layerName))
                 try:
                     if layerFunction in ["silk", "pads", "paths"]:
@@ -203,8 +211,9 @@ class mainPCB(partsManaging):
             self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
             self.wersjaFormatu.getPaths(layerNew, [layerNumber, layerNameO], [True, True, True, False])
         else:
-            self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
-            self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
+            if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
+                self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
+                self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
                 
             if layerVariant == "pads":
                 self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)

@@ -27,6 +27,7 @@
 
 import FreeCAD
 import random
+import builtins
 from PySide import QtCore, QtGui
 import os
 import time
@@ -103,6 +104,38 @@ def configParserWrite(sectionName, data):
             #FreeCAD.Console.PrintWarning('\n')
             #FreeCAD.Console.PrintWarning(text)
             #FreeCAD.Console.PrintWarning('\n')
+
+
+def setProjectFile(filename):
+    projektBRD = builtins.open(filename, "r").read()[1:]
+    wynik = ''
+    licznik = 0
+    txt = ''
+    start = 0
+    #
+    txt_1 = 0
+
+    for i in projektBRD:
+        if i in ['"', "'"] and txt_1 == 0:
+            txt_1 = 1
+        elif i in ['"', "'"] and txt_1 == 1:
+            txt_1 = 0
+        
+        if txt_1 == 0:
+            if i == '(':
+                licznik += 1
+                start = 1
+            elif i == ')':
+                licznik -= 1
+        
+        txt += i
+        
+        if licznik == 0 and start == 1:
+            wynik += '[start]' + txt.strip() + '[stop]'
+            txt = ''
+            start = 0
+    
+    return wynik
 
 
 def wygenerujID(ll, lc):
