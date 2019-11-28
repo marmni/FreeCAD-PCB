@@ -99,14 +99,14 @@ def wersjaFormatuF(filename):
             return [False]
         
     elif rozsz in [".idf", ".brd", ".brd", ".emn", ".bdf", ".idb"]:
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
         try:  # idf v2
             projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
             ver = re.findall(r'board_file\s+(.+?)\s+', projektBRD)[0]
             return ["idf_v2", "IDF v2"]
         except:
+            FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+            return [False]
+            
             try:  # idf v3
                 ver = re.findall(r'BOARD_FILE\s+(.+?)\s+', projektBRD)[0]
                 return ["idf_v3", "IDF v3"]

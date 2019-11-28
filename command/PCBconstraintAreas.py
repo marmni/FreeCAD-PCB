@@ -79,4 +79,4 @@ def createConstraintArea(obj, typeCA, height=0):
             
             return a
     except Exception as e:
-        FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        FreeCAD.Console.PrintWarning("Error CCA: {0} \n".format(e))

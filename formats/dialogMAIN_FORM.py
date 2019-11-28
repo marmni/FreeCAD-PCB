@@ -209,7 +209,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         #
         self.lay = QtGui.QGridLayout()
         #self.lay.addLayout(layLeftSide, 0, 0, 8, 1, QtCore.Qt.AlignTop)
-        self.lay.addWidget(self.spisWarstw, 0, 1, 10, 2)
+        self.lay.addWidget(self.spisWarstw, 0, 1, 11, 2)
         self.lay.addWidget(self.selectAll, 10, 1, 1, 1)
         self.lay.addWidget(self.debugImport, 10, 2, 1, 1)
         
@@ -225,10 +225,10 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.lay.addWidget(self.adjustParts, 7, 3, 1, 3)
         self.lay.addWidget(self.plytkaPCB_plikER, 8, 3, 1, 3)
         self.lay.addLayout(layPartSize, 5, 6, 5, 1)
-        self.lay.addItem(QtGui.QSpacerItem(10, 10), 11, 3, 1, 3)
+        self.lay.addItem(QtGui.QSpacerItem(10, 10), 12, 3, 1, 3)
         # 12 - lib
-        self.lay.addItem(QtGui.QSpacerItem(10, 10), 13, 3, 1, 3)
-        self.lay.addWidget(buttons, 14, 3, 1, 4, QtCore.Qt.AlignRight)
+        self.lay.addItem(QtGui.QSpacerItem(10, 10), 14, 3, 1, 3)
+        self.lay.addWidget(buttons, 15, 3, 1, 4, QtCore.Qt.AlignRight)
         self.lay.setRowStretch(9, 10)
         self.lay.setColumnMinimumWidth(2, 200)
         self.lay.setColumnMinimumWidth(3, 120)
@@ -280,23 +280,24 @@ class dialogMAIN_FORM(QtGui.QDialog):
     def generateLayers(self, forbidden=[]):
         ''' '''
         for i, j in self.layersNames.items():
-            layerID = int(i)
-            layerName = j['name']
-            
-            if layerID in forbidden:
-                continue
-            
             ######################################
-            # gEDA
-            if self.databaseType == "geda":
+            if self.databaseType == "geda": # gEDA
                 layerID = j["type"]
                 
                 if "bottom" in layerName.lower():
                     layerID += "B"
                 elif "top" in layerName.lower():
                     layerID += "T"
+            elif self.databaseType == "idf_v2":
+                layerID = i
+            else:
+                layerID = int(i)
             ######################################
+            if layerID in forbidden:
+                continue
             
+            layerName = j['name']
+            #
             if layerID in PCBconf.softLayers[self.databaseType]:
                 if "name" in PCBconf.softLayers[self.databaseType][layerID].keys():
                     layerName = PCBconf.softLayers[self.databaseType][layerID]["name"]

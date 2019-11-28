@@ -620,7 +620,7 @@ class PCBannotation(_DraftObject):
                     fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
                     
                     self.przX = 0
-                    self.przY = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    self.przY = fp.Shape.BoundBox.YLength
                 elif fp.Justification == "bottom-center":
                     fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
                     fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
@@ -714,7 +714,7 @@ class PCBannotation(_DraftObject):
                     fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
                     
                     self.przX = 0
-                    self.przY = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    self.przY = fp.Shape.BoundBox.YLength
                 elif fp.Justification == "top-center":
                     fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
                     fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength

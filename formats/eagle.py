@@ -37,7 +37,7 @@ from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
-from PCBfunctions import mathFunctions
+from PCBfunctions import mathFunctions, filterHoles
 from PCBconf import eagleColorsDefinition
 
 
@@ -471,18 +471,7 @@ class EaglePCB(mathFunctions):
     ##############################
     # LAYERS
     ##############################
-    def filterHoles(self, r, Hmin, Hmax):
-        if Hmin == 0 and Hmax == 0:
-            return True
-        elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
-            return True
-        elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
-            return True
-        elif Hmin <= r * 2 <= Hmax:
-            return True
-        else:
-            return False
-        
+
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
         if types['IH']:  # detecting collisions between holes - intersections
@@ -495,7 +484,7 @@ class EaglePCB(mathFunctions):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
+                if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
                         add = True
                         try:
@@ -521,7 +510,7 @@ class EaglePCB(mathFunctions):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
+                if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
                         add = True
                         try:
@@ -555,7 +544,7 @@ class EaglePCB(mathFunctions):
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if self.filterHoles(drill, Hmin, Hmax):
+                    if filterHoles(drill, Hmin, Hmax):
                         if types['IH']:  # detecting collisions between holes - intersections
                             add = True
                             try:
@@ -585,7 +574,7 @@ class EaglePCB(mathFunctions):
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if self.filterHoles(drill, Hmin, Hmax):
+                    if filterHoles(drill, Hmin, Hmax):
                         if types['IH']:  # detecting collisions between holes - intersections
                             add = True
                             try:

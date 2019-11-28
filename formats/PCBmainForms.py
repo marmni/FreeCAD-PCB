@@ -55,7 +55,7 @@ from formats.geda import gEDA_PCB
 # from formats.razen import Razen_PCB
 # from formats.kicad_v3 import KiCadv3_PCB
 # from formats.kicad_v4 import KiCadv4_PCB
-# from formats.idf_v2 import IDFv2_PCB
+from formats.idf_v2 import IDFv2_PCB
 # from formats.idf_v3 import IDFv3_PCB
 # from formats.idf_v4 import IDFv4_PCB
 # from formats.diptrace import DipTrace_PCB
@@ -87,12 +87,12 @@ class mainPCB(partsManaging):
             # self.wersjaFormatu = KiCadv3_PCB(filename, self)
         # elif wersjaFormatu == "kicad_v4":
             # self.wersjaFormatu = KiCadv4_PCB(filename, self)
-        # elif wersjaFormatu == "idf_v2":
-            # self.wersjaFormatu = IDFv2_PCB(filename)
+        elif wersjaFormatu == "idf_v2":
+            self.wersjaFormatu = IDFv2_PCB(filename, self)
         # elif wersjaFormatu == "idf_v3":
-            # self.wersjaFormatu = IDFv3_PCB(filename)
+            # self.wersjaFormatu = IDFv3_PCB(filename, self)
         # elif wersjaFormatu == "idf_v4":
-            # self.wersjaFormatu = IDFv4_PCB(filename)
+            # self.wersjaFormatu = IDFv4_PCB(filename, self)
         # elif wersjaFormatu == "diptrace":
             # self.wersjaFormatu = DipTrace_PCB(filename)
         # elif wersjaFormatu == "hyp_v2":
@@ -131,7 +131,7 @@ class mainPCB(partsManaging):
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
                 ################
-                if self.databaseType == "geda":
+                if self.databaseType in ["geda", "idf_v2"]:
                     layerNumber = self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text()
                 else:
                     layerNumber = int(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text())
@@ -330,7 +330,7 @@ class mainPCB(partsManaging):
     
     def generateConstraintAreas(self, doc, layerNumber, grp, layerName, layerColor, layerTransparent):
         typeL = PCBconf.softLayers[self.databaseType][layerNumber]['ltype']
-
+        
         for i in self.wersjaFormatu.getConstraintAreas(layerNumber):
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
             ser.ViewObject.Visibility = False
@@ -492,7 +492,6 @@ class mainPCB(partsManaging):
         for i in annotations:
             #FreeCAD.Console.PrintWarning("{0}\n".format(i))
             annotation = createAnnotation()
-            annotation.mode = "anno"
             annotation.X = i["x"]
             annotation.Y = i["y"]
             annotation.Z = i["z"]

@@ -238,7 +238,14 @@ PCBconstraintAreas = {
     "bRouteOutline": ["Route Outline Bottom", ['bRestrict', 'bRouteOutline', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bRouteOutlineColor', 65535), ''],
     "tRouteKeepout": ["Route Keepout Top", ['tRestrict', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "Restricted areas for copper, top side"],
     "bRouteKeepout": ["Route Keepout Bottom", ['bRestrict', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bRouteKeepoutColor', 65535), "Restricted areas for copper, bottom side"],
-    "vRouteKeepout": ["Via Keepout", ['vRestrict', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteKeepoutColor', 255), "Restricted areas for vias"]
+    "vRouteKeepout": ["Via Keepout", ['vRestrict', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteKeepoutColor', 255), "Restricted areas for vias"],
+    "routeOutline":["ROUTE_OUTLINE", ["vRouteOutline", 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteOutlineColor', 255), "ROUTE_OUTLINE"],
+    "placeOutline": ["PLACE_OUTLINE", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceOutlineColor', 255), "PLACE_OUTLINE"],
+    "viaKeepout": ["Via Keepout", ['vRestrict', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteKeepoutColor', 255), "Restricted areas for vias"],
+    "tPlaceRegion": ["Place Outline Top", ['tPlaceOutline', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceOutlineColor', 4278190335), ''],
+    "bPlaceRegion": ["Place Outline Bottom", ['bPlaceOutline', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
+    "vPlaceRegion": ["Place Outline", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
+
 }
 
 PCBlayers = {
@@ -284,6 +291,20 @@ softLayers = {
         51: {"side": 1, "mirrorLayer": 52, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed top screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
         52: {"side": 0, "mirrorLayer": 51, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed bottom screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
     },
+    "idf_v2": {
+        "ROUTE_OUTLINE": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteOutlineColor', 255), "ltype": 'vRouteOutline', "description": "ROUTE_OUTLINE", "value": ['int', '%', 50, 0, 100]},
+        "PLACE_OUTLINE": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vPlaceOutlineColor', 255), "ltype": 'vPlaceOutline', "description": "PLACE_OUTLINE", "value": ['int', '%', 50, 0, 100]},
+        "T_ROUTE_KEEPOUT": {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "T_ROUTE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "B_ROUTE_KEEPOUT": {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "B_ROUTE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "V_ROUTE_KEEPOUT": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "V_ROUTE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "VIA_KEEPOUT": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "VIA_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "T_PLACE_KEEPOUT": {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "ltype": 'tPlaceKeepout', "description": "T_PLACE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "B_PLACE_KEEPOUT": {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "ltype": 'bPlaceKeepout', "description": "B_PLACE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "V_PLACE_KEEPOUT": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vPlaceKeepoutColor', 65535), "ltype": 'vPlaceKeepout', "description": "V_PLACE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},
+        "T_PLACE_REGION": {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceRegionColor', 4278190335), "ltype": 'tPlaceRegion', "description": "T_PLACE_REGION", "value": ['int', '%', 50, 0, 100]},
+        "B_PLACE_REGION": {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceRegionColor', 4278190335), "ltype": 'bPlaceRegion', "description": "B_PLACE_REGION", "value": ['int', '%', 50, 0, 100]},
+        "V_PLACE_REGION": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceRegionColor', 4278190335), "ltype": 'vPlaceRegion', "description": "V_PLACE_REGION", "value": ['int', '%', 50, 0, 100]},
+    },
     "geda": {
         "anno": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
         "copperT": {"side": 1, "mirrorLayer": 16, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
@@ -292,7 +313,7 @@ softLayers = {
         "padB": {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]},   
         "silkT": {"side": 1, "mirrorLayer": "silkB", "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed top screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
         "silkB": {"side": 0, "mirrorLayer": "silkT", "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed bottom screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
-    }
+    },
     # "kicad": {
         # 15: {"side": 1, "mirrorLayer": 0, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
         # 0: {"side": 0, "mirrorLayer": 15, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 

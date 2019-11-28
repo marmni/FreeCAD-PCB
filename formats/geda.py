@@ -34,7 +34,7 @@ from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
-from PCBfunctions import mathFunctions, setProjectFile
+from PCBfunctions import mathFunctions, setProjectFile, filterHoles
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -78,7 +78,7 @@ class dialogMAIN(dialogMAIN_FORM):
 class gEDA_PCB(mathFunctions):
     '''Board importer for gEDA software'''
     def __init__(self, filename, parent):
-        self.groups = {}  # layers groups
+        #self.groups = {}  # layers groups
         #
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
@@ -97,17 +97,17 @@ class gEDA_PCB(mathFunctions):
             self.globalUnit = True  # mils
         except:
             self.globalUnit = False
-        ##############
-        # layers groups
-        # c: top
-        # s: bottom
-        data = re.search('Groups\("(.*?)"\)', self.projektBRD).groups()[0]
-        self.groups = {
-            'top': re.search('([0-9,]*?),c', data).groups()[0].split(','),
-            'bottom': re.search('([0-9,]*?),s', data).groups()[0].split(',')
-            }
-        ##############
-        #self.projektBRD = re.sub(r'(.*)\((.*)\)', r'\1[\2]', self.projektBRD)
+        # ##############
+        # # layers groups
+        # # c: top
+        # # s: bottom
+        # data = re.search('Groups\("(.*?)"\)', self.projektBRD).groups()[0]
+        # self.groups = {
+            # 'top': re.search('([0-9,]*?),c', data).groups()[0].split(','),
+            # 'bottom': re.search('([0-9,]*?),s', data).groups()[0].split(',')
+            # }
+        # ##############
+        # #self.projektBRD = re.sub(r'(.*)\((.*)\)', r'\1[\2]', self.projektBRD)
         
     def setUnit(self, value):
         '''Get unit from transferred value and convert to millimeters - if necessary
@@ -132,48 +132,62 @@ class gEDA_PCB(mathFunctions):
         
     def getNormalAnnotations(self):
         adnotacje = []
-        
+        #
+        data= re.findall(r'Layer\([0-9]*\s+"(.+?)\s+.+?\)\[stop\]\[start\](.+?)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL)
+        for i in data:
+            for j in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', i[1]):
+                side = "TOP"
+                rot = int(j[2]) * 90
+                if "bottom" in i[0].lower():
+                    side = "BOTTOM"
+                    rot += 180
+                
+                adnotacje.append({
+                    "text": str(j[4]),
+                    "x": self.setUnit(j[0]),
+                    "y": 0 - self.setUnit(j[1]),
+                    "z": 0,
+                    "size": (float(j[3]) * 1.016) / 100, # 1.016 == 40mils (default size)
+                    "rot": rot,
+                    "side": side,
+                    "align": "top-left",
+                    "spin": True,
+                    "font": "Fixed",
+                    "display": True,
+                    "distance": 1,
+                    "tracking": 0,
+                    "mode": 'anno'
+                })
+        #
         return adnotacje
 
-    def getAnnotations(self):
-        annotations = []
-        #
-        for i in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', self.projektBRD):
-            x = self.setUnit(i[0])
-            y = 0 - self.setUnit(i[1])
-            #txt = str(i[4])[1:-1]
-            txt = str(i[4])
-            align = 'top-left'
-            size = (float(i[3]) * 40 * 0.0254) / 100
-            spin = False
-            mirror = 0
-            font = 'proportional'
-            side = 'TOP'
+    #def getAnnotations(self, dane1, mode='anno'):
+        # annotations = []
+        # #
+        # for i in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', self.projektBRD):
+            # x = self.setUnit(i[0])
+            # y = 0 - self.setUnit(i[1])
+            # #txt = str(i[4])[1:-1]
+            # txt = str(i[4])
+            # align = 'top-left'
+            # size = (float(i[3]) * 40 * 0.0254) / 100
+            # spin = False
+            # mirror = 0
+            # font = 'proportional'
+            # side = 'TOP'
             
-            if int(i[2]) == 0:
-                rot = 0
-            elif int(i[2]) == 1:
-                rot = 90
-            elif int(i[2]) == 2:
-                rot = 180
-            else:
-                rot = 270
+            # if int(i[2]) == 0:
+                # rot = 0
+            # elif int(i[2]) == 1:
+                # rot = 90
+            # elif int(i[2]) == 2:
+                # rot = 180
+            # else:
+                # rot = 270
 
-            annotations.append([txt, x, y, size, rot, side, align, spin, mirror, font])
-        #
-        return annotations
-    
-    def filterHoles(self, r, Hmin, Hmax):
-        if Hmin == 0 and Hmax == 0:
-            return True
-        elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
-            return True
-        elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
-            return True
-        elif Hmin <= r * 2 <= Hmax:
-            return True
-        else:
-            return False
+            # annotations.append([txt, x, y, size, rot, side, align, spin, mirror, font])
+        # #
+        # return annotations
     
     def getParts(self):
         self.getElements()
@@ -213,7 +227,7 @@ class gEDA_PCB(mathFunctions):
                 
                 r = i["drill"] / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
+                if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
                         add = True
                         try:
@@ -241,7 +255,7 @@ class gEDA_PCB(mathFunctions):
                 
                 r = i["drill"] / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
+                if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
                         add = True
                         try:
@@ -276,7 +290,7 @@ class gEDA_PCB(mathFunctions):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if self.filterHoles(r, Hmin, Hmax):
+                        if filterHoles(r, Hmin, Hmax):
                             if types['IH']:  # detecting collisions between holes - intersections
                                 add = True
                                 try:
@@ -304,7 +318,7 @@ class gEDA_PCB(mathFunctions):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if self.filterHoles(r, Hmin, Hmax):
+                        if filterHoles(r, Hmin, Hmax):
                             if types['IH']:  # detecting collisions between holes - intersections
                                 add = True
                                 try:

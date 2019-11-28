@@ -105,6 +105,18 @@ def configParserWrite(sectionName, data):
             #FreeCAD.Console.PrintWarning(text)
             #FreeCAD.Console.PrintWarning('\n')
 
+def filterHoles(r, Hmin, Hmax):
+    if Hmin == 0 and Hmax == 0:
+        return True
+    elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
+        return True
+    elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
+        return True
+    elif Hmin <= r * 2 <= Hmax:
+        return True
+    else:
+        return False
+
 
 def setProjectFile(filename):
     projektBRD = builtins.open(filename, "r").read()[1:]
