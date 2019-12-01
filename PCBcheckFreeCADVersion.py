@@ -36,7 +36,8 @@ __requiredFreeCADVersion__ = (0.18, 0.18)  # (min, max)
 
 def currentFreeCADVersion():
     data = FreeCAD.Version()
-    return float(data[0] + '.' + data[1])
+    # data[1] may contain '18' or '18.4'. In case of '18.4', just keep the '18' part
+    return float(data[0] + '.' + (data[1][:data[1].index('.')] if '.' in data[1] else data[1]))
 
 
 def checkPythonVesion():
