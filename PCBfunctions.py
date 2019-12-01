@@ -118,7 +118,7 @@ def filterHoles(r, Hmin, Hmax):
         return False
 
 
-def setProjectFile(filename):
+def setProjectFile(filename, char=['(', ')']):
     projektBRD = builtins.open(filename, "r").read()[1:]
     wynik = ''
     licznik = 0
@@ -134,10 +134,10 @@ def setProjectFile(filename):
             txt_1 = 0
         
         if txt_1 == 0:
-            if i == '(':
+            if i == char[0]:
                 licznik += 1
                 start = 1
-            elif i == ')':
+            elif i == char[1]:
                 licznik -= 1
         
         txt += i

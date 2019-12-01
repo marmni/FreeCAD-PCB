@@ -96,7 +96,7 @@ PCB_COLOR = getFromSettings_Color('boardColor', 1437204735)
 partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod\PCB\parts"), os.path.join(__currentPath__, "parts")]
 
 #  default software list
-defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF v2', 'IDF v3', 'IDF v4', 'HyperLynx']  # do not change order!
+defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
 
 
 #  DATABASES LIST
@@ -170,6 +170,19 @@ supSoftware = {
         'format': '*.rzp',
         'icon': ':/data/img/razen.png',
     },
+    "idf" : {
+        'name': 'IDF',
+        'pathToBase': __currentPath__ + '/data/idf.cfg',
+        'libPath': '',
+        'export': False,
+        'exportLayers': ['hol'],
+        'exportClass': 'idf_v2()',
+        'description': 'IDF',
+        'format': '*.emn',
+        'icon': '',
+    },
+    
+    
     "idf_v2" : {
         'name': 'IDF v2',
         'pathToBase': __currentPath__ + '/data/idf.cfg',
@@ -228,6 +241,7 @@ supSoftware = {
 #   2: Both
 #
 PCBconstraintAreas = {
+    "vPlaceKeepout": ["Place Keepout", ['vPlaceKeepout', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceKeepoutColor', 255), ''],
     "tPlaceKeepout": ['Place Keepout Top', ['tKeepout', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "Restricted areas for components, top side"],
     "bPlaceKeepout": ['Place Keepout Bottom', ['bKeepout', 'bottomSide'],['int', '%', 50, 0, 100] , getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "Restricted areas for components, bottom side"],
     "vPlaceOutline": ["Place Outline", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceOutlineColor', 255), ''],
@@ -245,6 +259,8 @@ PCBconstraintAreas = {
     "tPlaceRegion": ["Place Outline Top", ['tPlaceOutline', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceOutlineColor', 4278190335), ''],
     "bPlaceRegion": ["Place Outline Bottom", ['bPlaceOutline', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
     "vPlaceRegion": ["Place Outline", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
+    
+    
 
 }
 
@@ -291,7 +307,17 @@ softLayers = {
         51: {"side": 1, "mirrorLayer": 52, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed top screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
         52: {"side": 0, "mirrorLayer": 51, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed bottom screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
     },
-    "idf_v2": {
+    "freepcb": {
+        7: {"side": 1, "mirrorLayer": 8, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, top side", "value": ['double', u'μm', 34.8, 0, 350]},
+        8: {"side": 0, "mirrorLayer": 8, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, bottom side", "value": ['double', u'μm', 34.8, 0, 350]},
+        12: {"side": 1, "mirrorLayer": 13, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        13: {"side": 0, "mirrorLayer": 12, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        97: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None},
+        98: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
+        99: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]}, 
+    },
+    "idf": {
+        "ANNOTATIONS": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
         "ROUTE_OUTLINE": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteOutlineColor', 255), "ltype": 'vRouteOutline', "description": "ROUTE_OUTLINE", "value": ['int', '%', 50, 0, 100]},
         "PLACE_OUTLINE": {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vPlaceOutlineColor', 255), "ltype": 'vPlaceOutline', "description": "PLACE_OUTLINE", "value": ['int', '%', 50, 0, 100]},
         "T_ROUTE_KEEPOUT": {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "T_ROUTE_KEEPOUT", "value": ['int', '%', 50, 0, 100]},

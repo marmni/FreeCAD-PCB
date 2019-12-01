@@ -288,7 +288,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
                     layerID += "B"
                 elif "top" in layerName.lower():
                     layerID += "T"
-            elif self.databaseType == "idf_v2":
+            elif self.databaseType in ["idf"]:
                 layerID = i
             else:
                 layerID = int(i)

@@ -33,47 +33,61 @@ import os
 import zipfile
 from PySide import QtGui
 #
-import PCBconf
+from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
-from formats.PCBmainForms import *
+from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
+from PCBfunctions import mathFunctions, filterHoles
 
 
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "fidocadj"
-        
+        #
         self.projektBRD = builtins.open(filename, "r").read().replace("\r", "")
-        self.layersNames = {}
-        self.getLayersNames()
-        ####
-        self.generateLayers()
-        self.spisWarstw.sortItems(1)
+        self.layersNames = self.getLayersNames()
+        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
+            self.gruboscPlytki.setValue(self.getBoardThickness())
         #
         self.fidocadjBiblioteki = QtGui.QLineEdit('')
-        if PCBconf.supSoftware[self.databaseType]['libPath'] != "":
-            self.fidocadjBiblioteki.setText(PCBconf.supSoftware[self.databaseType]['libPath'])
+        if supSoftware[self.databaseType]['libPath'] != "":
+            self.fidocadjBiblioteki.setText(supSoftware[self.databaseType]['libPath'])
         
         lay = QtGui.QHBoxLayout()
         lay.addWidget(QtGui.QLabel('Library'))
         lay.addWidget(self.fidocadjBiblioteki)
         self.lay.addLayout(lay, 12, 0, 1, 6)
+        ##
+        self.generateLayers([]) # blocked layers
+        self.spisWarstw.sortItems(1)
+        
+    def getBoardThickness(self):
+        pcbThickness = 1.5 # mm
+        return pcbThickness
     
     def getLayersNames(self):
+        dane = {}
+        
         elem = re.findall(r'FJC N (.+?) (.+?)\n', self.projektBRD)
         for i in elem:
-            self.layersNames[int(i[0])] = i[1]
+            dane[int(i[0])] = i[1]
+        #
+        return dane
+    
+    
 
 
-class FidoCadJ_PCB(mainPCB):
-    def __init__(self, filename):
-        mainPCB.__init__(self, None)
-        
-        self.dialogMAIN = dialogMAIN(filename)
-        self.mnoznik = 0.127
+
+class FidoCadJ_PCB(mathFunctions):
+    def __init__(self, filename, parent):
+        self.fileName = filename
+        self.dialogMAIN = dialogMAIN(self.fileName)
         self.databaseType = "fidocadj"
-        
+        self.parent = parent
+        #
+        self.mnoznik = 0.127
+
     def getPolygons(self, section, layer, m=[0,0], filled=False):
         if section.strip() == "":
             FreeCAD.Console.PrintWarning("Incorrect parameter!\n".format(e))
@@ -254,8 +268,8 @@ class FidoCadJ_PCB(mainPCB):
     # MAIN FUNCTIONS
     ##############################
     
-    def setProject(self, filename):
-        self.projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
+    def setProject(self):
+        self.projektBRD = builtins.open(self.fileName, "r").read().replace("\r\n", "\n").replace("\r", "\n")
         
     def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
         PCB_ER = []
@@ -997,7 +1011,12 @@ class FidoCadJ_PCB(mainPCB):
         ###
         return holes
     
-    def getPCB(self):
+    def getPCB(self, borderObject):
+        
+        
+        
+        return
+        
         PCB = []
         wygenerujPada = True
         ###

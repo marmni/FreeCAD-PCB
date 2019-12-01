@@ -114,15 +114,9 @@ class updateWizardWidget(QtGui.QWidget):
     
     def readLibs(self):
         ''' read all available libs from conf file '''
-        for i, j in supSoftware.items():
-            if j['pathToBase'].strip() != "":
-                if j['name'].strip() != "":
-                    dbName = j['name'].strip()
-                else:
-                    dbName = i.strip()
-                
-                self.listaBibliotek.addItem(dbName)
-                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, i.lower(), QtCore.Qt.UserRole)
+        for i in defSoftware:
+            self.listaBibliotek.addItem(i)
+            self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, i.lower(), QtCore.Qt.UserRole)
         
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
         self.listaBibliotek.setCurrentIndex(self.listaBibliotek.findText(defSoftware[freecadSettings.GetInt("pcbDefaultSoftware", 0)]))

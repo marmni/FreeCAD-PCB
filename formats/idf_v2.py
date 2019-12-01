@@ -28,6 +28,7 @@
 import FreeCAD
 import builtins
 import re
+from math import sqrt
 #
 from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
@@ -48,7 +49,7 @@ def getUnitsDefinition(projektBRD):
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
         dialogMAIN_FORM.__init__(self, parent)
-        self.databaseType = "idf_v2"
+        self.databaseType = "idf"
         #        
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
         
@@ -73,7 +74,7 @@ class dialogMAIN(dialogMAIN_FORM):
     
     def getLayersNames(self):
         dane = {}
-        for i in re.findall('^\.([a-zA-Z0-9_]*)\n(.+?)\.END_[a-zA-Z0-9_]*\n', self.projektBRD, re.MULTILINE|re.DOTALL):
+        for i in re.findall('^\.([a-zA-Z0-9_]*)[\s+0-9A-Za-z]*\n(.+?)\.END_[a-zA-Z0-9_]*\n', self.projektBRD, re.MULTILINE|re.DOTALL):
             dane[i[0]] = {"name": i[0]}
         # extra layers
         dane["T_ROUTE_KEEPOUT"] = {"name": softLayers[self.databaseType]["T_ROUTE_KEEPOUT"]["description"]}
@@ -93,7 +94,7 @@ class IDFv2_PCB(mathFunctions):
     def __init__(self, filename, parent):
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
-        self.databaseType = "idf_v2"
+        self.databaseType = "idf"
         self.parent = parent
         self.mnoznik = 1
 
@@ -105,9 +106,9 @@ class IDFv2_PCB(mathFunctions):
         self.mnoznik = getUnitsDefinition(self.projektBRD)
     
     def getArea(self, areaName):
-        data = re.findall(r'\.'+areaName+'\n(.*?)\.END_'+areaName+'\n', self.projektBRD, re.DOTALL)
+        data = re.findall(r'\.'+areaName+'[\s+UNOWNED|\s+MCAD|\s+ECAD|]*\n(.*?)\.END_'+areaName+'\n', self.projektBRD, re.DOTALL)
         if len(data):
-            return data[0]
+            return data
         else:
             return None
 
@@ -118,7 +119,7 @@ class IDFv2_PCB(mathFunctions):
             if layerNumber.startswith("B_"):
                 side = "BOTTOM"
             elif layerNumber.startswith("V_"):
-                side = "BOTH"
+                side = "BOTH|ALL"
             else:
                 side = "TOP"
             
@@ -145,7 +146,7 @@ class IDFv2_PCB(mathFunctions):
             if layerNumber.startswith("B_"):
                 side = "BOTTOM"
             elif layerNumber.startswith("V_"):
-                side = "BOTH"
+                side = "BOTH|ALL"
             else:
                 side = "TOP"
             
@@ -154,20 +155,27 @@ class IDFv2_PCB(mathFunctions):
         areas = []
         
         if area:
-            for i in self.pobierzLinie(area):
-                if side != None and i[0][0] not in side:
-                    continue
-                #
-                if len(i[0]) <= 3:
-                    i.pop(0)
-                
-                areas.append(['polygon', i])
+            for k in area:
+                for i in self.pobierzLinie(k):
+                    if side != None and i[0][0] not in side:
+                        continue
+                    h = 0
+                    #
+                    if len(i[0]) <= 3:
+                        if len(i[0]) > 1:
+                            h = float(i[0][1]) * self.mnoznik
+                        i.pop(0)
+                    
+                    if i[0][0] == 'Circle':
+                        areas.append(['circle', i[0][1], i[0][2], i[0][3], 0, h])
+                    else:
+                        areas.append(['polygon', i])
         #
         return areas
 
     def getParts(self):
         parts = []
-        data = self.getArea("PLACEMENT").split("\n")
+        data = self.getArea("PLACEMENT")[0].split("\n")
         
         for i in [" ".join(data[i:i+2]) for i in range(0, len(data), 2)]:
             param = re.findall(r'(".*?"|.*?)[\s|\n]+', i + "\n", re.DOTALL)
@@ -195,8 +203,10 @@ class IDFv2_PCB(mathFunctions):
             holesList = []
         
         try:
-            for i in self.getArea("DRILLED_HOLES").strip().split('\n'):
-                dane = i.split(" ")
+            for i in self.getArea("DRILLED_HOLES")[0].strip().split('\n'):
+                dane = re.sub(r'\s+', ' ', i).split(" ")
+                if dane[3] == "NPTH":  # Non-plated (non-conducting) through hole
+                    continue
                 #
                 r = float(dane[0]) * self.mnoznik / 2.
                 x = float(dane[1]) * self.mnoznik
@@ -219,7 +229,7 @@ class IDFv2_PCB(mathFunctions):
                                 holesList.append([x, y, r])
                                 holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
                         else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(i["x"], i["y"]))
+                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         if dane[4] in ['BOARD', 'NOREFDES'] and types['H'] or not dane[4] in ['BOARD', 'NOREFDES'] and types['P']:
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
@@ -227,26 +237,41 @@ class IDFv2_PCB(mathFunctions):
             FreeCAD.Console.PrintWarning("{0}\n".format(e))
         
     def pobierzLinie(self, pcb):
-        pcb = re.findall(r'(.*?)\n', pcb, re.MULTILINE|re.DOTALL)
+        area = re.findall(r'(.*?)\n', pcb, re.MULTILINE|re.DOTALL)
         #
         data = []
         data.append([])
-        
-        for i in pcb:
-            if len(data[-1]) > 1:
-                if i == data[-1][0] or i == data[-1][1]:
-                    data[-1].append(i)
-                    data.append([])
-                else:
-                    data[-1].append(i)
+        # if len(area[0].split(" ")) <= 3:
+            # data[-1].append(area[0])
+        # area.pop(0)
+        number = None # Indicates board outline / Indicates additional board cutouts labeled
+
+        for i in range(0, len(area)):
+            value = re.sub(r'\s+', ' ', area[i])
+            
+            if len(value.split(" ")) <= 3: # extra header
+                value_1 = re.sub(r'\s+', ' ', area[i + 1])
+                
+                data.append([])
+                data[-1].append(value)
+                number = int(value_1.split(" ")[0])
+                continue
+
+            if number == None:
+                number = int(value.split(" ")[0])
+            
+            if int(value.split(" ")[0]) == number:
+                data[-1].append(value)
             else:
-                data[-1].append(i)
-        #
+                data.append([])
+                data[-1].append(value)
+                number = int(area[i].split(" ")[0])
+        ###########################
         dataOut = []
         for i in data:
             if len(i):
                 direction = float(i[-1].split(" ")[0])
-        
+                
                 if len(i[0].split(" ")) <= 3:
                     stop = 1
                     dataOut.append([i[0].split(" ")])
@@ -255,57 +280,90 @@ class IDFv2_PCB(mathFunctions):
                     dataOut.append([])
                 
                 
-                if direction == 0:  # counter-clockwise direction
-                    for j in range(len(i)-1, stop, -1):
-                        data_1 = i[j].split(" ")
-                        data_2 = i[j - 1].split(" ")
+                if direction == 0:  # counter-clockwise direction / board outline
+                    if len(i) <= 3: # circle
+                        (num1, xs, ys, dummy) = i[-2].split(" ")
+                        (num2, x, y, curve) = i[-1].split(" ")
                         
-                        x1 = float(data_1[1]) * self.mnoznik
-                        y1 = float(data_1[2]) * self.mnoznik
-                        eType = float(data_1[3])
+                        xs = float(xs) * self.mnoznik
+                        ys = float(ys) * self.mnoznik
+                        x = float(x) * self.mnoznik
+                        y = float(y) * self.mnoznik
+                        r = sqrt((x - xs) ** 2 + (y - ys) ** 2)
                         
-                        x2 = float(data_2[1]) * self.mnoznik
-                        y2 = float(data_2[2]) * self.mnoznik
+                        dataOut[-1].append(['Circle', xs, ys, r])
+                    else:
+                        for j in range(len(i)-1, stop, -1):
+                            data_1 = i[j].split(" ")
+                            data_2 = i[j - 1].split(" ")
+                            
+                            x1 = float(data_1[1]) * self.mnoznik
+                            y1 = float(data_1[2]) * self.mnoznik
+                            eType = float(data_1[3])
+                            
+                            x2 = float(data_2[1]) * self.mnoznik
+                            y2 = float(data_2[2]) * self.mnoznik
+                            
+                            if eType == 0.0:
+                                dataOut[-1].append(['Line', x1, y1, x2, y2])
+                            else:
+                                dataOut[-1].append(['Arc3P', x1, y1, x2, y2, eType])
+                else:  # clockwise direction /  board cutouts
+                    if len(i) <= 3: # circle
+                        (num1, xs, ys, dummy) = i[-2].split(" ")
+                        (num2, x, y, curve) = i[-1].split(" ")
                         
-                        if eType == 0.0:
-                            dataOut[-1].append(['Line', x1, y1, x2, y2])
-                        else:
-                            dataOut[-1].append(['Arc', x1, y1, x2, y2, eType])
-                else:  # clockwise direction
-                    for j in range(stop, len(i)-1):
-                        data_1 = i[j].split(" ")
-                        data_2 = i[j + 1].split(" ")
+                        xs = float(xs) * self.mnoznik
+                        ys = float(ys) * self.mnoznik
+                        x = float(x) * self.mnoznik
+                        y = float(y) * self.mnoznik
+                        r = sqrt((x - xs) ** 2 + (y - ys) ** 2)
                         
-                        x1 = float(data_1[1]) * self.mnoznik
-                        y1 = float(data_1[2]) * self.mnoznik
-                        eType = float(data_1[3])
-                        
-                        x2 = float(data_2[1]) * self.mnoznik
-                        y2 = float(data_2[2]) * self.mnoznik
-                        
-                        if eType == 0.0:
-                            dataOut[-1].append(['Line', x1, y1, x2, y2])
-                        else:
-                            dataOut[-1].append(['Arc', x1, y1, x2, y2, eType])
+                        dataOut[-1].append(['Circle', xs, ys, r])
+                    else:
+                        for j in range(stop, len(i)-1):
+                            data_1 = i[j].split(" ")
+                            data_2 = i[j + 1].split(" ")
+                            
+                            x1 = float(data_1[1]) * self.mnoznik
+                            y1 = float(data_1[2]) * self.mnoznik
+                            eType = float(data_1[3])
+                            
+                            x2 = float(data_2[1]) * self.mnoznik
+                            y2 = float(data_2[2]) * self.mnoznik
+                            
+                            if eType == 0.0:
+                                dataOut[-1].append(['Line', x1, y1, x2, y2])
+                            else:
+                                dataOut[-1].append(['Arc3P', x1, y1, x2, y2, eType])
         #
         return dataOut
         
     def getPCB(self, borderObject):
-        for i in self.pobierzLinie(self.getArea("BOARD_OUTLINE")):
-            for j in range(1, len(i)):  # dodanie linii/luku
-                if i[j][0] == 'Arc':  # luk
-                    x1 = i[j][1]
-                    y1 = i[j][2]
-                    x2 = i[j][3]
-                    y2 = i[j][4]
-                    
-                    [x3, y3] = self.arcMidPoint([x1, y1], [x2, y2], i[j][5] * -1)
-                    arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                    borderObject.addGeometry(arc)
-                else:  # linia
-                    x1 = i[j][1]
-                    y1 = i[j][2]
-                    x2 = i[j][3]
-                    y2 = i[j][4]
-                    
-                    borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+        try:
+            for i in self.pobierzLinie(self.getArea("BOARD_OUTLINE")[0]):
+                for j in range(0, len(i)):  # dodanie linii/luku
+                    if i[j][0] == 'Arc3P':
+                        x1 = i[j][1]
+                        y1 = i[j][2]
+                        x2 = i[j][3]
+                        y2 = i[j][4]
+                        
+                        [x3, y3] = self.arcMidPoint([x1, y1], [x2, y2], i[j][5] * -1)
+                        arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                        borderObject.addGeometry(arc)
+                    elif i[j][0] == 'Line':
+                        x1 = i[j][1]
+                        y1 = i[j][2]
+                        x2 = i[j][3]
+                        y2 = i[j][4]
+                        
+                        borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+                    elif i[j][0] == 'Circle': # IDF v3
+                        x = i[j][1]
+                        y = i[j][2]
+                        r = i[j][3]
+                        
+                        borderObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r))
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0}\n".format(e))

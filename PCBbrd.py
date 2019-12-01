@@ -104,13 +104,13 @@ def wersjaFormatuF(filename):
             ver = re.findall(r'board_file\s+(.+?)\s+', projektBRD)[0]
             return ["idf_v2", "IDF v2"]
         except:
-            FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-            return [False]
-            
             try:  # idf v3
                 ver = re.findall(r'BOARD_FILE\s+(.+?)\s+', projektBRD)[0]
                 return ["idf_v3", "IDF v3"]
             except:
+                FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+                return [False]
+                
                 try:  # idf v4
                     ver = re.findall(r'IDF_Header \(\nVersion \("4.0"\)', projektBRD)[0]
                     if len(re.findall(r'"Board_Part"', re.findall(r'Board_Part \((.*?)\),', projektBRD, re.DOTALL)[0], re.DOTALL)) == 0:
@@ -175,9 +175,6 @@ def wersjaFormatuF(filename):
         except:
             return [False]
     elif rozsz == ".fpc":  # freepcb
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
         try:
             projektBRD = builtins.open(filename, "r").read()
             wersjaProgramu = re.search('version: (.*)\r\n', projektBRD).groups()[0]

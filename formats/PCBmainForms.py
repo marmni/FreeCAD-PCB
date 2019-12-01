@@ -49,14 +49,14 @@ from command.PCBconstraintAreas import createConstraintArea
 from PCBobjects import *
 
 from formats.eagle import EaglePCB
-# from formats.freepcb import FreePCB
+from formats.freepcb import FreePCB
 from formats.geda import gEDA_PCB
-# from formats.fidocadj import FidoCadJ_PCB
+#from formats.fidocadj import FidoCadJ_PCB
 # from formats.razen import Razen_PCB
 # from formats.kicad_v3 import KiCadv3_PCB
 # from formats.kicad_v4 import KiCadv4_PCB
 from formats.idf_v2 import IDFv2_PCB
-# from formats.idf_v3 import IDFv3_PCB
+from formats.idf_v3 import IDFv3_PCB
 # from formats.idf_v4 import IDFv4_PCB
 # from formats.diptrace import DipTrace_PCB
 # from formats.hyp import HYP_PCB
@@ -68,19 +68,24 @@ from formats.idf_v2 import IDFv2_PCB
 class mainPCB(partsManaging):
     def __init__(self, wersjaFormatu, filename, parent=None):
         #reload(PCBconf)
-        partsManaging.__init__(self, wersjaFormatu)
+        if wersjaFormatu in ['idf_v2', 'idf_v3']:
+            databaseType = 'idf'
+        else:
+            databaseType = wersjaFormatu
+        #
+        partsManaging.__init__(self, databaseType)
         self.projektBRD = None
         self.projektBRDName = None
         self.wersjaFormatu = None
         
         if wersjaFormatu == "eagle":
             self.wersjaFormatu = EaglePCB(filename, self)
-        # elif wersjaFormatu == "freepcb":
-            # self.wersjaFormatu = FreePCB()
+        elif wersjaFormatu == "freepcb":
+            self.wersjaFormatu = FreePCB(filename, self)
         elif wersjaFormatu == "geda":
             self.wersjaFormatu = gEDA_PCB(filename, self)
-        # elif wersjaFormatu == "fidocadj":
-            # self.wersjaFormatu = FidoCadJ_PCB(filename)
+        #elif wersjaFormatu == "fidocadj":
+        #    self.wersjaFormatu = FidoCadJ_PCB(filename, self)
         # elif wersjaFormatu == "razen":
             # self.wersjaFormatu = Razen_PCB()
         # elif wersjaFormatu == "kicad_v3":
@@ -89,8 +94,8 @@ class mainPCB(partsManaging):
             # self.wersjaFormatu = KiCadv4_PCB(filename, self)
         elif wersjaFormatu == "idf_v2":
             self.wersjaFormatu = IDFv2_PCB(filename, self)
-        # elif wersjaFormatu == "idf_v3":
-            # self.wersjaFormatu = IDFv3_PCB(filename, self)
+        elif wersjaFormatu == "idf_v3":
+            self.wersjaFormatu = IDFv3_PCB(filename, self)
         # elif wersjaFormatu == "idf_v4":
             # self.wersjaFormatu = IDFv4_PCB(filename, self)
         # elif wersjaFormatu == "diptrace":
@@ -131,7 +136,7 @@ class mainPCB(partsManaging):
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
                 ################
-                if self.databaseType in ["geda", "idf_v2"]:
+                if self.databaseType in ["geda", "idf"]:
                     layerNumber = self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text()
                 else:
                     layerNumber = int(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text())
@@ -372,15 +377,18 @@ class mainPCB(partsManaging):
                 ser.addGeometry(Part.LineSegment(FreeCAD.Vector(x4, y4, 0), FreeCAD.Vector(x1, y1, 0)))
             elif i[0] == 'circle':
                 try:
-                    height = i[5]
-                except:
-                    height = 0
-                
-                if i[4] == 0:
-                    ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2]), FreeCAD.Vector(0, 0, 1), i[3]))
-                else:
-                    ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2]), FreeCAD.Vector(0, 0, 1), i[3] + i[4] / 2))
-                    ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2]), FreeCAD.Vector(0, 0, 1), i[3] - i[4] / 2))
+                    try:
+                        height = i[5]
+                    except:
+                        height = 0
+                    
+                    if i[4] == 0:
+                        ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2], 0), FreeCAD.Vector(0, 0, 1), i[3]),False)
+                    else:
+                        ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2], 0), FreeCAD.Vector(0, 0, 1), i[3] + i[4] / 2))
+                        ser.addGeometry(Part.Circle(FreeCAD.Vector(i[1], i[2], 0), FreeCAD.Vector(0, 0, 1), i[3] - i[4] / 2))
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             elif i[0] == 'polygon':
                 try:
                     height = i[2]

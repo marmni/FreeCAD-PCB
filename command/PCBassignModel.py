@@ -32,7 +32,7 @@ import glob
 import sys
 #
 from PCBdataBase import dataBase
-from PCBconf import supSoftware, defSoftware, partPaths
+from PCBconf import defSoftware, partPaths
 from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScriptCopy, importScriptCopy, configParserRead, configParserWrite
 from PCBcategories import addCategoryGui, removeCategoryGui, updateCategoryGui, setOneCategoryGui
 from PCBpartManaging import partExistPath, partsManaging
@@ -59,8 +59,8 @@ class addModelDialog(QtGui.QDialog):
         # software
         ########################
         self.supSoftware = QtGui.QComboBox()
-        for i, j in supSoftware.items():
-            self.supSoftware.addItem(j['name'], i)
+        for i in defSoftware:
+            self.supSoftware.addItem(i)
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
         self.supSoftware.setCurrentIndex(self.supSoftware.findText(defSoftware[freecadSettings.GetInt("pcbDefaultSoftware", 0)]))
         
