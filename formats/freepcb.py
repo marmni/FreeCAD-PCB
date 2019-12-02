@@ -63,7 +63,6 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-
 class FreePCB(mathFunctions):
     '''Board importer for gEDA software'''
     def __init__(self, filename, parent):
@@ -77,7 +76,6 @@ class FreePCB(mathFunctions):
         self.elements = []
         self.libraries = {}
         self.sections = {}
-        #self.parts = {}
         self.mnoznik = 1. / 1000000.
     
     def defineFunction(self, layerNumber):
@@ -109,137 +107,16 @@ class FreePCB(mathFunctions):
         
         # for i in re.findall(r'\[(.*?)\]\n(.*?)\[', self.projektBRD , re.DOTALL):
             # self.sections[i[0]] = i[1]
-        #
-        ######################################################
-
-                # ############### POLYLINE
-                # danePolyline = re.split(r'(outline_polyline:|n_pins:)', dane)
-                # danePolyline = danePolyline[1:danePolyline.index('n_pins:')]
-                # danePolyline = [o for o in danePolyline if o != "outline_polyline:"]
-                # linieTop = []
-                # #danePolyline = re.search(r'outline_polyline: ([\S\D]*) .*:', dane[0]).groups()[0].split("\r\n")
-                # for param in danePolyline:
-                    # #param = param.split("\r\n")
-                    # param = param.split("\n")
-                    # pierwszy = re.search(r' (.*) (.*) (.*)', param[0]).groups()
-                    # width = float(pierwszy[0]) * mnoznik
-                    # param = param[1:-1]
-                    # p = False
-                    
-                    # if param[-1].strip().startswith('close_polyline'):
-                        # param = param[:-1]
-                    
-                    # for pp in range(len(param)):
-                        # if param[pp].strip().startswith("next_corner:"):
-                            # wsp = re.search(r'next_corner: (.*) (.*) (.*)', param[pp].strip()).groups()
-                            # typeC = wsp[2]
-                            
-                            # if not p:
-                                # linieTop.append([typeC, float(pierwszy[1]) * mnoznik, float(pierwszy[2]) * mnoznik, float(wsp[0]) * mnoznik, float(wsp[1]) * mnoznik, width])
-                                # p = True
-                            # else:
-                                # wsp_P = re.search(r'next_corner: (.*) (.*) (.*)', param[pp - 1].strip()).groups()
-                                # linieTop.append([typeC, float(wsp_P[0]) * mnoznik, float(wsp_P[1]) * mnoznik, float(wsp[0]) * mnoznik, float(wsp[1]) * mnoznik, width])
-                       
-                                # if pp == len(param) - 1:
-                                    # linieTop.append([typeC, float(wsp[0]) * mnoznik, float(wsp[1]) * mnoznik, float(pierwszy[1]) * mnoznik, float(pierwszy[2]) * mnoznik, width])
-                        # elif param[pp].strip().startswith("close_polyline:"):
-                            # wsp = re.search(r'close_polyline: (.*)', param[pp].strip()).groups()
-                            # if wsp[0] == '0':
-                                # wsp_P = re.search(r'next_corner: (.*) (.*) (.*)', param[pp - 1].strip()).groups()
-                                # linieTop.append([typeC, float(wsp_P[0]) * mnoznik, float(wsp_P[1]) * mnoznik, float(pierwszy[1]) * mnoznik, float(pierwszy[2]) * mnoznik, width])
-                    # #
-                    # for k in self.parts.keys():
-                        # if self.parts[k]["shape"] == footprintsListName:
-                            # if len(linieTop):
-                                # self.parts[k]["polyline"] = linieTop
-                    # ###############
-        
+ 
     def getParts(self):
-        return
-        
-        
-        PCB_ER = []
-        for i, j in self.parts.items():
-            name = i
-            package = j["shape"]
-            value = j['package']
-            x = j["pos"][0]
-            y = j["pos"][1]
-            library = j["shape"]
-            rot = j["pos"][2]
-            if j["pos"][3]:
-                side = "BOTTOM"
-            else:
-                side = "TOP"
-            
-            EL_Name = [name, j["ref_text"][0] + x, j["ref_text"][1] + y, j["ref_text"][3], j["ref_text"][2] + rot, side, "bottom-left", False, 'None', '', True]
-            EL_Value = [value, x, y, 1.27, rot, side, "bottom-left", False, 'None', '', True]
-            
-            #
-            newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
-            wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            #
-            if wyn[0] == 'Error':  # lista brakujacych elementow
-                partNameTXT = partNameTXT_label = self.generateNewLabel(name)
-                if isinstance(partNameTXT, str):
-                    partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-                
-                PCB_ER.append([partNameTXT, package, value, library])
-        ####
-        return PCB_ER
-    
-    # def getSilkLayer(self, doc, layerNumber, grp, layerName, layerColor):
-        # layerName = "{0}_{1}".format(layerName, layerNumber)
-        # layerSide = PCBlayers[softLayers[self.databaseType][layerNumber][1]][0]
-        # layerType = PCBlayers[softLayers[self.databaseType][layerNumber][1]][3]
-        # #
-        # layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        # layerNew = layerSilkObject(layerS, layerType)
-        # #
-        # for i in self.parts.keys():
-            # try:
-                # X1 = self.parts[i]["pos"][0]
-                # Y1 = self.parts[i]["pos"][1]
-                # ROT = self.parts[i]["pos"][2]
-                
-                # if self.parts[i]["pos"][3]:
-                    # warst = 0  # bottom side
-                # else:
-                    # warst = 1  # top side
-                
-                # if layerSide == warst:
-                    # for j in self.parts[i]["polyline"]:
-                        # x1 = j[1] + X1
-                        # y1 = j[2] + Y1
-                        # x2 = j[3] + X1
-                        # y2 = j[4] + Y1
-                        # width = j[5]
-                        
-                        # if j[0] == "0":
-                            # obj = layerNew.addLine_2(x1, y1, x2, y2, width)
-                            # layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            # layerNew.changeSide(obj, X1, Y1, warst)
-                            # layerNew.addObject(obj)
-                        # elif j[0] in ["1", "2"]:
-                            # obj = layerNew.addArc_3([x2, y2], [x1, y1], self.returnArcParam(j[0]), width)
-                            # layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            # layerNew.changeSide(obj, X1, Y1, warst)
-                            # layerNew.addObject(obj)
-            # except:
-                # pass
-        # #####
-        # layerNew.generuj(layerS)
-        # layerNew.updatePosition_Z(layerS)
-        # viewProviderLayerSilkObject(layerS.ViewObject)
-        # layerS.ViewObject.ShapeColor = layerColor
-        # grp.addObject(layerS)
-        # #
-        # doc.recompute()
-    
-    def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
-        pass
-    
+        self.getElements()
+        parts = []
+        #
+        for k in self.elements:
+            parts.append(k)
+        #
+        return parts
+
     def getPaths(self, layerNew, layerNumber, display=[True, True, True, False]):
         data = self.getSection("nets").split('connect:')
         
@@ -268,8 +145,12 @@ class FreePCB(mathFunctions):
                         layerNew.addLineWidth(x1, y1, x2, y2, width)
                         layerNew.setFace()
 
-    
     def getPads(self, layerNew, layerNumber, layerSide):
+        # via
+        
+        #
+        self.getElements()
+        
         return
         layerName = "{0}_{1}".format(layerName, layerNumber)
         layerSide = PCBlayers[softLayers[self.databaseType][layerNumber][1]][0] 
@@ -428,37 +309,44 @@ class FreePCB(mathFunctions):
         doc.recompute()
         
     def getNormalAnnotations(self):
-        pass
-    
-    # def getAnnotations(self):
-        # adnotacje = []
-        # #
-        # dane1 = re.findall(r'text: "(.*?)" ([0-9\-]+?) ([0-9\-]+?) ([0-9\-]+?) ([0-9\-]+?) ([0-9\-]+?) ([0-9\-]+?) ([0-9\-]+?)\n', self.projektBRD, re.DOTALL)
-        # for i in dane1:
-            # txt = i[0]
-            # x = float(i[1]) * self.mnoznik
-            # y = float(i[2]) * self.mnoznik
-            # rot = float(i[4]) * -1
-            # size = float(i[6]) * self.mnoznik
-            
-            # if int(i[3]) in [7, 12]:
-                # side = 'TOP'
-            # else:
-                # side = 'BOTTOM'
-            # align = "bottom-left"
-            # spin = False
-            
-            # if int(i[5]) != 0:
-                # # mirror = 3
-                # mirror = 2
-            # else:
-                # mirror = 0
-            
-            # font = 'Hursheys'
-            
-            # adnotacje.append([txt, x, y, size, rot, side, align, spin, mirror, font])
-        # #
-        # return adnotacje
+        adnotacje = []
+        #
+        try:
+            for i in re.findall(r'text:\s*"(.*?)"\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\n', self.getSection("texts"), re.DOTALL):
+                side = "TOP"
+                rot = 360 - float(i[4])
+                align = "bottom-left"
+                
+                if int(i[3]) in [8, 13]:
+                    side = "BOTTOM"
+                    align = "bottom-right"
+                #
+                mirror = False
+                if int(i[5]): # mirror - not supported
+                    mirror = True
+                    # align = "bottom-right"
+                #
+                adnotacje.append({
+                    "text": str(i[0]),
+                    "x": float(i[1]) * self.mnoznik,
+                    "y": float(i[2]) * self.mnoznik,
+                    "z": 0,
+                    "size": float(i[6]) * self.mnoznik,
+                    "rot": rot,
+                    "side": side,
+                    "align": align,
+                    "spin": True,
+                    "font": "Fixed",
+                    "display": True,
+                    "distance": 1,
+                    "tracking": 0,
+                    "mode": 'anno',
+                    "mirror": mirror
+                })
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
+        #
+        return adnotacje
     
     def getLibraries(self):
         if len(self.libraries) == 0:
@@ -478,6 +366,50 @@ class FreePCB(mathFunctions):
                 
                 self.libraries[name]["units"] = mnoznik
                 self.libraries[name]["data"] = i
+                #######################################################
+                self.libraries[name]["silk"] = []
+                for j in re.findall(r'(?=outline_polyline:([\s\S]*?)(?=close_polyline:|)(?=n_pins:|outline_polyline:|$))', i, re.DOTALL):
+                    data = j.strip().split("\n")
+                    #
+                    if "close_polyline:" in data[-1]:
+                        closePolyline = True
+                        data.pop(-1)
+                    else:
+                        closePolyline = False
+                    #
+                    param1 = data[0].strip().split(" ")
+                    
+                    width = float(param1[0]) * mnoznik
+                    x1 = float(param1[1]) * mnoznik
+                    y1 = float(param1[2]) * mnoznik
+                    
+                    for k in data[1:]:
+                        param2 = k.strip().split(" ")
+                        
+                        x2 = float(param2[1]) * mnoznik
+                        y2 = float(param2[2]) * mnoznik
+                        shape = int(param2[3]) # 0-line | 1-arc_cw | 2-arc_ccw
+                        #
+                        if shape == 0:
+                            self.libraries[name]["silk"].append(['Line', x1, y1, x2, y2, width])
+                        elif shape == 1:
+                            self.libraries[name]["silk"].append(['Arc', x1, y1, x2, y2, width, -90])
+                        else:
+                            self.libraries[name]["silk"].append(['Arc', x1, y1, x2, y2, width, 90])
+                        #
+                        x1 = x2
+                        y1 = y2
+                    
+                    if closePolyline:
+                        x2 = float(param1[1]) * mnoznik
+                        y2 = float(param1[2]) * mnoznik
+                        
+                        if shape == 0:
+                            self.libraries[name]["silk"].append(['Line', x1, y1, x2, y2, width])
+                        elif shape == 1:
+                            self.libraries[name]["silk"].append(['Arc', x1, y1, x2, y2, width, -90])
+                        else:
+                            self.libraries[name]["silk"].append(['Arc', x1, y1, x2, y2, width, 90])
                 #######################################################
                 self.libraries[name]["pins"] = {}
                 for j in re.findall(r'(?=pin:([\s\S]*?)(?=pin:|$))', i, re.DOTALL):
@@ -556,8 +488,48 @@ class FreePCB(mathFunctions):
                     })
         except Exception as e:
             FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
-            
-
+    
+    def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
+        pass
+        
+    def getSilkLayerModels(self, layerNew, layerNumber):
+        if layerNumber[0] not in [7, 8]:
+            return
+        #
+        self.getLibraries()
+        self.getElements()
+        
+        try:
+            for i in self.elements:
+                X1 = i['x']
+                Y1 = i['y']
+                ROT = i['rot']
+                
+                if i['side'] == "TOP":
+                    SIDE = 1
+                else:
+                    SIDE = 0
+                
+                if layerNumber[0] == 7 and SIDE != 1:
+                    continue
+                elif layerNumber[0] == 8 and SIDE != 0:
+                    continue
+                
+                if i['package'] in self.libraries.keys():
+                    for j in self.libraries[i['package']]["silk"]:
+                        if j[0] == "Line":
+                            layerNew.addLineWidth(j[1] + X1, j[2] + Y1, j[3] + X1, j[4] + Y1, j[5])
+                            layerNew.addRotation(X1, Y1, ROT)
+                            layerNew.setChangeSide(X1, Y1, SIDE)
+                            layerNew.setFace()
+                        else: # arc
+                            layerNew.addArcWidth([j[1] + X1, j[2] + Y1], [j[3] + X1, j[4] + Y1], j[6], j[5])
+                            layerNew.addRotation(X1, Y1, ROT)
+                            layerNew.setChangeSide(X1, Y1, SIDE)
+                            layerNew.setFace()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+    
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
         if types['IH']:  # detecting collisions between holes - intersections
