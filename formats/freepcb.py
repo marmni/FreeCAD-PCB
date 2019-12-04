@@ -147,167 +147,109 @@ class FreePCB(mathFunctions):
 
     def getPads(self, layerNew, layerNumber, layerSide):
         # via
-        
-        #
-        self.getElements()
-        
-        return
-        layerName = "{0}_{1}".format(layerName, layerNumber)
-        layerSide = PCBlayers[softLayers[self.databaseType][layerNumber][1]][0] 
-        layerType = PCBlayers[softLayers[self.databaseType][layerNumber][1]][3]
-        ####
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.holes = self.showHoles()
-        ####
-        #via
-        viaList = re.findall(r'vtx: .+? (.+?) (.+?) .+? .+? ([1-9][0-9]*) ([1-9][0-9]*)', self.projektBRD)
-        for i in viaList:
+        for i in re.findall(r'vtx: .+? (.+?) (.+?) .+? .+? ([1-9][0-9]*) ([1-9][0-9]*)', self.projektBRD):
             x = float(i[0]) * self.mnoznik
             y = float(i[1]) * self.mnoznik
-            drill = float(i[3]) * self.mnoznik / 2.
-            diameter = float(i[2]) * self.mnoznik / 2.
+            r = float(i[2]) * self.mnoznik / 2.
             
-            obj = layerNew.makeFace(layerNew.addCrircle_2(x, y, diameter))
-            obj = layerNew.cutHole(obj, [x, y, drill])
-            layerNew.addObject(obj)
-        ###
-        for i, j in self.parts.items():
-            X1 = j["pos"][0]  # punkt wzgledem ktorego dokonany zostanie obrot
-            Y1 = j["pos"][1]  # punkt wzgledem ktorego dokonany zostanie obrot
-            ROT = j["pos"][2]  # kat o jaki zostana obrocone elementy
-
-            if j["pos"][3] == 0:
-                warst = 1
-            else:
-                warst = 0
-
-            try:
-                for pad in j["pads"]:
-                    x = pad[2] + X1
-                    y = pad[3] + Y1
-                    drill = pad[5]
-                    ROT_2 = pad[4]
-                    padS = pad[0]
-                    diameter = pad[1]
-                    padH = pad[6]
-                    roudness = pad[7]
-                    
-                    if padS == '1':  # circle
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addCrircle_2(x, y, diameter))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addCrircle_2(x, y, diameter))
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                    elif padS == '2':  # square
-                        a = diameter
-                            
-                        x1 = x - a
-                        y1 = y - a
-                        x2 = x + a
-                        y2 = y + a
-
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addRectangle_2(x1, y1, x2, y2))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addRectangle_2(x1, y1, x2, y2))
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                    elif padS == '3':  # rectangle
-                        dx = padH
-                        dy = diameter
-                        
-                        x1 = x - dx
-                        y1 = y - dy
-                        x2 = x + dx
-                        y2 = y + dy
-
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addRectangle_2(x1, y1, x2, y2))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addRectangle_2(x1, y1, x2, y2))
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                    elif padS == '4':  # round rectangle
-                        dx = padH
-                        dy = diameter
-
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addPadLong(x, y, dx, dy, roudness, 1))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addPadLong(x, y, dx, dy, roudness, 1))
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                    elif padS == '5':  # oval
-                        dx = padH
-                        dy = diameter
-                        roudness = 100
-                        
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addPadLong(x, y, dx, dy, roudness))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addPadLong(x, y, dx, dy, roudness))
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.addObject(obj)
-                    elif padS == '6':  # octagon
-                        if drill > 0:
-                            obj = layerNew.makeFace(layerNew.addOctagon_2(self.generateOctagon(x, y, diameter * 2)))
-                            obj = layerNew.cutHole(obj, [x, y, drill])
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-                        elif drill == 0 and layerSide == warst:  # smd
-                            obj = layerNew.makeFace(layerNew.addOctagon_2(self.generateOctagon(x, y, diameter * 2)))
-                            layerNew.changeSide(obj, X1, Y1, warst)
-                            layerNew.rotateObj(obj, [x, y, ROT_2])
-                            layerNew.rotateObj(obj, [X1, Y1, ROT])
-                            layerNew.addObject(obj)
-            except KeyError:
-                continue
-        ###
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        grp.addObject(layerS)
+            layerNew.addCircle(x, y, r)
+            layerNew.setFace()
         #
-        doc.recompute()
+        self.getLibraries()
+        self.getElements()
         
+        try:
+            for i in self.elements:
+                X1 = i['x']
+                Y1 = i['y']
+                ROT = i['rot']
+                
+                if i['side'] == "TOP":
+                    SIDE = 1
+                else:
+                    SIDE = 0
+                #
+                if layerNumber[0] == 98:  # top
+                    if SIDE != 1:
+                        padSide = "bottom"
+                    else:
+                        padSide = "top"
+                elif layerNumber[0] == 99:  # bottom
+                    if SIDE != 0:
+                        padSide = "bottom"
+                    else:
+                        padSide = "top"
+                else:
+                    continue
+                #
+                if i['package'] in self.libraries.keys():
+                    for j in self.libraries[i['package']]["pins"].keys():
+                        if padSide in self.libraries[i['package']]["pins"][j].keys():
+                            pinData = self.libraries[i['package']]["pins"][j]
+                            padData = self.libraries[i['package']]["pins"][j][padSide]
+                            #
+                            x = pinData["x"] + X1
+                            y = pinData["y"] + Y1
+                            rot = pinData["rot"]
+                            r = padData["width"] / 2.
+                            #
+                            if padData["shape"] == 1: # circle
+                                layerNew.addCircle(x, y, r)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+                            elif padData["shape"] == 2: # square
+                                x1 = x - r
+                                y1 = y - r
+                                x2 = x + r
+                                y2 = y + r
+                            
+                                layerNew.addRectangle(x1, y1, x2, y2)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+                            elif padData["shape"] == 3:  # rectangle
+                                dx = r
+                                dy = padData["len1"]
+                                
+                                x1 = x - dy
+                                y1 = y - dx
+                                x2 = x + dy
+                                y2 = y + dx
+                                
+                                layerNew.addRectangle(x1, y1, x2, y2)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+                            elif padData["shape"] == 4:  # round-rect
+                                dx = r
+                                dy = padData["len1"]
+                                
+                                layerNew.addPadLong(x, y, dy, dx, padData["radius"], 1)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+                            elif padData["shape"] == 5:  # oval
+                                dx = r
+                                dy = padData["len1"]
+                                
+                                layerNew.addPadLong(x, y, dy, dx, 100)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+                            elif padData["shape"] == 6:  # octagon
+                                layerNew.addOctagon(x, y, r * 2)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+
     def getNormalAnnotations(self):
         adnotacje = []
         #
@@ -422,7 +364,7 @@ class FreePCB(mathFunctions):
                         "x": float(pinData[2]) * mnoznik,
                         "y": float(pinData[3]) * mnoznik,
                         "r": float(pinData[1]) * mnoznik / 2.,
-                        "rot": float(pinData[4]) * mnoznik,
+                        "rot": 360 - float(pinData[4]),
                     }
                     #
                     topPad = re.search('top_pad: (.*?) (.*?) (.*?) (.*?) (.*?)($|\n)', j).groups()
@@ -430,7 +372,8 @@ class FreePCB(mathFunctions):
                     self.libraries[name]["pins"][pinData[0]]["top"] = {
                         "shape": int(topPad[0]), #1-round 2-square
                         "width": float(topPad[1]) * mnoznik,
-                        "len": float(topPad[2]) * mnoznik,
+                        "len1": float(topPad[2]) * mnoznik,
+                        "len2": float(topPad[3]) * mnoznik,
                         "radius": float(topPad[4]) * mnoznik,
                     }
                     #
@@ -440,7 +383,8 @@ class FreePCB(mathFunctions):
                         self.libraries[name]["pins"][pinData[0]]["bottom"] = {
                             "shape": int(bottomPad[0]), #1-round 2-square
                             "width": float(bottomPad[1]) * mnoznik,
-                            "len": float(bottomPad[2]) * mnoznik,
+                            "len1": float(bottomPad[2]) * mnoznik,
+                            "len2": float(bottomPad[3]) * mnoznik,
                             "radius": float(bottomPad[4]) * mnoznik,
                         }
                 #######################################################

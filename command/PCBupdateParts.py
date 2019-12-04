@@ -138,7 +138,6 @@ class updateParts(partsManaging):
         ''' load all packages types to list '''
         pcb = getPCBheight()
         if pcb[0]:  # board is available
-            
             for j in pcb[2].Group:
                 if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
                     if not j.Package in self.listOfModels.keys():

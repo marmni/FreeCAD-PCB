@@ -30,7 +30,7 @@ import os
 import codecs
 from PySide import QtCore, QtGui
 import datetime
-
+from PCBboard import getPCBheight
 
 exportList = {
     "csv": {'name': 'Comma Separated Values (CSV)', 'extension': 'csv', 'class': 'csv()'},
@@ -104,18 +104,11 @@ Units used = "mm"
 "RefDes","Layer","LocationX","LocationY","Rotation"
 
 '''
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                    x = doc.getObject(i.Name).X.Value
-                    y = doc.getObject(i.Name).Y.Value
-                    side = doc.getObject(i.Name).Side
-                    rot = doc.getObject(i.Name).Rot.Value
-                    
-                    rot = rot % 360
-                    
-                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(i.PartName.ViewObject.Text, side, x, y, rot)
+        pcb = getPCBheight()
+        if pcb[0]:
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(i.Label, i.Side, i.X, i.Y, i.Rot % 360)
         
         self.reportPrev.setPlainText(txt)
 
@@ -311,18 +304,11 @@ class createCentroid(QtGui.QDialog):
         self.files.write('"RefDes","Layer","LocationX","LocationY","Rotation"\n')
         self.files.write('\n')
         
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                    x = doc.getObject(i.Name).X.Value
-                    y = doc.getObject(i.Name).Y.Value
-                    side = doc.getObject(i.Name).Side
-                    rot = doc.getObject(i.Name).Rot.Value
-                    
-                    rot = rot % 360
-                    
-                    self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(i.PartName.ViewObject.Text, side, x, y, rot))
+        pcb = getPCBheight()
+        if pcb[0]:
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(i.Label, i.Side, i.X, i.Y, i.Rot % 360))
         #
         self.files.close()
 
@@ -344,6 +330,11 @@ class exportBOM:
             return value
         else:
             return value
+    
+    def prepareZ(self, value):
+        value = self.setUnit(value)
+        
+        return value
     
     def prepareX(self, value):
         value = self.setUnit(value)
@@ -381,23 +372,21 @@ class exportBOM:
     def getParts(self):
         ''' get param from all packages from current document '''
         parts = {}
-        
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                #if hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
-                    #for i in elem.OutList:
-                        #if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+        #
+        pcb = getPCBheight()
+        if pcb[0]:
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
                     if not i.Package in parts.keys():
                         parts[i.Package] = {}
                     if not '_'.join(i.PartValue.ViewObject.Text) in parts[i.Package].keys():
                         parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)] = {}
-                        
-                    x = self.prepareX(doc.getObject(i.Name).X.Value)
-                    y = self.prepareY(doc.getObject(i.Name).Y.Value)
                     
-                    parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)]['_'.join(i.PartName.ViewObject.Text)] = {'side': i.Side, 'x': x, 'y': y, 'z': doc.getObject(i.Name).Placement.Base.z, 'rot': doc.getObject(i.Name).Rot.Value}
+                    x = self.prepareX(i.X.Value)
+                    y = self.prepareY(i.Y.Value)
+                    
+                    parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)]['_'.join(i.PartName.ViewObject.Text)] = {'side': i.Side, 'x': x, 'y': y, 'z': self.prepareZ(i.Z.Value), 'rot': i.Rot.Value}
+        #
         return parts
 
 

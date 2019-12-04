@@ -476,8 +476,8 @@ class pcbToolBar(pcbToolBarMain):
         groupsMenu.addAction(scriptCmd_ExportHoleLocations_2)
         groupsMenu.addAction(scriptCmd_ExportHoleLocationsReport)
         groupsMenu.addAction(scriptCmd_ExportDrillingMap)
-        groupsMenu.addSeparator()
-        groupsMenu.addAction(scriptCmd_CreateCenteDrill)
+        #groupsMenu.addSeparator()
+        #groupsMenu.addAction(scriptCmd_CreateCenteDrill)
         scriptCmd_ExportHoleLocations.setMenu(groupsMenu)
         ##########
         self.wyszukajElementy = QtGui.QLineEdit('')
@@ -669,51 +669,20 @@ class pcbToolBar(pcbToolBarMain):
     def fastExplodeModels(self):
         if FreeCAD.activeDocument():
             doc = FreeCAD.activeDocument()
-            if len(doc.Objects):
+            pcb = getPCBheight()
+            
+            if pcb[0]:  # board is available
                 a = doc.addObject("App::FeaturePython", 'Explode')
                 obj = explodeObject(a)
                 viewProviderExplodeObject(a.ViewObject)
-                
-                for elem in doc.Objects:
-                    if hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == "PCBpart":
-                        if elem.Side == "TOP":
-                            obj.spisObiektowGora[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
+                #
+                for i in pcb[2].Group:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
+                        if i.Side == "TOP":
+                            obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
                         else:
-                            obj.spisObiektowDol[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
-                    #elif hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
-                        #for i in elem.OutList:
-                            #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == "PCBpart":
-                                #if i.Side == "TOP":
-                                    #obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                                #else:
-                                    #obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                            ##if float("%4.2f" % i.Placement.Rotation.Axis.x) > 0.:  # bottom side -> nie zawsze rozpoznaje poprawnie
-                                ##obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                            ##else:  # top side
-                                ##obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                    elif hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'layersGroup':  # layers
-                        for i in elem.OutList:
-                            if hasattr(i, "Proxy") and hasattr(i, "Type") and ('tSilk' in i.Proxy.Type or 'tDocu' in i.Proxy.Type):
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 1]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tPad' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tPath' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            #elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tKeepout' in i.Proxy.Type:
-                                #obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 4]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tcenterDrill' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and ('bSilk' in i.Proxy.Type or 'bDocu' in i.Proxy.Type):
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 1]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bPad' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bPath' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            #elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bKeepout' in i.Proxy.Type:
-                                #obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 4]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bcenterDrill' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                
+                            obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
+                #
                 obj.setParam(a, 'Inverse', False)
                 obj.setParam(a, 'Active', True)
                 obj.setParam(a, 'TopStepSize', 10)

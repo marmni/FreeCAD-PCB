@@ -30,6 +30,7 @@ if FreeCAD.GuiUp:
     import FreeCADGui
     from PySide import QtCore, QtGui
 from functools import partial
+from PCBboard import getPCBheight
 
 
 class ser:
@@ -114,8 +115,8 @@ class explodeWizardWidget(QtGui.QWidget):
         self.tableBottom = explodeObjectTable()
         
         # partial dont work
-        self.connect(self.tableTop, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikGora)
-        self.connect(self.tableBottom, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikDol)
+        #self.connect(self.tableTop, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikGora)
+        #self.connect(self.tableBottom, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikDol)
         #
         self.setActive = QtGui.QCheckBox('Active')
         self.setActive.setChecked(False)
@@ -190,20 +191,23 @@ class explodeWizardWidget(QtGui.QWidget):
         pass
     
     def klikGora(self):
-        self.odznaczDrug(self.tableBottom, self.tableTop)
+        pass
+        #self.odznaczDrug(self.tableBottom, self.tableTop)
         
     def klikDol(self):
-        self.odznaczDrug(self.tableTop, self.tableBottom)
+        pass
+        #self.odznaczDrug(self.tableTop, self.tableBottom)
         
     def odznaczDrug(self, table, tableMain):
+        pass
         #FreeCAD.Console.PrintWarning("{0} 1\n".format(tableMain.currentItem()))
         #FreeCAD.Console.PrintWarning("{0} 2\n".format(tableMain.currentItem().data(0, QtCore.Qt.UserRole)))
         #FreeCAD.Console.PrintWarning("{0} 3\n".format(tableMain.currentItem().checkState(0)))
         
-        item = tableMain.currentItem()
-        name = item.data(0, QtCore.Qt.UserRole)
-        value = item.checkState(0)
-        table.schowajItem(name, value)
+        # item = tableMain.currentItem()
+        # name = item.data(0, QtCore.Qt.UserRole)
+        # value = item.checkState(0)
+        # table.schowajItem(name, value)
 
 
 class explodeEditWizard:
@@ -262,58 +266,68 @@ class explodeEditWizard:
         self.form.TopStepSize.setValue(self.mainObject.TopStepSize)
         self.form.BottomStepSize.setValue(self.mainObject.BottomStepSize)
         #
-        obj = FreeCAD.ActiveDocument.Objects
+        pcb = getPCBheight()
         nr = 1
-        for i in obj:
-            if hasattr(i, "Placement"):
-                #top
-                a = QtGui.QTreeWidgetItem()
-                a.setText(0, i.Label)
-                a.setData(0, QtCore.Qt.UserRole, i.Name)
-                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)
-                
-                dostepneWarstwy = QtGui.QComboBox()
-                dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
-                dostepneWarstwy.setMaximumWidth(60)
-                
-                if i.Name in self.mainObject.Proxy.spisObiektowGora.keys():
-                    a.setCheckState(0, QtCore.Qt.Checked)
-                    dostepneWarstwy.setCurrentIndex(dostepneWarstwy.findText(str(self.mainObject.Proxy.spisObiektowGora[i.Name][1])))
-                else:
-                    a.setCheckState(0, QtCore.Qt.Unchecked)
-                    dostepneWarstwy.setCurrentIndex(1)
-                    
-                globals()["zm_g_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
-                
-                self.form.tableTop.addTopLevelItem(a)
-                self.form.tableTop.setItemWidget(a, 1, globals()["zm_g_%s" % nr])
-                if i.Name in self.mainObject.Proxy.spisObiektowDol.keys(): a.setHidden(True)
-                
-                # bottom
-                a = QtGui.QTreeWidgetItem()
-                a.setText(0, i.Label)
-                a.setData(0, QtCore.Qt.UserRole, i.Name)
-                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-                    
-                dostepneWarstwy = QtGui.QComboBox()
-                dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
-                dostepneWarstwy.setMaximumWidth(60)
+        
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
+                    if i.Side == "TOP":
+                        #top
+                        a = QtGui.QTreeWidgetItem()
+                        a.setText(0, i.Label)
+                        a.setData(0, QtCore.Qt.UserRole, i.Name)
+                        try:
+                            a.setIcon(0, i.ViewObject.Icon)
+                        except AttributeError:
+                            pass
+                        a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable)
+                        
+                        dostepneWarstwy = QtGui.QComboBox()
+                        dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+                        dostepneWarstwy.setMaximumWidth(60)
+                        
+                        if i.Name in self.mainObject.Proxy.spisObiektowGora.keys():
+                            a.setCheckState(0, QtCore.Qt.Checked)
+                            dostepneWarstwy.setCurrentIndex(dostepneWarstwy.findText(str(self.mainObject.Proxy.spisObiektowGora[i.Name][1])))
+                        else:
+                            a.setCheckState(0, QtCore.Qt.Unchecked)
+                            dostepneWarstwy.setCurrentIndex(1)
+                            
+                        globals()["zm_g_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
+                        
+                        self.form.tableTop.addTopLevelItem(a)
+                        self.form.tableTop.setItemWidget(a, 1, globals()["zm_g_%s" % nr])
+                        if i.Name in self.mainObject.Proxy.spisObiektowDol.keys(): a.setHidden(True)
+                    else:
+                        # bottom
+                        a = QtGui.QTreeWidgetItem()
+                        a.setText(0, i.Label)
+                        a.setData(0, QtCore.Qt.UserRole, i.Name)
+                        try:
+                            a.setIcon(0, i.ViewObject.Icon)
+                        except AttributeError:
+                            pass
+                        a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
+                            
+                        dostepneWarstwy = QtGui.QComboBox()
+                        dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+                        dostepneWarstwy.setMaximumWidth(60)
 
-                if i.Name in self.mainObject.Proxy.spisObiektowDol.keys():
-                    a.setCheckState(0, QtCore.Qt.Checked)
-                    dostepneWarstwy.setCurrentIndex(dostepneWarstwy.findText(str(self.mainObject.Proxy.spisObiektowDol[i.Name][1])))
-                else:
-                    a.setCheckState(0, QtCore.Qt.Unchecked)
-                    dostepneWarstwy.setCurrentIndex(1)
-                
-                globals()["zm_d_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
-                    
-                self.form.tableBottom.addTopLevelItem(a)
-                self.form.tableBottom.setItemWidget(a, 1, globals()["zm_d_%s" % nr])
-                if i.Name in self.mainObject.Proxy.spisObiektowGora.keys(): a.setHidden(True)
-                
-                ####
-                nr += 1
+                        if i.Name in self.mainObject.Proxy.spisObiektowDol.keys():
+                            a.setCheckState(0, QtCore.Qt.Checked)
+                            dostepneWarstwy.setCurrentIndex(dostepneWarstwy.findText(str(self.mainObject.Proxy.spisObiektowDol[i.Name][1])))
+                        else:
+                            a.setCheckState(0, QtCore.Qt.Unchecked)
+                            dostepneWarstwy.setCurrentIndex(1)
+                        
+                        globals()["zm_d_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
+                            
+                        self.form.tableBottom.addTopLevelItem(a)
+                        self.form.tableBottom.setItemWidget(a, 1, globals()["zm_d_%s" % nr])
+                        if i.Name in self.mainObject.Proxy.spisObiektowGora.keys(): a.setHidden(True)
+                    ####
+                    nr += 1
                 
         self.form.tableTop.resizeColumnToContents(1)
         self.form.tableBottom.resizeColumnToContents(1)
@@ -383,51 +397,54 @@ class explodeWizard:
     def open(self):
         obj = FreeCAD.ActiveDocument.Objects
         
+        pcb = getPCBheight()
         nr = 0
-        for i in obj:
-            if hasattr(i, "Placement"):
-                #top
-                a = QtGui.QTreeWidgetItem()
-                a.setText(0, i.Label)
-                a.setCheckState(0, QtCore.Qt.Unchecked)
-                a.setData(0, QtCore.Qt.UserRole, i.Name)
-                try:
-                    a.setIcon(0, i.ViewObject.Icon)
-                except AttributeError:
-                    pass
-                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-                
-                dostepneWarstwy = QtGui.QComboBox()
-                dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
-                dostepneWarstwy.setCurrentIndex(1)
-                dostepneWarstwy.setMaximumWidth(60)
-                globals()["zm_g_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
+        
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
+                    if i.Side == "TOP":
+                        #top
+                        a = QtGui.QTreeWidgetItem()
+                        a.setText(0, i.Label)
+                        a.setCheckState(0, QtCore.Qt.Unchecked)
+                        a.setData(0, QtCore.Qt.UserRole, i.Name)
+                        try:
+                            a.setIcon(0, i.ViewObject.Icon)
+                        except AttributeError:
+                            pass
+                        a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
+                        
+                        dostepneWarstwy = QtGui.QComboBox()
+                        dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+                        dostepneWarstwy.setCurrentIndex(1)
+                        dostepneWarstwy.setMaximumWidth(60)
+                        globals()["zm_g_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
 
-                self.form.tableTop.addTopLevelItem(a)
-                self.form.tableTop.setItemWidget(a, 1, globals()["zm_g_%s" % nr])
-                
-                # bottom
-                a = QtGui.QTreeWidgetItem()
-                a.setText(0, i.Label)
-                a.setCheckState(0, QtCore.Qt.Unchecked)
-                a.setData(0, QtCore.Qt.UserRole, i.Name)
-                try:
-                    a.setIcon(0, i.ViewObject.Icon)
-                except AttributeError:
-                    pass
-                a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-                
-                dostepneWarstwy = QtGui.QComboBox()
-                dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
-                dostepneWarstwy.setCurrentIndex(1)
-                dostepneWarstwy.setMaximumWidth(60)
-                globals()["zm_d_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
-                
-                self.form.tableBottom.addTopLevelItem(a)
-                self.form.tableBottom.setItemWidget(a, 1, globals()["zm_d_%s" % nr])
-                
-                ##
-                nr += 1
+                        self.form.tableTop.addTopLevelItem(a)
+                        self.form.tableTop.setItemWidget(a, 1, globals()["zm_g_%s" % nr])
+                    else:
+                        # bottom
+                        a = QtGui.QTreeWidgetItem()
+                        a.setText(0, i.Label)
+                        a.setCheckState(0, QtCore.Qt.Unchecked)
+                        a.setData(0, QtCore.Qt.UserRole, i.Name)
+                        try:
+                            a.setIcon(0, i.ViewObject.Icon)
+                        except AttributeError:
+                            pass
+                        a.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
+                        
+                        dostepneWarstwy = QtGui.QComboBox()
+                        dostepneWarstwy.addItems(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+                        dostepneWarstwy.setCurrentIndex(1)
+                        dostepneWarstwy.setMaximumWidth(60)
+                        globals()["zm_d_%s" % nr] = dostepneWarstwy  # workaround bug from pyside
+                        
+                        self.form.tableBottom.addTopLevelItem(a)
+                        self.form.tableBottom.setItemWidget(a, 1, globals()["zm_d_%s" % nr])
+                    ##
+                    nr += 1
             
         self.form.tableTop.resizeColumnToContents(1)
         self.form.tableBottom.resizeColumnToContents(1)
