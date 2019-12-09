@@ -37,7 +37,7 @@ import glob
 import zipfile
 import tempfile
 #import sys
-from math import sqrt, atan2, sin, cos, radians, pi, hypot, atan
+from math import sqrt, atan2, sin, cos, radians, pi, hypot, atan, degrees
 from PCBdataBase import dataBase
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
@@ -117,6 +117,262 @@ def filterHoles(r, Hmin, Hmax):
     else:
         return False
 
+########################################################################
+#
+########################################################################
+
+def sketcherGetArcAngle(arcData):
+    x1 = arcData.StartPoint.x
+    y1 = arcData.StartPoint.y
+    x2 = arcData.EndPoint.x
+    y2 = arcData.EndPoint.y
+    
+    x = arcData.Center.x
+    y = arcData.Center.y
+    
+    axisZ = arcData.Axis.z
+    angleXU = arcData.AngleXU
+    curve = degrees(arcData.FirstParameter) - degrees(arcData.LastParameter)
+    
+    if axisZ > 0:
+        curve *= -1
+    
+    if curve < 0:
+        #if angleXU < 0:
+        start = degrees(atan2(y2 - y, x2 - x))
+    else:
+        if angleXU < 0:
+            start =  360 + degrees(atan2(y1 - y, x1 - x))
+        else:
+            start =  degrees(atan2(y1 - y, x1 - x))
+
+    stop = abs(curve) + start 
+    
+    return [round(curve, 4), round(start, 4), round(stop, 4)]
+
+def sketcherRemoveOpenShapes(dataIN):
+    outline = {}
+    
+    for i in dataIN.keys():
+        if dataIN[i][0][-1] == 'Circle':
+            outline[i] = dataIN[i]
+        if [dataIN[i][0][0], dataIN[i][0][1]] != [dataIN[i][len(dataIN[i])-1][0] , dataIN[i][len(dataIN[i])-1][1]] and dataIN[i][0][-1] != 'Circle':
+            FreeCAD.Console.PrintWarning("Open shape omitted.\n")
+            continue
+        else:
+            outline[i] = dataIN[i]
+    
+    return outline
+
+def sketcherGetGeometryShapes(sketcherIN):
+    if not sketcherIN.isDerivedFrom("Sketcher::SketchObject"):
+        FreeCAD.Console.PrintWarning("Error: Object is not a sketcher.\n")
+        return [False]
+    elif not len(sketcherIN.Geometry):
+        FreeCAD.Console.PrintWarning("Error: No geometry.\n")
+        return [False]
+    elif not FreeCAD.activeDocument():
+        FreeCAD.Console.PrintWarning("Error: FreeCAD is not activated.\n")
+        return [False]
+    #
+    outList = {}
+    try:
+        num_1 = 0
+        num_2 = 1
+        data = sketcherIN.Geometry
+        first = False
+        
+        while len(data):
+            for i in range(0, len(data)):
+                if data[i].Construction:
+                    data.pop(i)
+                    break
+                ####
+                if type(data[i]).__name__ == 'ArcOfCircle':
+                    [angle, startAngle, stopAngle] = sketcherGetArcAngle(data[i])
+                    
+                    x3 = float("%.4f" % ( data[i].StartPoint.x))
+                    y3 = float("%.4f" % ( data[i].StartPoint.y))
+                    x4 = float("%.4f" % ( data[i].EndPoint.x))
+                    y4 = float("%.4f" % ( data[i].EndPoint.y))
+                    
+                    if not first:
+                        num_1 = 0
+                        if not num_2 in outList.keys():
+                            outList[num_2] = {}
+                        outList[num_2][num_1] = [x3, y3, 'Line']
+                        num_1 += 1
+                        outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                        data.pop(i)
+                        first = True
+                        
+                        x2 = x4
+                        y2 = y4
+                        
+                        break
+                    #
+                    if [x3, y3] == [x2, y2]:
+                        num_1 += 1
+                        outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                        x2 = x4
+                        y2 = y4
+                        data.pop(i)
+                        break
+                    elif [x4, y4] == [x2, y2]:
+                        num_1 += 1
+                        outList[num_2][num_1] = [x3, y3, angle, 'Arc']
+                        x2 = x3
+                        y2 = y3
+                        data.pop(i)
+                        break
+                elif type(data[i]).__name__ == 'LineSegment':
+                    x3 = float("%.4f" % ( data[i].StartPoint.x))
+                    y3 = float("%.4f" % ( data[i].StartPoint.y))
+                    x4 = float("%.4f" % ( data[i].EndPoint.x))
+                    y4 = float("%.4f" % ( data[i].EndPoint.y))
+                    
+                    if not first:
+                        num_1 = 0
+                        if not num_2 in outList.keys():
+                            outList[num_2] = {}
+                        outList[num_2][num_1] = [x3, y3, 'Line']
+                        num_1 += 1
+                        outList[num_2][num_1] = [x4, y4, 'Line']
+                        data.pop(i)
+                        first = True
+                        
+                        x2 = x4
+                        y2 = y4
+                        
+                        break
+                    #
+                    if [x3, y3] == [x2, y2]:
+                        num_1 += 1
+                        outList[num_2][num_1] = [x4, y4, 'Line']
+                        x2 = x4
+                        y2 = y4
+                        data.pop(i)
+                        break
+                    elif [x4, y4] == [x2, y2]:
+                        num_1 += 1
+                        outList[num_2][num_1] = [x3, y3, 'Line']
+                        x2 = x3
+                        y2 = y3
+                        data.pop(i)
+                        break
+                ######
+                if i == len(data) - 1:
+                    if type(data[0]).__name__ == 'Circle':
+                        xs = float("%.4f" % (data[0].Center.x))
+                        ys = float("%.4f" % (data[0].Center.y))
+                        r = float("%.4f" % (data[0].Radius))
+                        
+                        num_2 += 1
+                        outList[num_2] = {}
+                        outList[num_2][0] = [xs, ys, r, 'Circle']
+                        data.pop(i)
+                    #########
+                    first = False
+                    num_2 += 1
+                    break
+    except Exception as e:
+        FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    #
+    return [True, outList]
+
+
+def sketcherGetGeometry(sketcherIN):
+    if not sketcherIN.isDerivedFrom("Sketcher::SketchObject"):
+        FreeCAD.Console.PrintWarning("Error: Object is not a sketcher.\n")
+        return [False]
+    elif not len(sketcherIN.Geometry):
+        FreeCAD.Console.PrintWarning("Error: No geometry.\n")
+        return [False]
+    elif not FreeCAD.activeDocument():
+        FreeCAD.Console.PrintWarning("Error: FreeCAD is not activated.\n")
+        return [False]
+    #
+    outline = []
+    try:
+        for k in range(len(sketcherIN.Geometry)):
+            if sketcherIN.Geometry[k].Construction:
+                continue
+            
+            if type(sketcherIN.Geometry[k]).__name__ == 'LineSegment':
+                outline.append({
+                    'type': 'line',
+                    'x1': sketcherIN.Geometry[k].StartPoint.x,
+                    'y1': sketcherIN.Geometry[k].StartPoint.y,
+                    'x2': sketcherIN.Geometry[k].EndPoint.x,
+                    'y2': sketcherIN.Geometry[k].EndPoint.y
+                })
+            elif type(sketcherIN.Geometry[k]).__name__ == 'Circle':
+                outline.append({
+                    'type': 'circle',
+                    'x': sketcherIN.Geometry[k].Center.x,
+                    'y': sketcherIN.Geometry[k].Center.y,
+                    'r': sketcherIN.Geometry[k].Radius,
+                })
+            elif type(sketcherIN.Geometry[k]).__name__ == 'ArcOfCircle':
+                [angle, startAngle, stopAngle] = sketcherGetArcAngle(sketcherIN.Geometry[k])
+                
+                outline.append({
+                    'type': 'arc',
+                    'x': sketcherIN.Geometry[k].Center.x,
+                    'y': sketcherIN.Geometry[k].Center.y,
+                    'r': sketcherIN.Geometry[k].Radius,
+                    'angle': angle,
+                    'x1': sketcherIN.Geometry[k].StartPoint.x,
+                    'y1': sketcherIN.Geometry[k].StartPoint.y,
+                    'x2': sketcherIN.Geometry[k].EndPoint.x,
+                    'y2': sketcherIN.Geometry[k].EndPoint.y,
+                    'startAngle': startAngle, 
+                    'stopAngle': stopAngle
+                })
+        
+    except Exception as e:
+        FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    #
+    return [True, outline]
+    
+    
+def sortPointsCounterClockwise(data):
+    result = []
+    for i in data.keys():
+        if data[i][0][-1] == 'Circle':
+            result.append[data[i][0]]
+            continue
+        if [data[i][0][0], data[i][0][1]] != [data[i][len(data[i])-1][0] , data[i][len(data[i])-1][1]] and data[i][0][-1] != 'Circle':
+            #FreeCAD.Console.PrintWarning("Open shape omitted.\n")
+            continue
+        #
+        xValue = [data[i][k][0] for k in data[i].keys()]
+        xMin = min(xValue)
+        xMax = max(xValue)
+        xCenter = (xMin + xMax) / 2.
+
+        yValue = [data[i][k][1] for k in data[i].keys()]
+        yMin = min(yValue)
+        yMax = max(yValue)
+        yCenter = (yMin + yMax) / 2.
+
+        out = {}
+        for j in data[i].keys():
+            x = data[i][j][0]
+            y = data[i][j][1]
+            angle = atan2((y - yCenter)*-1, x - xCenter)*-1
+            out[angle] =  data[i][j]
+        #
+        tmp = []
+        for p in builtins.sorted(out.keys()):  
+            tmp.append(out[p])
+        result.append(tmp)
+    #
+    return result
+
+########################################################################
+#
+########################################################################
 
 def setProjectFile(filename, char=['(', ')']):
     projektBRD = builtins.open(filename, "r").read()[1:]

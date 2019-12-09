@@ -66,7 +66,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         plytkaPCBInfo.setStyleSheet('margin-left:0px')
         
         #######
-        self.gruboscPlytki = QtGui.QDoubleSpinBox(self)
+        self.gruboscPlytki = QtGui.QDoubleSpinBox()
         self.gruboscPlytki.setSingleStep(0.1)
         self.gruboscPlytki.setValue(freecadSettings.GetFloat("boardThickness", 1.5))
         self.gruboscPlytki.setSuffix(u" mm")
@@ -83,12 +83,12 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.plytkaPCB_otworyIH = QtGui.QCheckBox(u"Omit intersected holes")  # detecting collisions between holes - intersections
         self.plytkaPCB_otworyIH.setChecked(freecadSettings.GetBool("omitIntersectedHoles", True))
         
-        self.holesMin = QtGui.QDoubleSpinBox(self)
+        self.holesMin = QtGui.QDoubleSpinBox()
         self.holesMin.setSingleStep(0.1)
         self.holesMin.setValue(0)
         self.holesMin.setSuffix(u" mm")
         
-        self.holesMax = QtGui.QDoubleSpinBox(self)
+        self.holesMax = QtGui.QDoubleSpinBox()
         self.holesMax.setSingleStep(0.1)
         self.holesMax.setValue(0)
         self.holesMax.setSuffix(u" mm")
@@ -98,62 +98,55 @@ class dialogMAIN_FORM(QtGui.QDialog):
         #######
         self.plytkaPCB_plikER = QtGui.QCheckBox(u"Generate report")
         self.plytkaPCB_plikER.setChecked(freecadSettings.GetBool("partsReport", False))
-        self.plytkaPCB_plikER.setStyleSheet('margin-left:20px')
+        #self.plytkaPCB_plikER.setStyleSheet('margin-left:20px')
         self.plytkaPCB_plikER.setEnabled(freecadSettings.GetBool("partsImport", True))
         #######
-        self.plytkaPCB_elementy = QtGui.QCheckBox(u"Parts")
-        self.plytkaPCB_elementy.setChecked(freecadSettings.GetBool("partsImport", True))
-        #######
+        plytkaPCB_GP_TT = QtGui.QLabel("")
+        plytkaPCB_GP_TT.setCursor(QtGui.QCursor(QtCore.Qt.WhatsThisCursor))
+        plytkaPCB_GP_TT.setPixmap(QtGui.QPixmap(":/data/img/info_16x16.png"))
+        plytkaPCB_GP_TT.setToolTip('<b>Group parts</b><br><img src=":/data/img/groupParts.png">')
+        
         self.plytkaPCB_grupujElementy = QtGui.QCheckBox(u"Group parts")
         self.plytkaPCB_grupujElementy.setChecked(freecadSettings.GetBool("groupParts", False))
-        self.plytkaPCB_grupujElementy.setStyleSheet('margin-left:20px')
         self.plytkaPCB_grupujElementy.setEnabled(freecadSettings.GetBool("partsImport", True))
         #######
+        plytkaPCB_EK_TT = QtGui.QLabel("")
+        plytkaPCB_EK_TT.setCursor(QtGui.QCursor(QtCore.Qt.WhatsThisCursor))
+        plytkaPCB_EK_TT.setPixmap(QtGui.QPixmap(":/data/img/info_16x16.png"))
+        plytkaPCB_EK_TT.setToolTip('<b>Colorize elements</b><br><img src=":/data/img/colorizeModels.png">')
+        
         self.plytkaPCB_elementyKolory = QtGui.QCheckBox(u"Colorize elements")
         self.plytkaPCB_elementyKolory.setChecked(freecadSettings.GetBool("partsColorize", True))
-        self.plytkaPCB_elementyKolory.setStyleSheet('margin-left:20px')
+        #self.plytkaPCB_elementyKolory.setStyleSheet('margin-left:20px')
         self.plytkaPCB_elementyKolory.setEnabled(freecadSettings.GetBool("partsImport", True))
         #######
+        plytkaPCB_APNV_TT = QtGui.QLabel("")
+        plytkaPCB_APNV_TT.setCursor(QtGui.QCursor(QtCore.Qt.WhatsThisCursor))
+        plytkaPCB_APNV_TT.setPixmap(QtGui.QPixmap(":/data/img/info_16x16.png"))
+        plytkaPCB_APNV_TT.setToolTip('<b>Adjust part name/value</b><br><img src=":/data/img/adjustPartNameValue.png">')
+        
         self.adjustParts = QtGui.QCheckBox(u"Adjust part name/value")
         self.adjustParts.setChecked(freecadSettings.GetBool("adjustNameValue", False))
-        self.adjustParts.setStyleSheet('margin-left:20px')
+        #self.adjustParts.setStyleSheet('margin-left:20px')
         self.adjustParts.setEnabled(freecadSettings.GetBool("partsImport", True))
         #######
-        self.partMinX = QtGui.QDoubleSpinBox(self)
+        self.partMinX = QtGui.QDoubleSpinBox()
         self.partMinX.setSingleStep(0.1)
         self.partMinX.setValue(0)
         self.partMinX.setSuffix(u" mm")
         self.partMinX.setEnabled(freecadSettings.GetBool("partsImport", True))
         
-        self.partMinY = QtGui.QDoubleSpinBox(self)
+        self.partMinY = QtGui.QDoubleSpinBox()
         self.partMinY.setSingleStep(0.1)
         self.partMinY.setValue(0)
         self.partMinY.setSuffix(u" mm")
         self.partMinY.setEnabled(freecadSettings.GetBool("partsImport", True))
         
-        self.partMinZ = QtGui.QDoubleSpinBox(self)
+        self.partMinZ = QtGui.QDoubleSpinBox()
         self.partMinZ.setSingleStep(0.1)
         self.partMinZ.setValue(0)
         self.partMinZ.setSuffix(u" mm")
         self.partMinZ.setEnabled(freecadSettings.GetBool("partsImport", True))
-        #######
-        #######
-        #self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_plikER.setChecked)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_plikER.setEnabled)
-        
-        #self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_elementyKolory.setChecked)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_elementyKolory.setEnabled)
-        
-        #self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.adjustParts.setChecked)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.adjustParts.setEnabled)
-        
-        #self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_grupujElementy.setChecked)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_grupujElementy.setEnabled)
-        
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.partMinX.setEnabled)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.partMinY.setEnabled)
-        self.connect(self.plytkaPCB_elementy, QtCore.SIGNAL("toggled (bool)"), self.partMinZ.setEnabled)
-        #######
         #######
         # buttons
         buttons = QtGui.QDialogButtonBox()
@@ -161,11 +154,11 @@ class dialogMAIN_FORM(QtGui.QDialog):
         buttons.addButton(u"Accept", QtGui.QDialogButtonBox.AcceptRole)
         self.connect(buttons, QtCore.SIGNAL("accepted()"), self, QtCore.SLOT("accept()"))
         self.connect(buttons, QtCore.SIGNAL("rejected()"), self, QtCore.SLOT("reject()"))
-        
+        #
         self.selectAll = QtGui.QCheckBox('de/select all layers')
         self.selectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
         self.connect(self.selectAll, QtCore.SIGNAL("clicked()"), self.selectAllCategories)
-        
+        #
         self.debugImport = QtGui.QCheckBox('Debug import')
         #
         self.spisWarstw = tabela()
@@ -182,57 +175,100 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.spisWarstw.horizontalHeader().resizeSection(4, 95)
         self.spisWarstw.hideColumn(1)
         #######
-        layHoles = QtGui.QVBoxLayout()
-        layHoles.addWidget(self.plytkaPCB_otworyH)
-        layHoles.addWidget(self.plytkaPCB_otworyV)
-        layHoles.addWidget(self.plytkaPCB_otworyP)
-        layHoles.addWidget(self.plytkaPCB_otworyIH)
-        layHoles.setContentsMargins(20, 10, 0, 0)
+        filterholesBox = QtGui.QGroupBox("Filter by diameter")
+        filterholesBox.setFixedWidth(200)
+        filterholesBoxLay = QtGui.QGridLayout(filterholesBox)
+        filterholesBoxLay.addWidget(QtGui.QLabel(u"min."), 0, 0, 1, 1)
+        filterholesBoxLay.addWidget(self.holesMin, 0, 1, 1, 1)
+        filterholesBoxLay.addWidget(QtGui.QLabel(u"max."), 1, 0, 1, 1)
+        filterholesBoxLay.addWidget(self.holesMax, 1, 1, 1, 1)
+        filterholesBoxLay.addItem(QtGui.QSpacerItem(1, 10), 2, 1, 1, 1)
+        filterholesBoxLay.addWidget(QtGui.QLabel(u"0mm -> skip parameter/limit"), 3, 0, 1, 2, QtCore.Qt.AlignCenter)
         
-        layHolesRange = QtGui.QGridLayout()
-        layHolesRange.setContentsMargins(20, 10, 0, 0)
-        layHolesRange.addWidget(QtGui.QLabel(u"min."), 0, 0, 1, 1)
-        layHolesRange.addWidget(self.holesMin, 0, 1, 1, 1)
-        layHolesRange.addWidget(QtGui.QLabel(u"max."), 1, 0, 1, 1)
-        layHolesRange.addWidget(self.holesMax, 1, 1, 1, 1)
+        holesBox = QtGui.QGroupBox("Holes")
+        layHoles = QtGui.QGridLayout(holesBox)
+        layHoles.addWidget(self.plytkaPCB_otworyH, 0, 0, 1, 1)
+        layHoles.addWidget(self.plytkaPCB_otworyV, 1, 0, 1, 1)
+        layHoles.addWidget(self.plytkaPCB_otworyP, 2, 0, 1, 1)
+        layHoles.addWidget(self.plytkaPCB_otworyIH, 3, 0, 1, 1)
+        layHoles.addWidget(filterholesBox, 0, 1, 5, 1)
+        layHoles.setColumnStretch(0, 60)
+        layHoles.setColumnStretch(1, 40)
+        ####################
+        filterPartsBox = QtGui.QGroupBox("Filter by size (3D models)")
+        filterPartsBox.setFixedWidth(200)
+        filterPartsBoxLay = QtGui.QGridLayout(filterPartsBox)
+        filterPartsBoxLay.addWidget(QtGui.QLabel(u"Length"), 0, 0, 1, 1)
+        filterPartsBoxLay.addWidget(self.partMinX, 0, 1, 1, 1)
+        filterPartsBoxLay.addWidget(QtGui.QLabel(u"Width"), 1, 0, 1, 1)
+        filterPartsBoxLay.addWidget(self.partMinY, 1, 1, 1, 1)
+        filterPartsBoxLay.addWidget(QtGui.QLabel(u"Height"), 2, 0, 1, 1)
+        filterPartsBoxLay.addWidget(self.partMinZ, 2, 1, 1, 1)
+        filterPartsBoxLay.addItem(QtGui.QSpacerItem(1, 10), 3, 1, 1, 1)
+        filterPartsBoxLay.addWidget(QtGui.QLabel(u"0mm -> skip parameter/limit"), 4, 0, 1, 2, QtCore.Qt.AlignCenter)
         
-        layPartSize = QtGui.QGridLayout()
-        layPartSize.setContentsMargins(20, 0, 0, 0)
-        layPartSize.addWidget(QtGui.QLabel(u"L"), 0, 0, 1, 1)
-        layPartSize.addWidget(self.partMinX, 0, 1, 1, 1)
-        layPartSize.addWidget(QtGui.QLabel(u"W"), 1, 0, 1, 1)
-        layPartSize.addWidget(self.partMinY, 1, 1, 1, 1)
-        layPartSize.addWidget(QtGui.QLabel(u"H"), 2, 0, 1, 1)
-        layPartSize.addWidget(self.partMinZ, 2, 1, 1, 1)
-        layPartSize.setRowStretch(3, 10)
-        layPartSize.setEnabled
+        self.partsBox = QtGui.QGroupBox("Parts")
+        self.partsBox.setCheckable(True)
+        self.partsBox.setChecked(freecadSettings.GetBool("partsImport", True))
+        self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_plikER.setEnabled)
+        self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_elementyKolory.setEnabled)
+        self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), self.adjustParts.setEnabled)
+        self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), self.plytkaPCB_grupujElementy.setEnabled)
+        self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), filterPartsBox.setEnabled)
+        try:
+            self.connect(self.partsBox, QtCore.SIGNAL("toggled (bool)"), self.packageByDecal.setEnabled)  # IDF
+        except:
+            pass
+        
+        self.layParts = QtGui.QGridLayout(self.partsBox)
+        self.layParts.addWidget(plytkaPCB_EK_TT, 0, 0, 1, 1)
+        self.layParts.addWidget(self.plytkaPCB_elementyKolory, 0, 1, 1, 1)
+        self.layParts.addWidget(plytkaPCB_APNV_TT, 1, 0, 1, 1)
+        self.layParts.addWidget(self.adjustParts, 1, 1, 1, 1)
+        self.layParts.addWidget(plytkaPCB_GP_TT, 2, 0, 1, 1)
+        self.layParts.addWidget(self.plytkaPCB_grupujElementy, 2, 1, 1, 1)
+        self.layParts.addWidget(self.plytkaPCB_plikER, 3, 1, 1, 1)
+        #4 decals IDF
+        self.layParts.addWidget(filterPartsBox, 0, 2, 6, 1)
+        self.layParts.setColumnStretch(1, 60)
+        self.layParts.setColumnStretch(2, 40)
+        ####################
+        self.razenBiblioteki = QtGui.QLineEdit('')
+        
+        otherBox = QtGui.QGroupBox("Other settings")
+        self.layOther = QtGui.QGridLayout(otherBox)
+        #self.layOther.addWidget(QtGui.QLabel(u"Library"), 0, 0, 1, 1) # library
+        #self.layOther.addWidget(self.razenBiblioteki, 0, 1, 1, 2) # library
+        self.layOther.addWidget(self.debugImport, 1, 0, 1, 3)
+        ##############################################
+        mainWidgetLeftSide = QtGui.QWidget()
+        layLeftSide = QtGui.QGridLayout(mainWidgetLeftSide)
+        layLeftSide.addWidget(self.spisWarstw, 0, 0, 1, 2)
+        layLeftSide.addWidget(self.selectAll, 1, 0, 1, 1)
+        layLeftSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Expanding), 1, 1, 1, 1)
         #
-        self.lay = QtGui.QGridLayout()
-        #self.lay.addLayout(layLeftSide, 0, 0, 8, 1, QtCore.Qt.AlignTop)
-        self.lay.addWidget(self.spisWarstw, 0, 1, 11, 2)
-        self.lay.addWidget(self.selectAll, 10, 1, 1, 1)
-        self.lay.addWidget(self.debugImport, 10, 2, 1, 1)
+        mainWidgetRightSide = QtGui.QWidget()
+        layRightSide = QtGui.QGridLayout(mainWidgetRightSide)
+        layRightSide.addWidget(plytkaPCBInfo, 0, 0, 1, 1, QtCore.Qt.AlignLeft)
+        layRightSide.addWidget(self.gruboscPlytki, 0, 1, 1, 1)
+        layRightSide.addItem(QtGui.QSpacerItem(1, 10), 1, 0, 1, 1)
+        layRightSide.addWidget(holesBox, 2, 0, 1, 2, QtCore.Qt.AlignTop)
+        layRightSide.addWidget(self.partsBox, 3, 0, 1, 2, QtCore.Qt.AlignTop)
+        layRightSide.addWidget(otherBox, 4, 0, 1, 2, QtCore.Qt.AlignTop)
+        layRightSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding), 5, 1, 1, 1)
+        #
+        self.splitter = QtGui.QSplitter()
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.addWidget(mainWidgetLeftSide)
+        self.splitter.addWidget(mainWidgetRightSide)
         
-        #self.lay.addWidget(self.plytkaPCB, 0, 1, 1, 4)
-        self.lay.addWidget(plytkaPCBInfo, 1, 3, 1, 1, QtCore.Qt.AlignLeft)
-        self.lay.addWidget(self.gruboscPlytki, 1, 4, 1, 3)
-        self.lay.addLayout(layHoles, 2, 3, 1, 3, QtCore.Qt.AlignTop)
-        self.lay.addLayout(layHolesRange, 2, 6, 1, 1)
-        #lay.addWidget(self.plytkaPCB_PADS, 3, 1, 1, 2)
-        self.lay.addWidget(self.plytkaPCB_elementy, 4, 3, 1, 3)
-        self.lay.addWidget(self.plytkaPCB_elementyKolory, 5, 3, 1, 3)
-        self.lay.addWidget(self.plytkaPCB_grupujElementy, 6, 3, 1, 3)
-        self.lay.addWidget(self.adjustParts, 7, 3, 1, 3)
-        self.lay.addWidget(self.plytkaPCB_plikER, 8, 3, 1, 3)
-        self.lay.addLayout(layPartSize, 5, 6, 5, 1)
-        self.lay.addItem(QtGui.QSpacerItem(10, 10), 12, 3, 1, 3)
-        # 12 - lib
-        self.lay.addItem(QtGui.QSpacerItem(10, 10), 14, 3, 1, 3)
-        self.lay.addWidget(buttons, 15, 3, 1, 4, QtCore.Qt.AlignRight)
-        self.lay.setRowStretch(9, 10)
-        self.lay.setColumnMinimumWidth(2, 200)
-        self.lay.setColumnMinimumWidth(3, 120)
-        self.setLayout(self.lay)
+        mainLay = QtGui.QGridLayout()
+        mainLay.addWidget(self.splitter, 0, 0, 1, 3)
+        mainLay.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Expanding), 1, 0, 1, 1)
+        mainLay.addWidget(buttons, 1, 1, 1, 1, QtCore.Qt.AlignRight)
+        mainLay.addItem(QtGui.QSpacerItem(2, 1, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum), 1, 2, 1, 1)
+        self.setLayout(mainLay)
+        #
         self.readSize()
     
     def readSize(self):

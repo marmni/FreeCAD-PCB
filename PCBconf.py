@@ -102,6 +102,35 @@ defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 
 #  DATABASES LIST
 #  libPath - default position of library for program (if necessary)
 #       for example: FidoCadJ -> 'libPath': 'C:\\Users\\mariusz\\Downloads\\Desktop\\fidocadj.jar'
+
+exportData = {
+    "eagle" : {
+        'name': 'Eagle',
+        'exportLayers': ['dim', 'hol', 'anno', 'glue'],
+        'exportClass': 'eagle()',
+        'description': 'Eagle',
+        'format': '*.brd',
+        'icon': ':/data/img/eagle.png',
+    },
+    "geda" : {
+        'name': 'gEDA',
+        'exportLayers': ['hol', 'anno'],
+        'exportClass': 'geda()',
+        'description': 'gEDA',
+        'format': '*.pcb',
+        'icon': ':/data/img/geda.png',
+    },
+    # "idf_v3" : {
+        # 'name': 'IDF v3',
+        # 'exportLayers': ['hol', 'anno'],
+        # 'exportClass': 'idf_v3()',
+        # 'description': 'IDF v3',
+        # 'format': '*.emn',
+        # 'icon': '',
+    # },
+}
+
+
 supSoftware = {
     "eagle" : {
         'name': 'Eagle',

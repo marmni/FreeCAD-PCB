@@ -77,11 +77,18 @@ class partsObject(mathFunctions):
         obj.setEditorMode("Label", 2)
         obj.setEditorMode("PartName", 1)
         obj.setEditorMode("PartValue", 1)
-        
+        #
         obj.Side = objectSides
         obj.Proxy = self
         self.Object = obj
     
+    def onChanged(self, fp, prop):
+        fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("PartName", 1)
+        fp.setEditorMode("PartValue", 1)
+        fp.setEditorMode("Package", 1)
+
     def updatePosition_Z(self, fp, thickness, forceUpdate=False):
         try:
             if fp.Side == objectSides[0]:  # TOP
@@ -131,6 +138,12 @@ class partObject(partsObject):
         partsObject.__init__(self, obj, "PCBpart")
     
     def onChanged(self, fp, prop):
+        fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("PartName", 1)
+        fp.setEditorMode("PartValue", 1)
+        fp.setEditorMode("Package", 1)
+        #
         try:
             if prop == "Rot":
                 self.rotateZ(fp)
@@ -791,17 +804,20 @@ class objectWire(mathFunctions):
             return mainObj.cut(hole)
         return mainObj
     
-    def makeFace(self, mainObj):
+    def makeFace(self, mainObj, height, extrude=True):
         # shifted from generuj() function
         # extruding each wires separately is much faster than the whole compound
         # testing board - from 48[s] to 21[s]
         
-        if self.side == 1:  # top side
-            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-        elif  self.side == 2:  # both sides
-            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
-        else:  # bottom side
-            return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0,-self.defHeight / 1000.))
+        if extrude:
+            if self.side == 1:  # top side
+                return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, height / 1000.))
+            elif  self.side == 2:  # both sides
+                return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0, height))
+            else:  # bottom side
+                return Part.Face(mainObj).extrude(FreeCAD.Base.Vector(0, 0,-height / 1000.))
+        else:
+            return Part.Face(mainObj)
         
         
 class layerPolygonObject(objectWire):
@@ -1193,8 +1209,11 @@ class layerSilkObject(objectWire):
         
         return midpoint
     
-    def setFace(self, param=True):
-        self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1])
+    def setFace(self, extrude=True, height=None):
+        if not height:
+            height = self.defHeight
+        
+        self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1], height, extrude)
         
     def setChangeSide(self, xs, ys, layer):
         if layer == 0:

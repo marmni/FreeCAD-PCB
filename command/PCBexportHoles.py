@@ -30,8 +30,7 @@ import os
 import codecs
 from PySide import QtCore, QtGui
 import datetime
-#
-from PCBboard import getHoles
+from PCBboard import getPCBheight, getHoles
 
 
 exportList = {

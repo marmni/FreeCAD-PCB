@@ -32,16 +32,26 @@ import FreeCAD
 import os
 from math import degrees
 #
-from PCBboard import getHoles, getPCBsize, getBoardOutline
+from PCBboard import getPCBsize, getHoles, getPCBheight
 from command.PCBdxf import *
 from command.PCBsvg import *
 from command.PCBdrillingMapSymbols import drillingSymbols
+from PCBfunctions import sketcherGetGeometry
 
 
 exportList = {
     'dxf': {'name': 'Data exchange format (DXF)', 'class': 'dxf()', 'extension': 'dxf'},
     'svg': {'name': 'Scalable Vector Graphics (SVG)', 'class': 'svg()', 'extension': 'svg'},
 }
+
+def getBoardOutline():
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        board = sketcherGetGeometry(pcb[2].Border)
+        if board[0]:
+            return board[1]
+    
+    return []
 
 
 #***********************************************************************
@@ -187,9 +197,9 @@ class svg(drillMap):
 <svg
     xmlns="http://www.w3.org/2000/svg"
     version="1.1"
-    width="{self.pcbXLength}"
-    height="{self.pcbYLength}"
->'''.format(self=self))
+    width="{0}"
+    height="{1}"
+>'''.format(self.pcbXLength+2, self.pcbYLength+2))
     
     def writeFooter(self, files):
         files.write('''
@@ -361,33 +371,46 @@ class svg(drillMap):
         #self.addCode(files, '\n\t</g>')
     
     def correctY(self, value):
-        return value * -1 + self.pcbMin_Y + self.pcbYLength
+        return value * -1 + self.pcbMin_Y + self.pcbYLength + 1
     
     def correctX(self, value):
-        return value - self.pcbMin_X
+        return value - self.pcbMin_X + 1
     
     def writeBoardOutline(self, files):
         layerColor = [0, 0 ,0]
         
         self.addCode(files, '\n\t<g id="{0}" inkscape:groupmode="layer" inkscape:label="{0}">'.format('Border outline'))
         for i in self.outline:
-            if i[0] == 'line':
+            if i['type'] == 'line':
                 line = SVG_Line()
-                line.p1 = [self.correctX(i[1]), self.correctY(i[2]), 0]
-                line.p2 = [self.correctX(i[3]), self.correctY(i[4]), 0]
+                line.p1 = [self.correctX(i['x1']), self.correctY(i['y1']), 0]
+                line.p2 = [self.correctX(i['x2']), self.correctY(i['y2']), 0]
                 line.color = layerColor
                 
                 self.addCode(files, line)
-            elif i[0] == 'circle':
+            elif i['type'] == 'circle':
                 circle = SVG_Circle()
-                circle.r = i[1]
-                circle.x = self.correctX(i[2])
-                circle.y = self.correctY(i[3])
+                circle.r = i['r']
+                circle.x = self.correctX(i['x'])
+                circle.y = self.correctY(i['y'])
                 circle.color = layerColor
                 
                 self.addCode(files, circle)
-            elif i[0] == 'arc':
-                pass
+            elif i['type'] == 'arc':
+                arc = SVG_Arc()
+                arc.p1 = [self.correctX(i['x1']), self.correctY(i['y1']), 0]
+                arc.p2 = [self.correctX(i['x2']), self.correctY(i['y2']), 0]
+                arc.color = layerColor
+                arc.r = i['r']
+                
+                if i['angle'] > 0:
+                    arc.direction = 0
+                
+                if i['angle'] > 180:
+                    arc.side = 1
+                
+                self.addCode(files, arc)
+        #
         self.addCode(files, '\n\t</g>')
     
     def addCode(self, files, data):
@@ -439,28 +462,28 @@ class dxf(drillMap):
         layerColor = 7
         
         for i in self.outline:
-            if i[0] == 'line':
+            if i['type'] == 'line':
                 line = DXF_Line(layerName)
-                line.p1 = [i[1], i[2], 0]
-                line.p2 = [i[3], i[4], 0]
+                line.p1 = [i['x1'], i['y1'], 0]
+                line.p2 = [i['x2'], i['y2'], 0]
                 line.color = layerColor
                 
                 self.addCode(files, eval(str(line)))
-            elif i[0] == 'circle':
+            elif i['type'] == 'circle':
                 circle = DXF_Circle(layerName)
-                circle.r = i[1]
-                circle.x = i[2]
-                circle.y = i[3]
+                circle.r = i['r']
+                circle.x = i['x']
+                circle.y = i['y']
                 circle.color = layerColor
                 
                 self.addCode(files, eval(str(circle)))
-            elif i[0] == 'arc':
+            elif i['type'] == 'arc':
                 arc = DXF_Arc(layerName)
-                arc.r = i[1]
-                arc.x = i[2]
-                arc.y = i[3]
-                arc.startAngle = degrees(i[4])
-                arc.stopAngle = degrees(i[5])
+                arc.r = i['r']
+                arc.x = i['x']
+                arc.y = i['y']
+                arc.startAngle = i['startAngle']
+                arc.stopAngle = i['stopAngle']
                 arc.color = layerColor
                 
                 self.addCode(files, eval(str(arc)))

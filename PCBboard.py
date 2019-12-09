@@ -28,180 +28,136 @@
 import FreeCAD
 import Part
 import OpenSCAD2Dgeom
+from math import degrees, atan2
+import builtins
+from PCBfunctions import sketcherGetGeometry
 
+# def getBoardShapes():
+    # if not FreeCAD.activeDocument():
+        # return False
+    # #
+    # outList = {}
+    # pcb = getPCBheight()
+    # if pcb[0]:  # board is available
+        # try:
+            # num_1 = 0
+            # num_2 = 1
+            # data = pcb[2].Border.Geometry
+            # first = False
+            
+            # while len(data):
+                # for i in range(0, len(data)):
+                    # if type(data[i]).__name__ == 'ArcOfCircle':
+                        # angle = float("%.4f" % (abs(degrees(data[i].FirstParameter - data[i].LastParameter))))
+                        # if data[i].Axis.z < 0:
+                            # angle = abs(angle) * -1
+                        
+                        # x3 = float("%.4f" % ( data[i].StartPoint.x))
+                        # y3 = float("%.4f" % ( data[i].StartPoint.y))
+                        # x4 = float("%.4f" % ( data[i].EndPoint.x))
+                        # y4 = float("%.4f" % ( data[i].EndPoint.y))
+                        
+                        # if not first:
+                            # num_1 = 0
+                            # if not num_2 in outList.keys():
+                                # outList[num_2] = {}
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                            # data.pop(i)
+                            # first = True
+                            
+                            # x2 = x4
+                            # y2 = y4
+                            
+                            # break
+                        # #
+                        # if [x3, y3] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                            # x2 = x4
+                            # y2 = y4
+                            # data.pop(i)
+                            # break
+                        # elif [x4, y4] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x3, y3, angle, 'Arc']
+                            # x2 = x3
+                            # y2 = y3
+                            # data.pop(i)
+                            # break
+                    # elif type(data[i]).__name__ == 'LineSegment':
+                        # x3 = float("%.4f" % ( data[i].StartPoint.x))
+                        # y3 = float("%.4f" % ( data[i].StartPoint.y))
+                        # x4 = float("%.4f" % ( data[i].EndPoint.x))
+                        # y4 = float("%.4f" % ( data[i].EndPoint.y))
+                        
+                        # if not first:
+                            # num_1 = 0
+                            # if not num_2 in outList.keys():
+                                # outList[num_2] = {}
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, 'Line']
+                            # data.pop(i)
+                            # first = True
+                            
+                            # x2 = x4
+                            # y2 = y4
+                            
+                            # break
+                        # #
+                        # if [x3, y3] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, 'Line']
+                            # x2 = x4
+                            # y2 = y4
+                            # data.pop(i)
+                            # break
+                        # elif [x4, y4] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # x2 = x3
+                            # y2 = y3
+                            # data.pop(i)
+                            # break
+                    # ######
+                    # if i == len(data) - 1:
+                        # if type(data[0]).__name__ == 'Circle':
+                            # xs = float("%.4f" % (data[0].Center.x))
+                            # ys = float("%.4f" % (data[0].Center.y))
+                            # r = float("%.4f" % (data[0].Radius))
+                            
+                            # num_2 += 1
+                            # outList[num_2] = {}
+                            # outList[num_2][0] = [xs, ys, r, 'Circle']
+                            # data.pop(i)
+                        # #########
+                        # first = False
+                        # num_2 += 1
+                        # break
+        
+        # except Exception as e:
+            # FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    # #
+    # return outList
 
-def getBoardOutline():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    outline = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "PCBboard":
-            try:
-                for k in range(len(j.Border.Geometry)):
-                    if j.Border.Geometry[k].Construction:
-                        continue
-                    
-                    if type(j.Border.Geometry[k]).__name__ == 'LineSegment':
-                        outline.append([
-                            'line',
-                            j.Border.Geometry[k].StartPoint.x,
-                            j.Border.Geometry[k].StartPoint.y,
-                            j.Border.Geometry[k].EndPoint.x,
-                            j.Border.Geometry[k].EndPoint.y
-                        ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'Circle':
-                        outline.append([
-                            'circle',
-                            j.Border.Geometry[k].Radius,
-                            j.Border.Geometry[k].Center.x, 
-                            j.Border.Geometry[k].Center.y
-                        ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'ArcOfCircle':
-                        outline.append([
-                            'arc',
-                            j.Border.Geometry[k].Radius, 
-                            j.Border.Geometry[k].Center.x, 
-                            j.Border.Geometry[k].Center.y, 
-                            j.Border.Geometry[k].FirstParameter, 
-                            j.Border.Geometry[k].LastParameter, 
-                            j.Border.Geometry[k]
-                        ])
-                break
-            except Exception as e:
-                FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
-    
-    return outline
-    
 def getHoles():
-    if not FreeCAD.activeDocument():
-        return False
-    #
     holes = {}
-    
-    try:
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<class 'Part.Circle'>" and not i.Construction:
-                x = i.Center[0]
-                y = i.Center[1]
-                r = i.Radius
-                
-                if not r in holes.keys():
-                    holes[r] = []
-                
-                holes[r].append([x, y])
-    except:
-        return False
+    #
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        board = sketcherGetGeometry(pcb[2].Holes)
+        if board[0]:
+            for i in board[1]:
+                if i['type'] == 'circle':
+                    if not i["r"] in holes.keys():
+                        holes[i["r"]] = []
+                    
+                    holes[i["r"]].append([i["x"], i["y"]])
     #
     return holes
 
-def getGlue():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    outline = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and ('tGlue' in j.Proxy.Type or 'bGlue' in j.Proxy.Type):
-            try:
-                for k in range(len(j.Base.Geometry)):
-                    if j.Base.Geometry[k].Construction:
-                        continue
-                    
-                    if type(j.Base.Geometry[k]).__name__ == 'LineSegment':
-                        outline.append([
-                            'line',
-                            j.Base.Geometry[k].StartPoint.x,
-                            j.Base.Geometry[k].StartPoint.y,
-                            j.Base.Geometry[k].EndPoint.x,
-                            j.Base.Geometry[k].EndPoint.y,
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'Circle':
-                        outline.append([
-                            'circle',
-                            j.Base.Geometry[k].Radius,
-                            j.Base.Geometry[k].Center.x, 
-                            j.Base.Geometry[k].Center.y,
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'ArcOfCircle':
-                        outline.append([
-                            'arc',
-                            j.Base.Geometry[k].Radius, 
-                            j.Base.Geometry[k].Center.x, 
-                            j.Base.Geometry[k].Center.y, 
-                            j.Base.Geometry[k].FirstParameter, 
-                            j.Base.Geometry[k].LastParameter, 
-                            j.Base.Geometry[k],
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return outline
-    
-def getDimensions():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    data = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "Dimension":
-            try:
-                [xS, yS, zS] = [j.Start.x, j.Start.y, j.Start.z]
-                [xE, yE, zE] = [j.End.x, j.End.y, j.End.z]
-                [xM, yM, zM] = [j.Dimline.x, j.Dimline.y, j.Dimline.z]
-                
-                if [xS, yS] != [xE, yE] and zS == zE:
-                    data.append([
-                        [xS, yS, zS], 
-                        [xE, yE, zE], 
-                        [xM, yM, zM], 
-                        j.Distance
-                    ])
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return data
-    
-def getAnnotations():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    data = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and 'PCBannotation' in j.Proxy.Type:
-            try:
-                annotation = ''
-                for i in j.ViewObject.Text:
-                    annotation += u'{0}\n'.format(i)
-
-                data.append([
-                    j.X.Value, j.Y.Value, 
-                    j.ViewObject.Size.Value, 
-                    j.Side, 
-                    annotation.strip(), 
-                    j.ViewObject.Align, 
-                    j.Rot.Value, 
-                    j.ViewObject.Mirror, 
-                    j.ViewObject.Spin
-                ])
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return data
-    
 def getPCBheight():
     if not FreeCAD.activeDocument():
         return [False, 0]

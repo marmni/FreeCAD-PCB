@@ -128,7 +128,7 @@ class mainPCB(partsManaging):
         # HOLES
         self.generateHoles(doc, self.wersjaFormatu.dialogMAIN.holesMin.value(), self.wersjaFormatu.dialogMAIN.holesMax.value())
         # PARTS
-        if self.wersjaFormatu.dialogMAIN.plytkaPCB_elementy.isChecked():
+        if self.wersjaFormatu.dialogMAIN.partsBox.isChecked():
             self.importParts(self.wersjaFormatu.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.wersjaFormatu.dialogMAIN.adjustParts.isChecked(), self.wersjaFormatu.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.wersjaFormatu.dialogMAIN.partMinX.value(), self.wersjaFormatu.dialogMAIN.partMinY.value(), self.wersjaFormatu.dialogMAIN.partMinZ.value())
         # LAYERS
         grp = createGroup_Layers()
@@ -201,6 +201,33 @@ class mainPCB(partsManaging):
         if self.wersjaFormatu.dialogMAIN.plytkaPCB_plikER.isChecked() and len(errors):
             self.generateErrorReport(errors, self.projektBRDName)
     
+    def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
+        for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
+            ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
+            ser.ViewObject.Visibility = False
+            for k in j:
+                if k[0] == 'line':
+                    ser.addGeometry(Part.LineSegment(FreeCAD.Vector(k[1], k[2], 0), FreeCAD.Vector(k[3], k[4], 0)))
+                elif k[0] == 'circle':
+                    ser.addGeometry(Part.Circle(FreeCAD.Vector(k[1], k[2]), FreeCAD.Vector(0, 0, 1), k[3]))
+                elif k[0] == 'arc':
+                    x1 = k[1]
+                    y1 = k[2]
+                    x2 = k[3]
+                    y2 = k[4]
+                    [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], k[5])
+                    
+                    arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                    ser.addGeometry(arc)
+            #
+            glue = createGlue()
+            glue.base = ser
+            glue.width = i
+            glue.side = layerSide
+            glue.color = layerColor
+            glue.generate()
+            #glue.recompute()
+    
     def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant):
         layerName = "{0}_{1}".format(layerNameO, layerNumber)
         #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
@@ -234,33 +261,6 @@ class mainPCB(partsManaging):
         pcb[2].Proxy.addObject(pcb[2], layerS)
         #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
     
-    def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
-        for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
-            ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
-            ser.ViewObject.Visibility = False
-            for k in j:
-                if k[0] == 'line':
-                    ser.addGeometry(Part.LineSegment(FreeCAD.Vector(k[1], k[2], 0), FreeCAD.Vector(k[3], k[4], 0)))
-                elif k[0] == 'circle':
-                    ser.addGeometry(Part.Circle(FreeCAD.Vector(k[1], k[2]), FreeCAD.Vector(0, 0, 1), k[3]))
-                elif k[0] == 'arc':
-                    x1 = k[1]
-                    y1 = k[2]
-                    x2 = k[3]
-                    y2 = k[4]
-                    [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], k[5])
-                    
-                    arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                    ser.addGeometry(arc)
-            #
-            glue = createGlue()
-            glue.base = ser
-            glue.width = i
-            glue.side = layerSide
-            glue.color = layerColor
-            glue.generate()
-            #glue.recompute()
-
     def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
         layerName = "{0}".format(layerName)
         grp = createGroup_Dimensions(layerName)

@@ -54,9 +54,8 @@ class dialogMAIN(dialogMAIN_FORM):
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
         
         self.packageByDecal = QtGui.QCheckBox(u"PCB-Decals")
-        self.packageByDecal.setStyleSheet('margin-left:20px')
         self.packageByDecal.setChecked(freecadSettings.GetBool("pcbDecals", True))
-        self.lay.addWidget(self.packageByDecal, 9, 3, 1, 3)
+        self.layParts.addWidget(self.packageByDecal, 4, 1, 1, 1)
         #
         self.projektBRD = builtins.open(filename, "r").read().replace('\r', '')
         self.layersNames = self.getLayersNames()
@@ -105,26 +104,29 @@ class IDFv3_PCB(IDFv2_PCB):
 
     def getParts(self):
         parts = []
-        data = self.getArea("PLACEMENT")[0].split("\n")
-        
-        for i in [" ".join(data[i:i+2]) for i in range(0, len(data), 2)]:
-            param = re.findall(r'(".*?"|.*?)[\s|\n]+', i + "\n", re.DOTALL)
-            if len(param) > 1:
-                parts.append({
-                    'name': param[2].replace('"', ''), 
-                    'library': param[1].replace('"', ''), 
-                    'package': param[0].replace('"', ''), 
-                    'value': '', 
-                    'x': float(param[3]) * self.mnoznik, 
-                    'y': float(param[4]) * self.mnoznik,
-                    'locked': False,
-                    'populated': False, 
-                    'smashed': False, 
-                    'rot': float(param[6]), 
-                    'side': param[7],
-                    'z': float(param[5]) * self.mnoznik,
-                    'dataElement': i + "__"
-                })
+        try:
+            data = self.getArea("PLACEMENT")[0].split("\n")
+            
+            for i in [" ".join(data[i:i+2]) for i in range(0, len(data), 2)]:
+                param = re.findall(r'(".*?"|.*?)[\s|\n]+', i + "\n", re.DOTALL)
+                if len(param) > 1:
+                    parts.append({
+                        'name': param[2].replace('"', ''), 
+                        'library': param[1].replace('"', ''), 
+                        'package': param[0].replace('"', ''), 
+                        'value': '', 
+                        'x': float(param[3]) * self.mnoznik, 
+                        'y': float(param[4]) * self.mnoznik,
+                        'locked': False,
+                        'populated': False, 
+                        'smashed': False, 
+                        'rot': float(param[6]), 
+                        'side': param[7],
+                        'z': float(param[5]) * self.mnoznik,
+                        'dataElement': i + "__"
+                    })
+        except:
+            pass
         #
         return parts
 
