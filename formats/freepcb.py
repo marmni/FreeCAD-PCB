@@ -573,6 +573,9 @@ class FreePCB(mathFunctions):
                     x2 = float(corners[0][0]) * self.mnoznik
                     y2 = float(corners[0][1]) * self.mnoznik
                 
+                if [x1, y1] == [x2, y2]:
+                    continue
+                
                 if cType == 0:
                     result.append(['Line', x1, y1, x2, y2])
                 elif cType == 1:
@@ -585,12 +588,14 @@ class FreePCB(mathFunctions):
         return result
 
     def getPCB(self, borderObject):
-        for i in re.findall(r'outline:\s+(.*?)\s+.*?\n(.*?)\n\n', self.getSection("board"), re.DOTALL):
-            for j in self.getCornsers(i[1]):
-                
-                if j[0] == 'Line':
-                    borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(j[1], j[2], 0), FreeCAD.Vector(j[3], j[4], 0)))
-                if j[0] == 'Arc':
-                    [x3, y3] = self.arcMidPoint([j[1], j[2]], [j[3], j[4]], j[5])
-                    arc = Part.ArcOfCircle(FreeCAD.Vector(j[1], j[2], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(j[3], j[4], 0.0))
-                    borderObject.addGeometry(arc)
+        try:
+            for i in re.findall(r'outline:\s+(.*?)\s+.*?\n(.*?)\n\n', self.getSection("board"), re.DOTALL):
+                for j in self.getCornsers(i[1]):
+                    if j[0] == 'Line':
+                        borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(j[1], j[2], 0), FreeCAD.Vector(j[3], j[4], 0)),False)
+                    if j[0] == 'Arc':
+                        [x3, y3] = self.arcMidPoint([j[1], j[2]], [j[3], j[4]], j[5])
+                        arc = Part.ArcOfCircle(FreeCAD.Vector(j[1], j[2], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(j[3], j[4], 0.0))
+                        borderObject.addGeometry(arc)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))

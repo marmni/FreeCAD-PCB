@@ -128,6 +128,14 @@ exportData = {
         # 'format': '*.emn',
         # 'icon': '',
     # },
+    "freepcb" : {
+        'name': 'FreePCB',
+        'exportLayers': ['anno', 'hol'],
+        'exportClass': 'freePCB()',
+        'description': 'FreePCB',
+        'format': '*.fpc',
+        'icon': ':/data/img/freepcb.png',
+    },
 }
 
 

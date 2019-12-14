@@ -202,7 +202,7 @@ def sketcherGetGeometryShapes(sketcherIN):
                             outList[num_2] = {}
                         outList[num_2][num_1] = [x3, y3, 'Line']
                         num_1 += 1
-                        outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                        outList[num_2][num_1] = [x4, y4, angle, data[i], 'Arc']
                         data.pop(i)
                         first = True
                         
@@ -213,14 +213,14 @@ def sketcherGetGeometryShapes(sketcherIN):
                     #
                     if [x3, y3] == [x2, y2]:
                         num_1 += 1
-                        outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                        outList[num_2][num_1] = [x4, y4, angle, data[i], 'Arc']
                         x2 = x4
                         y2 = y4
                         data.pop(i)
                         break
                     elif [x4, y4] == [x2, y2]:
                         num_1 += 1
-                        outList[num_2][num_1] = [x3, y3, angle, 'Arc']
+                        outList[num_2][num_1] = [x3, y3, angle, data[i], 'rev', 'Arc']
                         x2 = x3
                         y2 = y3
                         data.pop(i)
@@ -334,41 +334,52 @@ def sketcherGetGeometry(sketcherIN):
         FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
     #
     return [True, outline]
-    
-    
-def sortPointsCounterClockwise(data):
-    result = []
-    for i in data.keys():
-        if data[i][0][-1] == 'Circle':
-            result.append[data[i][0]]
-            continue
-        if [data[i][0][0], data[i][0][1]] != [data[i][len(data[i])-1][0] , data[i][len(data[i])-1][1]] and data[i][0][-1] != 'Circle':
-            #FreeCAD.Console.PrintWarning("Open shape omitted.\n")
-            continue
-        #
-        xValue = [data[i][k][0] for k in data[i].keys()]
-        xMin = min(xValue)
-        xMax = max(xValue)
-        xCenter = (xMin + xMax) / 2.
 
-        yValue = [data[i][k][1] for k in data[i].keys()]
-        yMin = min(yValue)
-        yMax = max(yValue)
-        yCenter = (yMin + yMax) / 2.
+# def sortPointsCounterClockwise(data):
+    # result = []
+    # for i in data.keys():
+        # if data[i][0][-1] == 'Circle':
+            # result.append[data[i][0]]
+            # continue
+        # if [data[i][0][0], data[i][0][1]] != [data[i][len(data[i])-1][0] , data[i][len(data[i])-1][1]] and data[i][0][-1] != 'Circle':
+            # #FreeCAD.Console.PrintWarning("Open shape omitted.\n")
+            # continue
+        # #
+        # xValue = [data[i][k][0] for k in data[i].keys()]
+        # xMin = min(xValue)
+        # xMax = max(xValue)
+        # xCenter = (xMin + xMax) / 2.
 
-        out = {}
-        for j in data[i].keys():
-            x = data[i][j][0]
-            y = data[i][j][1]
-            angle = atan2((y - yCenter)*-1, x - xCenter)*-1
-            out[angle] =  data[i][j]
-        #
-        tmp = []
-        for p in builtins.sorted(out.keys()):  
-            tmp.append(out[p])
-        result.append(tmp)
-    #
-    return result
+        # yValue = [data[i][k][1] for k in data[i].keys()]
+        # yMin = min(yValue)
+        # yMax = max(yValue)
+        # yCenter = (yMin + yMax) / 2.
+        
+        # out = {}
+        # for j in data[i].keys():
+            # x = data[i][j][0]
+            # y = data[i][j][1]
+            
+            # # angle = atan(x - xCenter)
+            # # if x - xCenter < 0 and y - yCenter > 0:
+                # # angle *= -1
+                # # angle += 3.14
+            # # elif x - xCenter < 0 and y - yCenter < 0:
+                # # angle -= 3.14
+            # # elif x - xCenter > 0 and y - yCenter < 0:
+                # # angle *= -1
+            
+            # angle = atan2((y - yCenter)*-1, x - xCenter)*-1
+            # if x - xCenter < 0:
+                # angle -= 2*pi
+            # out[angle] =  data[i][j]
+        # #
+        # tmp = []
+        # for p in builtins.sorted(out.keys()):  
+            # tmp.append(out[p])
+        # result.append(tmp)
+    # #
+    # return result
 
 ########################################################################
 #
@@ -1145,6 +1156,45 @@ class prepareScriptCopy(QtGui.QDialog):
 ########################################################################
 
 class mathFunctions(object):
+    def createPointsOnArc(self, point, center, angle, start=False, stop=False):
+        arcData = []
+        #
+        x = point[0]
+        y = point[1]
+        xs = center[0]
+        ys = center[1]
+        #
+        liczba = abs(angle)
+        if liczba > 360:
+            liczba = liczba % 360
+        liczba = int(liczba / 90)
+        if liczba == 0:
+            liczba = 1
+        liczba *= 7
+        #
+        if start:
+            arcData.append([x, y]) # + first point -> start point
+        
+        rangeL = int(abs(angle) / liczba) - 1
+        if stop:
+            rangeL = int(abs(angle) / liczba) # + last point -> end point => start_point +/- angle
+        
+        for p in range(0, rangeL):
+            if angle > 0:
+                [x, y] = self.obrocPunkt2([x, y], [xs, ys], liczba)
+            else:
+                [x, y] = self.obrocPunkt2([x, y], [xs, ys], liczba*-1)
+            #
+            arcData.append([x, y])
+        #
+        # d_1 = sqrt( (x1 - arcData[0][0]) ** 2 + (y1 - arcData[0][1]) ** 2)
+        # d_2 = sqrt( (x1 - arcData[-1][0]) ** 2 + (y1 - arcData[-1][1]) ** 2)
+        # if d_1 < d_2:
+            # arcData.reverse()
+        #
+        return arcData
+        
+    
     def sinus(self, angle):
         return float("%4.10f" % sin(radians(angle)))
         

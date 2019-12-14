@@ -30,7 +30,7 @@ import os
 import shutil
 import codecs
 import Part
-from math import sin, cos, degrees, atan2
+from math import sin, cos, degrees, atan2, radians, sqrt
 from xml.dom import minidom
 from PySide import QtCore, QtGui
 import json
@@ -39,7 +39,7 @@ from collections import OrderedDict
 import datetime
 #
 from PCBconf import exportData
-from PCBfunctions import mathFunctions, sortPointsCounterClockwise, sketcherRemoveOpenShapes, sketcherGetGeometryShapes, sketcherGetGeometry
+from PCBfunctions import mathFunctions, sketcherRemoveOpenShapes, sketcherGetGeometryShapes, sketcherGetGeometry
 from PCBboard import getPCBheight, getPCBsize, getHoles
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -269,7 +269,7 @@ class exportPCB_Gui(QtGui.QWizard):
 #***********************************************************************
 #*                             CONSOLE
 #***********************************************************************
-class exportPCB:
+class exportPCB(mathFunctions):
     def __init__(self):
         self.addHoles = False
         #self.addAnnotations = False
@@ -396,6 +396,142 @@ class razen(exportPCB):
         # ys = self.setUnit(ys)
         
         # self.dummyFile["elts"].append({"layer": layer, "name": "#n157", "_t": "Arc", "pos": [xs, ys], "ofsb": [x1, y1], "width": width, "ofsa": [x2, y2]})
+
+
+
+
+
+class freePCB(exportPCB):
+    ''' Export PCB to *.pcb - gEDA '''
+    def __init__(self, parent=None):
+        exportPCB.__init__(self)
+        
+        self.dummyFile = codecs.open(__currentPath__ + "/save/untitled.fpc", "r").read()
+        self.programName = 'freepcb'
+    
+    def convertValue(self, value):
+        return int(value * 1000000)
+        
+    def export(self, fileName):
+        '''export(filePath): save board to pcb file
+            filePath -> strig
+            filePath = path/fileName.pcb'''
+        #
+        self.exportBoard()
+        self.exportHoles(self.addHoles)
+        #
+        self.dummyFile = self.dummyFile.replace('{text}', '')
+        self.dummyFile = self.dummyFile.replace('\n', '\r\n')
+        #
+        files = codecs.open(fileName, "w", "utf-8")
+        files.write(self.dummyFile)
+        files.close()
+    
+    def exportHoles(self, exportHoles):
+        data = getHoles()
+        
+        footprints = ""
+        parts = ""
+        nr = 0
+        #
+        if exportHoles:
+            for i in data.keys():
+                footprints += '''
+    name: "HOLE_{0}_NOPAD"
+      units: MIL
+      sel_rect: -76 -76 76 76
+      ref_text: 50 0 0 0 5
+      value_text: 50 0 -100 0 5
+      centroid: 0 0 0 0
+      n_pins: 1
+        pin: "1" {0} 0 0 270
+          top_pad: 0 0 0 0 0
+          inner_pad: 0 0 0 0 0 0
+          bottom_pad: 0 0 0 0 0
+'''.format((i * 2) * 39.3)
+                
+                for j in data[i]:
+                    parts += '''
+    part: HOLE_{3}
+      ref_text: 1270000 127000 0 0 0 1
+      package: "s"
+      shape: "HOLE_{0}_NOPAD"
+      pos: {1} {2} 0 0 0
+'''.format((i * 2) * 39.3, self.convertValue(j[0]), self.convertValue(j[1]), nr)
+                    nr += 1
+        #
+        self.dummyFile = self.dummyFile.replace('{footprints}', footprints)
+        self.dummyFile = self.dummyFile.replace('{parts}', parts)
+                
+    
+    def exportBoard(self):
+        layer = ''
+        pcb = getPCBheight()
+        
+        if pcb[0]:  # board is available
+            outList = sketcherGetGeometryShapes(pcb[2].Border)
+            if outList[0]:
+                outList = sketcherRemoveOpenShapes(outList[1])
+                #
+                nr = 0
+                for j in outList.keys():
+                    index = 0
+                    dummy = ""
+                    outList[j][len(outList[j])] = outList[j][0]
+                    
+                    for i in range(len(outList[j])-1):
+                        if outList[j][i][-1] == 'Point':
+                            continue
+                        elif outList[j][i][-1] == 'Line':
+                            index+=1
+                            dummy += "  corner: {0} {1} {2} {3}\n".format(index, self.convertValue(outList[j][i][0]), self.convertValue(outList[j][i][1]), 0)
+                        elif outList[j][i][-1] == 'Circle':
+                            xs = outList[j][i][0]
+                            ys = outList[j][i][1]
+                            r = outList[j][i][2]
+                            
+                            x = xs 
+                            y = ys + r
+                            
+                            for k in self.createPointsOnArc([x, y], [xs, ys], 360, True, True):
+                                index += 1
+                                dummy += "  corner: {0} {1} {2} {3}\n".format(index, self.convertValue(k[0]), self.convertValue(k[1]), 0)
+                        elif outList[j][i][-1] == 'Arc':
+                            xs = outList[j][i][3].Center.x
+                            ys = outList[j][i][3].Center.y
+                            
+                            x1 = outList[j][i][0]
+                            y1 = outList[j][i][1]
+                            
+                            parm =  outList[j][i][2] # angle
+                            if outList[j][i][-2] == 'rev':
+                                parm *= -1
+                            # if outList[j][i][-2] == 'rev' and parm > 0:
+                                # parm *= -1
+                            # if i-1 < 0:
+                                # parm *= -1
+                            
+                            if i - 1 >= 0:
+                                x2 = outList[j][i - 1][0]
+                                y2 = outList[j][i - 1][1]
+                            else:
+                                x2 = outList[j][len(outList[j])-1][0]
+                                y2 = outList[j][len(outList[j])-1][1]
+                            #
+                            for k in self.createPointsOnArc([x2, y2], [xs, ys], parm):
+                                index += 1
+                                dummy += "  corner: {0} {1} {2} {3}\n".format(index, self.convertValue(k[0]), self.convertValue(k[1]), 0)
+                            #
+                            index += 1
+                            dummy += "  corner: {0} {1} {2} {3}\n".format(index, self.convertValue(x1), self.convertValue(y1), 0)
+                    #
+                    dummy = "\noutline: {0} {1}\n".format(index, nr) + dummy
+                    layer += dummy
+                    nr += 1
+        
+        self.dummyFile = self.dummyFile.replace('{outline}', layer)
+
+
 
 
 class geda(exportPCB):
