@@ -124,7 +124,7 @@ class mainPCB(partsManaging):
     def generate(self, doc, groupBRD):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc, groupBRD, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
+        self.generatePCB(doc, groupBRD, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value(), self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked())
         # HOLES
         self.generateHoles(doc, self.wersjaFormatu.dialogMAIN.holesMin.value(), self.wersjaFormatu.dialogMAIN.holesMax.value())
         # PARTS
@@ -288,7 +288,7 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc, groupBRD, gruboscPlytki):
+    def generatePCB(self, doc, groupBRD, gruboscPlytki, cutHoles):
         self.printInfo('\nGenerate board: ')
         
         try:
@@ -301,6 +301,7 @@ class mainPCB(partsManaging):
             PCBboardObject(PCBboard)
             PCBboard.Thickness = gruboscPlytki
             PCBboard.Border = doc.PCB_Border
+            PCBboard.Cut = cutHoles
             viewProviderPCBboardObject(PCBboard.ViewObject)
             groupBRD.addObject(doc.Board)
             FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = PCBconf.PCB_COLOR

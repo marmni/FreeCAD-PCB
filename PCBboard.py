@@ -28,9 +28,11 @@
 import FreeCAD
 import Part
 import OpenSCAD2Dgeom
+import time
 from math import degrees, atan2
 import builtins
 from PCBfunctions import sketcherGetGeometry
+
 
 # def getBoardShapes():
     # if not FreeCAD.activeDocument():
@@ -211,11 +213,13 @@ class PCBboardObject:
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
         #  holes
         obj.addProperty("App::PropertyBool", "Display", "Holes", "Display").Display = True
+        obj.addProperty("App::PropertyBool", "Cut", "Holes", "Cut").Cut = False
         obj.addProperty("App::PropertyLink", "Holes", "Holes", "Holes")
         #  base
         obj.addProperty("App::PropertyBool", "AutoUpdate", "Base", "Auto Update").AutoUpdate = True
         obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
         #
+        self.holesComp = None
         obj.Proxy = self
         #obj.addObject = addObject
     
@@ -226,12 +230,13 @@ class PCBboardObject:
         fp.setEditorMode("Placement", 2)
         #
         if fp.AutoUpdate == True:
-            if prop == "Thickness" or prop == "Border" or prop == "Holes" or prop == "Display":
-                self.execute(fp)
-            elif prop == "AutoUpdate":
-                self.execute(fp)
-            
-            if prop == "Shape" or prop == "Display" or prop == "Holes" or prop == "AutoUpdate" and fp.Display:
+            # if prop == "Thickness" or prop == "Border" or prop == "Holes" or prop == "Display" or prop == "Cut":
+                # self.execute(fp)
+            # elif prop == "AutoUpdate":
+                # self.execute(fp)
+            # if prop == "Shape" or prop == "Holes" or prop == "AutoUpdate" or prop == "Cut" and fp.Display:
+                # self.updateObjectaHoles(fp)
+            if prop == "Cut":
                 self.updateObjectaHoles(fp)
             if prop == "Thickness" or prop == "AutoUpdate":
                 self.updatePosition_Z(fp)
@@ -240,12 +245,12 @@ class PCBboardObject:
                 self.execute(fp)
             
     def updateObjectaHoles(self, fp):
-        for i in FreeCAD.ActiveDocument.Objects:
+         for i in fp.Group:
             try:
-                i.Proxy.updateHoles(i)
+                i.Proxy.updateHoles(i, fp.Cut)
             except:
                 pass
-    
+        
     def updatePosition_Z(self, fp):
         if fp.Thickness < 0.5:
             fp.Thickness = 0.5
@@ -271,18 +276,30 @@ class PCBboardObject:
                 self.oldHeight = fp.Shape.BoundBox.ZMax
             except:
                 self.oldHeight = 0
-            # holes
-            borderOutline = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Wires)
-            
-            holes = []
-            for i in fp.Holes.Shape.Wires:
-                holes.append(Part.Face(i))
-            
-            if len(holes):
-                face = borderOutline.cut(Part.makeCompound(holes))
-            else:
-                face = borderOutline
-            #
+
+            face = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Wires)
+            ############################################################
+            # BASED ON  realthunder PROPOSAL/SOLUTION
+            ############################################################
+            try:
+                holes = None
+                # for i in fp.Holes.Shape.Wires:
+                    # holes.append(Part.Face(i))
+                if fp.Display == True:
+                    holes = []
+                    for i in fp.Holes.Shape.Wires:
+                        holes.append(Part.Face(i))
+                    if len(holes):
+                        holes = Part.makeCompound(holes)
+                        self.holesComp = holes
+                    else:
+                        holes = None
+                    #
+                    if not holes is None:
+                        face = face.cut(holes)
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            ############################################################
             fp.Shape = face.extrude(FreeCAD.Base.Vector(0, 0, fp.Thickness))
             
             try:
@@ -291,6 +308,7 @@ class PCBboardObject:
                 pass
         except:
             pass
+        
         ##############
         #try:
             #if fp.AutoUpdate == True:

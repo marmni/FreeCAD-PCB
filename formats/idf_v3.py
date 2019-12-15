@@ -168,7 +168,7 @@ class IDFv3_PCB(IDFv2_PCB):
                 if dane[3] == "NPTH":  # Non-plated (non-conducting) through hole
                     continue
                 #
-                r = float(dane[0]) * self.mnoznik / 2.
+                r = float(dane[0]) * self.mnoznik / 2. + 0.001
                 x = float(dane[1]) * self.mnoznik
                 y = float(dane[2]) * self.mnoznik
                 #

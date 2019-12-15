@@ -225,7 +225,7 @@ class gEDA_PCB(mathFunctions):
                 if not "hole" in i["sflags"]:
                     continue
                 
-                r = i["drill"] / 2.
+                r = i["drill"] / 2. + 0.001
                 
                 if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
@@ -253,7 +253,7 @@ class gEDA_PCB(mathFunctions):
                 if not i["through"] or "hole" in i["sflags"]:
                     continue
                 
-                r = i["drill"] / 2.
+                r = i["drill"] / 2. + 0.001
                 
                 if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
@@ -286,7 +286,7 @@ class gEDA_PCB(mathFunctions):
                         if "hole" in i["sflags"]:
                             continue
                         
-                        r = i["drill"] / 2.
+                        r = i["drill"] / 2. + 0.001
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
@@ -314,7 +314,7 @@ class gEDA_PCB(mathFunctions):
                         if not "hole" in i["sflags"]:
                             continue
                         
-                        r = i["drill"] / 2.
+                        r = i["drill"] / 2. + 0.001
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         

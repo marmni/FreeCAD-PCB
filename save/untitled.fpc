@@ -3,7 +3,7 @@
 version: 1.200
 file_version: 1.112
 project_name: " asd"
-full_library_folder: "c:\users\mariusz\desktop\freepcb\lib"
+full_library_folder: ""
 CAM_folder: ""
 
 autosave_interval: 0
@@ -189,18 +189,21 @@ n_copper_layers: 2
   layer_info: "bottom copper" 13 255 0 0 1
 
 [footprints]
+{footprints}
 
 [board]
-
-outline: 0
+{outline}
 
 [solder_mask_cutouts]
 
 
 [parts]
+{parts}
 
 [nets]
 
+
 [texts]
+
 
 [end]

@@ -1184,31 +1184,36 @@ BOARD_FILE 3.0 "FreeCAD-PCB" {0} 1
             outList = sketcherGetGeometryShapes(pcb[2].Border)
             if outList[0]:
                 outList = sketcherRemoveOpenShapes(outList[1])
-                outList = sortPointsCounterClockwise(outList)
                 #
                 nr = 0
-                for j in outList:
-                    j.append(j[0])
-                    #if nr > 0:
-                    #    j.reverse() # Clockwise direction whne ID > 0, IDF v3 standard
+                for j in outList.keys():
+                    outList[j][len(outList[j])] = outList[j][0]
                     
-                    for i in j:
-                        if i[-1] == 'Line':
-                            self.files.write("{0} {1} {2} {3}\n".format(nr, i[0], i[1], 0.0))
-                        elif i[-1] == 'Circle':
-                            xs = i[0]
-                            ys = i[1]
-                            r = i[2]
+                    for i in range(len(outList[j])-1):
+                        if outList[j][i][-1] == 'Point':
+                            continue
+                        elif outList[j][i][-1] == 'Line':
+                            self.files.write("{0} {1} {2} {3}\n".format(nr, outList[j][i][0], outList[j][i][1], 0.0))
+                        elif outList[j][i][-1] == 'Circle':
+                            xs = outList[j][i][0]
+                            ys = outList[j][i][1]
+                            r = outList[j][i][2]
                             
                             x1 = xs + r * cos(10)
                             y1 = ys + r * sin(10)
                             
                             self.files.write("{0} {1} {2} {3}\n".format(nr, xs, ys, 0.0))
                             self.files.write("{0} {1} {2} {3}\n".format(nr, x1, y1, 360.0))
+                        elif outList[j][i][-1] == 'Arc':
+                            x1 = outList[j][i][0]
+                            y1 = outList[j][i][1]
                             
-                            break
-                        elif i[-1] == 'Arc':
-                                self.files.write("{0} {1} {2} {3}\n".format(nr, i[0], i[1], i[2]))
+                            angle =  outList[j][i][2] # angle
+                            if outList[j][i][-2] == 'rev':
+                                angle *= -1
+                            
+                            self.files.write("{0} {1} {2} {3}\n".format(nr, x1, y1, angle))
+                    #
                     nr += 1
             #
             self.files.write('.END_BOARD_OUTLINE\n')

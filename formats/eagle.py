@@ -482,7 +482,7 @@ class EaglePCB(mathFunctions):
             for i in self.projektBRD.getElementsByTagName("plain")[0].getElementsByTagName("hole"):
                 x = float(i.getAttribute('x'))
                 y = float(i.getAttribute('y'))
-                r = float(i.getAttribute('drill')) / 2.
+                r = float(i.getAttribute('drill')) / 2. + 0.001
                 
                 if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
@@ -508,7 +508,7 @@ class EaglePCB(mathFunctions):
             for i in self.projektBRD.getElementsByTagName("signals")[0].getElementsByTagName("via"):
                 x = float(i.getAttribute('x'))
                 y = float(i.getAttribute('y'))
-                r = float(i.getAttribute('drill')) / 2.
+                r = float(i.getAttribute('drill')) / 2. + 0.001
                 
                 if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
@@ -538,7 +538,7 @@ class EaglePCB(mathFunctions):
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("hole"):
                     xs = float(j.getAttribute('x'))
                     ys = float(j.getAttribute('y'))
-                    drill = float(j.getAttribute('drill')) / 2.
+                    drill = float(j.getAttribute('drill')) / 2. + 0.001
                     
                     [xR, yR] = self.obrocPunkt([xs, ys], [i['x'], i['y']], i['rot'])
                     if i['side'] == 0:  # odbicie wspolrzednych
@@ -568,7 +568,7 @@ class EaglePCB(mathFunctions):
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
                     xs = float(j.getAttribute('x'))
                     ys = float(j.getAttribute('y'))
-                    drill = float(j.getAttribute('drill')) / 2.
+                    drill = float(j.getAttribute('drill')) / 2. + 0.001
                     
                     [xR, yR] = self.obrocPunkt([xs, ys], [i['x'], i['y']], i['rot'])
                     if i['side'] == 0:  # odbicie wspolrzednych

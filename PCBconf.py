@@ -120,17 +120,17 @@ exportData = {
         'format': '*.pcb',
         'icon': ':/data/img/geda.png',
     },
-    # "idf_v3" : {
-        # 'name': 'IDF v3',
-        # 'exportLayers': ['hol', 'anno'],
-        # 'exportClass': 'idf_v3()',
-        # 'description': 'IDF v3',
-        # 'format': '*.emn',
-        # 'icon': '',
-    # },
+    "idf_v3" : {
+        'name': 'IDF v3',
+        'exportLayers': ['hol', 'anno'],
+        'exportClass': 'idf_v3()',
+        'description': 'IDF v3',
+        'format': '*.emn',
+        'icon': '',
+    },
     "freepcb" : {
         'name': 'FreePCB',
-        'exportLayers': ['anno', 'hol'],
+        'exportLayers': ['hol', 'anno'],
         'exportClass': 'freePCB()',
         'description': 'FreePCB',
         'format': '*.fpc',
@@ -296,9 +296,6 @@ PCBconstraintAreas = {
     "tPlaceRegion": ["Place Outline Top", ['tPlaceOutline', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceOutlineColor', 4278190335), ''],
     "bPlaceRegion": ["Place Outline Bottom", ['bPlaceOutline', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
     "vPlaceRegion": ["Place Outline", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
-    
-    
-
 }
 
 PCBlayers = {

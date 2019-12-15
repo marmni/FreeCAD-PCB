@@ -83,6 +83,9 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.plytkaPCB_otworyIH = QtGui.QCheckBox(u"Omit intersected holes")  # detecting collisions between holes - intersections
         self.plytkaPCB_otworyIH.setChecked(freecadSettings.GetBool("omitIntersectedHoles", True))
         
+        self.plytkaPCB_cutHolesThroughAllLayers = QtGui.QCheckBox(u"Cut holes through all layers")
+        self.plytkaPCB_cutHolesThroughAllLayers.setChecked(freecadSettings.GetBool("cutHolesThroughAllLayers", True))
+        
         self.holesMin = QtGui.QDoubleSpinBox()
         self.holesMin.setSingleStep(0.1)
         self.holesMin.setValue(0)
@@ -191,6 +194,8 @@ class dialogMAIN_FORM(QtGui.QDialog):
         layHoles.addWidget(self.plytkaPCB_otworyV, 1, 0, 1, 1)
         layHoles.addWidget(self.plytkaPCB_otworyP, 2, 0, 1, 1)
         layHoles.addWidget(self.plytkaPCB_otworyIH, 3, 0, 1, 1)
+        layHoles.addWidget(self.plytkaPCB_cutHolesThroughAllLayers, 4, 0, 1, 1)
+        
         layHoles.addWidget(filterholesBox, 0, 1, 5, 1)
         layHoles.setColumnStretch(0, 60)
         layHoles.setColumnStretch(1, 40)

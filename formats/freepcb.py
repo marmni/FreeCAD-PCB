@@ -484,7 +484,7 @@ class FreePCB(mathFunctions):
             for i in re.findall(r'vtx: .+? (.+?) (.+?) .+? .+? .+? ([1-9][0-9]*)', self.projektBRD):
                 x = float(i[0]) * self.mnoznik
                 y = float(i[1]) * self.mnoznik
-                r = float(i[2]) * self.mnoznik / 2.
+                r = float(i[2]) * self.mnoznik / 2. + 0.001
                 
                 if filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
@@ -522,7 +522,7 @@ class FreePCB(mathFunctions):
                             if "bottom" in self.libraries[i['package']]["pins"][j].keys():
                                 x = self.libraries[i['package']]["pins"][j]["x"]
                                 y = self.libraries[i['package']]["pins"][j]["y"]
-                                r = self.libraries[i['package']]["pins"][j]["r"]
+                                r = self.libraries[i['package']]["pins"][j]["r"] + 0.001
                                 
                                 if self.libraries[i['package']]["pins"][j]["bottom"]["width"] == 0 and self.libraries[i['package']]["pins"][j]["top"]["width"] == 0 and not types['H']:
                                     continue
