@@ -38,6 +38,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, backref
 import PCBcheckFreeCADVersion
 
+
 import FreeCAD
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
@@ -154,128 +155,139 @@ class dataBase:
         self.session = None
         self.lastInsertedID = None
         self.lastInsertedModelID = None
-        
+    
+    def cfg2db(self, databasePath):
+        ''' convert from cfg to db format - local '''
+        try:
+            dataBaseCFG = dataBase_CFG()  # old cfg file
+            dataBaseCFG.read(databasePath)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR cfg2db 1: {0}.\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Reading old database\n")
+        try:
+            # converting categories
+            categoriesList = dataBaseCFG.readCategories()
+            if len(categoriesList.keys()):
+                for i, j in categoriesList.items():
+                    name = self.clearString(j[0])
+                    description = self.clearString(j[1])
+                    
+                    self.addCategory(name, 0, description)
+            
+            # converting models
+            seketsList = []
+            packagesList = dataBaseCFG.packages()
+            
+            for i in packagesList:
+                data = dataBaseCFG.getValues(i)
+                
+                result = {}
+                result["name"] = self.clearString(data["name"])
+                result["datasheet"] = self.clearString(data["datasheet"])
+                result["description"] = self.clearString(data["description"])
+                result["path3DModels"] = self.clearString(data["path"])
+                result["isSocket"] = eval(self.clearString(data["socket"]))[0]
+                result["isSocketHeight"] = float(eval(self.clearString(data["socket"]))[1])
+                result["socketIDSocket"] = eval(self.clearString(data["add_socket"]))[0]
+                
+                categoryID = int(data["category"])
+                if categoryID in categoriesList.keys():
+                    if categoryID in [-1, 0]:
+                        result["categoryID"] = 0
+                    else:
+                        category = self.getCategoryByName(categoriesList[categoryID][0])
+                        if category[0]:
+                            result["categoryID"] = category[1].id
+                        else:
+                            result["categoryID"] = 0
+                else:
+                    result["categoryID"] = 0
+                
+                if result["socketIDSocket"]:
+                    result["socketID"] = 0
+                    seketsList.append([result["name"], dataBaseCFG.getValues(result["socketIDSocket"])["name"]])
+                else:
+                    result["socketID"] = 0
+                
+                # packages
+                result["software"] = []
+                for p in eval(data["soft"]):
+                    packageData = {}
+                    packageData['name'] = self.clearString(p[0])
+                    packageData['software'] = self.clearString(p[1])
+                    packageData['x'] = float(p[2])
+                    packageData['y'] = float(p[3])
+                    packageData['z'] = float(p[4])
+                    packageData['rx'] = float(p[5])
+                    packageData['ry'] = float(p[6])
+                    packageData['rz'] = float(p[7])
+                    packageData['blanked'] = False
+                    packageData['id'] = -1
+                    
+                    result["software"].append(packageData)
+                
+                self.addModel(result)
+                
+            for i in seketsList:
+                socket = self.getModelByName(i[1])
+                if socket[0]:
+                    self.session.query(Models).filter(Models.name == i[0]).update({"socketID" : socket[1].id})
+            
+            self.session.commit()
+            FreeCAD.Console.PrintWarning("DONE!.\n")
+            
+            # database file update - position/name
+            if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip() != '':
+                database = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip()
+                FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('databasePath', database.replace('.cfg', '.db'))
+            try:
+                shutil.move(databasePath.replace(".db", ".cfg"), databasePath.replace(".db", ".cfg") + "_old")
+            except Exception as e:
+                pass
+            
+            ## deleting old categories
+            #if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '').strip() != '':
+                #FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('partsCategories', json.dumps(""))
+            
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
+            return True
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR 3: {0}.\n".format(e))
+    
     def checkVersion(self):
         if not PCBcheckFreeCADVersion.checkdataBaseVersion():
             return False
         else:
             return True
     
-    def cfg2db(self):
-        ''' convert from cfg to db format - local '''
-        try:
-            dataBaseCFG = dataBase_CFG()  # old cfg file
-            dataBaseCFG.read(getFromSettings_databasePath().replace(".db", ".cfg"))
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR cfg2db 1: {0}.\n".format(self.errorsDescription(e)))
-            return False
-        else:
-            FreeCAD.Console.PrintWarning("Reading old database\n")
-        
-        # converting categories
-        categoriesList = dataBaseCFG.readCategories()
-        for i, j in categoriesList.items():
-            name = self.clearString(j[0])
-            description = self.clearString(j[1])
-            
-            self.addCategory(name, 0, description)
-        
-        # converting models
-        seketsList = []
-        packagesList = dataBaseCFG.packages()
-        
-        for i in packagesList:
-            data = dataBaseCFG.getValues(i)
-            
-            result = {}
-            result["name"] = self.clearString(data["name"])
-            result["datasheet"] = self.clearString(data["datasheet"])
-            result["description"] = self.clearString(data["description"])
-            result["path3DModels"] = self.clearString(data["path"])
-            result["isSocket"] = eval(self.clearString(data["socket"]))[0]
-            result["isSocketHeight"] = float(eval(self.clearString(data["socket"]))[1])
-            result["socketIDSocket"] = eval(self.clearString(data["add_socket"]))[0]
-            
-            categoryID = int(data["category"])
-            if categoryID in categoriesList.keys():
-                if categoryID in [-1, 0]:
-                    result["categoryID"] = 0
-                else:
-                    category = self.getCategoryByName(categoriesList[categoryID][0])
-                    if category[0]:
-                        result["categoryID"] = category[1].id
-                    else:
-                        result["categoryID"] = 0
-            else:
-                result["categoryID"] = 0
-            
-            if result["socketIDSocket"]:
-                result["socketID"] = 0
-                seketsList.append([result["name"], dataBaseCFG.getValues(result["socketIDSocket"])["name"]])
-            else:
-                result["socketID"] = 0
-            
-            # packages
-            result["software"] = []
-            for p in eval(data["soft"]):
-                packageData = {}
-                packageData['name'] = self.clearString(p[0])
-                packageData['software'] = self.clearString(p[1])
-                packageData['x'] = float(p[2])
-                packageData['y'] = float(p[3])
-                packageData['z'] = float(p[4])
-                packageData['rx'] = float(p[5])
-                packageData['ry'] = float(p[6])
-                packageData['rz'] = float(p[7])
-                packageData['blanked'] = False
-                packageData['id'] = -1
-                
-                result["software"].append(packageData)
-            
-            self.addModel(result)
-            
-        for i in seketsList:
-            socket = self.getModelByName(i[1])
-            if socket[0]:
-                self.session.query(Models).filter(Models.name == i[0]).update({"socketID" : socket[1].id})
-        
-        self.session.commit()
-        FreeCAD.Console.PrintWarning("DONE!.\n")
-        
-        # database file update - position/name
-        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip() != '':
-            database = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip()
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('databasePath', database.replace('cfg', 'db'))
-            
-        try:
-            data = getFromSettings_databasePath()
-            shutil.move(data.replace(".db", ".cfg"), data.replace(".db", ".cfg") + "_old")
-        except Exception as e:
-            pass
-        
-        ## deleting old categories
-        #if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '').strip() != '':
-            #FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('partsCategories', json.dumps(""))
-        
-        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", __dataBaseVersion__)
-        return True
-        
     def connect(self, newPath=False):
         ''' '''
         try:
+            from PCBfunctions import getFromSettings_databasePath
+            databasePath = getFromSettings_databasePath()
+            
             if newPath:
                 engine = create_engine('sqlite:///{0}'.format(newPath))
             else:
-                from PCBfunctions import getFromSettings_databasePath
-                engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath()))  # relative path
-                
+                engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath().replace('cfg', 'db')))  # relative path
+            ##########################
             Base.metadata.create_all(engine)
             Session = sessionmaker(bind=engine)
             self.session = Session()
             self.connection = engine.connect()
-            
-            if not newPath and not self.checkVersion():
-                self.cfg2db()
+            #
+            if databasePath.endswith(".cfg"):
+                dial = QtGui.QMessageBox()
+                dial.setText(u"Old database format detected - upgrading database format is required. This may take several seconds.")
+                dial.setWindowTitle("Caution!")
+                dial.setIcon(QtGui.QMessageBox.Question)
+                rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
+                dial.exec_()
+                #
+                self.cfg2db(databasePath)
             
             FreeCAD.Console.PrintWarning("Read database\n")
         except Exception as e:

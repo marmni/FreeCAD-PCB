@@ -1116,16 +1116,31 @@ class viewProviderLayerPolygonObject:
 class layerSilkObject(objectWire):
     def __init__(self, obj, typeL):
         #obj.addProperty("App::PropertyLinkSub", "Holes", "Holes", "Reference to volume of part").Holes = (FreeCAD.ActiveDocument.Board, 'Holes')
-        self.spisObiektow = []
+        #self.spisObiektow = []
         self.Type = ['layer'] + typeL
+        
+        obj.addProperty("App::PropertyBool", "Cut", "Holes", "Cut", 8).Cut = False
+        #obj.addProperty("Part::PropertyPartShape", "cleanShape", "Shape", "cleanShape", 4)
         
         self.cutToBoard = False
         self.defHeight = 35
         self.spisObiektowTXT = []
         self.side = 1  # 0-bottom   1-top   2-both
         self.cleanShape = None
-        
         obj.Proxy = self
+    
+    def __getstate__(self):
+        return [self.Type, self.cutToBoard, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
+        
+    def __setstate__(self, state):
+        self.Type = state[0]
+        self.cutToBoard = state[1]
+        self.defHeight = state[2]
+        self.side = state[3]
+        
+        self.cleanShape = Part.Shape()
+        self.cleanShape.importBrepFromString(state[4])
+        self.spisObiektowTXT = self.cleanShape.Solids
     ################
     ################
     
@@ -1340,41 +1355,47 @@ class layerSilkObject(objectWire):
         return mainObj
     
     def generuj(self, fp):
-        if len(self.spisObiektowTXT):
-            if self.cleanShape == None:
-                self.cleanShape = Part.makeCompound(self.spisObiektowTXT)
-            
-            pads = self.cleanShape
-            ############################################################
-            # BASED ON  realthunder PROPOSAL/SOLUTION
-            ############################################################
-            try:
-                if FreeCAD.ActiveDocument.Board.Cut == True:
-                    if not FreeCAD.ActiveDocument.Board.Proxy.holesComp == None:
-                        holes = FreeCAD.ActiveDocument.Board.Proxy.holesComp.extrude(FreeCAD.Base.Vector(0, 0, FreeCAD.ActiveDocument.Board.Thickness + 2))
-                        holes.Placement.Base.z = -1
-                        #Part.show(holes)
-                        pads = pads.cut(holes)
-            except Exception as e:
-                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
-            ############################################################
-            ############################################################
-            # shifted to makeFace() function
-            # extruding each wires separately is much faster than the whole compound
-            # testing board - from 48[s] to 21[s]
-            #
-            # if self.side == 1:  # top side
-                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-            # elif  self.side == 2:  # both sides
-                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
-            # else:  # bottom side
-                # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, -self.defHeight / 1000.))
-            ############################################################
-            #pads.Placement.Base.z = fp.Placement.Base.z
-            fp.Shape = pads
+        try:
+            if len(self.spisObiektowTXT):
+                if self.cleanShape == None:
+                    self.cleanShape = Part.makeCompound(self.spisObiektowTXT)
+                    #fp.cleanShape = self.cleanShape
+                
+                pads = self.cleanShape
+                ############################################################
+                # BASED ON  realthunder PROPOSAL/SOLUTION
+                ############################################################
+                try:
+                    if fp.Cut == True:
+                        if FreeCAD.ActiveDocument.Board.Proxy.holesComp == None:
+                            FreeCAD.ActiveDocument.Board.Proxy.getHoles(FreeCAD.ActiveDocument.Board)
+                        
+                        if not FreeCAD.ActiveDocument.Board.Proxy.holesComp == None:
+                            holes = FreeCAD.ActiveDocument.Board.Proxy.holesComp.extrude(FreeCAD.Base.Vector(0, 0, FreeCAD.ActiveDocument.Board.Thickness + 2))
+                            holes.Placement.Base.z = -1
+                            #Part.show(holes)
+                            pads = pads.cut(holes)
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+                ############################################################
+                ############################################################
+                # shifted to makeFace() function
+                # extruding each wires separately is much faster than the whole compound
+                # testing board - from 48[s] to 21[s]
+                #
+                # if self.side == 1:  # top side
+                    # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
+                # elif  self.side == 2:  # both sides
+                    # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight))
+                # else:  # bottom side
+                    # pads = pads.extrude(FreeCAD.Base.Vector(0, 0, -self.defHeight / 1000.))
+                ############################################################
+                #pads.Placement.Base.z = fp.Placement.Base.z
+                fp.Shape = pads
+                self.updatePosition_Z(fp, FreeCAD.ActiveDocument.Board.Thickness)
             fp.purgeTouched()
-            self.updatePosition_Z(fp, FreeCAD.ActiveDocument.Board.Thickness)
-            
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
     ################
     # shapes
     ################
@@ -1922,7 +1943,7 @@ class layerSilkObject(objectWire):
             #mainObj = Part.makeCompound(punkty)
         #return mainObj
         
-    def updateHoles(self, fp, value):
+    def updateHoles(self, fp):
         self.generuj(fp)
     
     def updatePosition_Z(self, fp, thickness):
@@ -1940,23 +1961,12 @@ class layerSilkObject(objectWire):
         #fp.purgeTouched()
     
     def onChanged(self, fp, prop):
-        pass
-        
+        if prop == "Cut":
+            self.generuj(fp)
+            
     def execute(self, fp):
         pass
         #self.generuj(fp)
-        
-    def __getstate__(self):
-        return [self.Type, self.cutToBoard, self.defHeight, self.holes, self.side]
-        #return [self.Type, self.cutToBoard, self.spisObiektowTXT, self.defHeight, self.holes, self.side]
-        
-    def __setstate__(self, state):
-        self.Type = state[0]
-        self.cutToBoard = state[1]
-        self.defHeight = state[2]
-        self.holes = state[3]
-        self.side = state[4]
-        #self.spisObiektowTXT = eval(state[5])
 
 
 class viewProviderLayerSilkObject:

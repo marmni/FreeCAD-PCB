@@ -505,11 +505,14 @@ def getFromSettings_Color(val, defVal):
 
 def getFromSettings_databasePath():
     if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip() != '':
-        database =FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "")
-    else:
+        database = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "")
+    elif os.path.exists(__currentPath__ + '/data/database.cfg') and not os.path.exists(__currentPath__ + '/data/database.db'):
         database = __currentPath__ + '/data/database.cfg'
+    else:
+        database = __currentPath__ + '/data/database.db'
     
-    return database.replace('cfg', 'db')
+    #return database.replace('cfg', 'db')
+    return database
     
 
 class importScriptCopy(QtGui.QDialog):

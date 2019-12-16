@@ -778,7 +778,6 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.setLayout(mainLay)
         #
         self.reloadList()
-        self.readSize()
         
     def readSize(self):
         data = configParserRead('assignWindow')
@@ -791,11 +790,23 @@ class dodajElement(QtGui.QDialog, partsManaging):
                 self.splitter.setSizes(eval(data['window_splitter']))
                 self.modelsList.setColumnWidth(0, int(data['window_modellist']))
                 
-                self.setGeometry(x, y, w, h)
+                self.setGeometry(x, y + 30, w, h)
             except Exception as e:
                 FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
     
+    def showEvent (self, event):
+        self.readSize()
+        self.RightSide_tab.setCurrentIndex(2)
+        self.RightSide_tab.setCurrentIndex(0)
+        event.accept()
+    
     def closeEvent(self, event):
+        try:
+            event.ignore()
+            FreeCAD.getDocument('modelPreview').removeObject("preview")
+        except:
+            pass
+        #
         data = {}
         data['window_x'] = self.x()
         data['window_y'] = self.y()
@@ -803,11 +814,10 @@ class dodajElement(QtGui.QDialog, partsManaging):
         data['window_h'] = self.height()
         data['window_splitter'] = self.splitter.sizes()
         data['window_modellist'] = self.modelsList.columnWidth(0)
-        
         configParserWrite('assignWindow', data)
-        ###########
+        #
         event.accept()
-    
+
     def importDatabase(self):
         try:
             dial = importScriptCopy()

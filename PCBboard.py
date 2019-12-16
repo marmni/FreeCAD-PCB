@@ -213,22 +213,35 @@ class PCBboardObject:
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
         #  holes
         obj.addProperty("App::PropertyBool", "Display", "Holes", "Display").Display = True
-        obj.addProperty("App::PropertyBool", "Cut", "Holes", "Cut").Cut = False
         obj.addProperty("App::PropertyLink", "Holes", "Holes", "Holes")
         #  base
         obj.addProperty("App::PropertyBool", "AutoUpdate", "Base", "Auto Update").AutoUpdate = True
         obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
+        #obj.addExtension("Part::AttachExtensionPython", obj)
         #
         self.holesComp = None
         obj.Proxy = self
         #obj.addObject = addObject
     
+    def __getstate__(self):
+        return self.Type
+
+    def __setstate__(self, state):
+        if state:
+            self.Type = state
+            self.holesComp = None
+    
     def addObject(self, fp, obj):
         fp.Group += [obj]
         
     def onChanged(self, fp, prop):
+        #print(prop)
         fp.setEditorMode("Placement", 2)
         #
+        if prop == "Shape":
+            self.getHoles(fp)
+            self.updateObjectaHoles(fp)
+        
         if fp.AutoUpdate == True:
             # if prop == "Thickness" or prop == "Border" or prop == "Holes" or prop == "Display" or prop == "Cut":
                 # self.execute(fp)
@@ -236,8 +249,6 @@ class PCBboardObject:
                 # self.execute(fp)
             # if prop == "Shape" or prop == "Holes" or prop == "AutoUpdate" or prop == "Cut" and fp.Display:
                 # self.updateObjectaHoles(fp)
-            if prop == "Cut":
-                self.updateObjectaHoles(fp)
             if prop == "Thickness" or prop == "AutoUpdate":
                 self.updatePosition_Z(fp)
         else:
@@ -245,10 +256,10 @@ class PCBboardObject:
                 self.execute(fp)
             
     def updateObjectaHoles(self, fp):
-         for i in fp.Group:
+        for i in fp.Group:
             try:
-                i.Proxy.updateHoles(i, fp.Cut)
-            except:
+                i.Proxy.updateHoles(i)
+            except Exception as e:
                 pass
         
     def updatePosition_Z(self, fp):
@@ -261,6 +272,17 @@ class PCBboardObject:
                 i.purgeTouched()
             except:
                 pass
+    
+    def getHoles(self, fp):
+        try:
+            holes = []
+            for i in fp.Holes.Shape.Wires:
+                holes.append(Part.Face(i))
+            if len(holes):
+                holes = Part.makeCompound(holes)
+                self.holesComp = holes
+        except:
+            self.holesComp = None
 
     def execute(self, fp):
         try:
@@ -286,17 +308,9 @@ class PCBboardObject:
                 # for i in fp.Holes.Shape.Wires:
                     # holes.append(Part.Face(i))
                 if fp.Display == True:
-                    holes = []
-                    for i in fp.Holes.Shape.Wires:
-                        holes.append(Part.Face(i))
-                    if len(holes):
-                        holes = Part.makeCompound(holes)
-                        self.holesComp = holes
-                    else:
-                        holes = None
-                    #
-                    if not holes is None:
-                        face = face.cut(holes)
+                    self.getHoles(fp)
+                    if self.holesComp != None:
+                        face = face.cut(self.holesComp)
             except Exception as e:
                 FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             ############################################################
@@ -320,13 +334,6 @@ class PCBboardObject:
                 #fp.Shape = d
         #except:
             #pass
-        
-    def __getstate__(self):
-        return self.Type
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state
 
 
 class viewProviderPCBboardObject:
@@ -359,7 +366,7 @@ class viewProviderPCBboardObject:
         vp.setEditorMode("BoundingBox", 2)
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
-
+    
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
