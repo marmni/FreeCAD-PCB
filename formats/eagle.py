@@ -416,28 +416,6 @@ class EaglePCB(mathFunctions):
         else:
             return "silk"
 
-    #def generate(self, doc, groupBRD, filename):
-        ##  dodatkowe warstwy
-        #grp = createGroup_Layers()
-        #grp_2 = createGroup_Areas()
-        #for i in range(self.dialogMAIN.spisWarstw.rowCount()):
-            #if self.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
-                #layerNumber = int(self.dialogMAIN.spisWarstw.item(i, 1).text())
-                #name = str(self.dialogMAIN.spisWarstw.item(i, 4).text())
-                #try:
-                    #color = self.dialogMAIN.spisWarstw.cellWidget(i, 2).getColor()
-                #except:
-                    #color = None
-                #try:
-                    #transp = self.dialogMAIN.spisWarstw.cellWidget(i, 3).value()
-                #except:
-                    #transp = None
-                
-                ##elif layerNumber == 0:  # annotations
-                    ##data = re.findall("<plain>(.+?)</plain>", self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-                    ##self.addAnnotations(self.getAnnotations(re.findall('<text (.+?)</text>', data, re.MULTILINE|re.DOTALL)), doc, color)
-        #return doc
-    
     ##############################
     # OTHER STUF
     ##############################

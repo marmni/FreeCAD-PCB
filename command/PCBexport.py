@@ -604,22 +604,19 @@ class geda(exportPCB):
         layer = ''
         minDiameter = 0
         
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            board = sketcherGetGeometry(pcb[2].Holes)
-            if board[0]:
-                for i in board[1]:
-                    if i['type'] == 'circle':
-                        x = self.shiftXValue(i['x'])
-                        y = self.shiftYValue(i['y'])
-                        r = i['r'] * 2
-                        thickness = r + 0.508
-                        clearance = 0.508
-                        mask = r + 0.254
-                        if r > minDiameter:
-                            minDiameter = r
+        data = getHoles()
+        for i in data.keys():
+            for j in data[i]:
+                x = self.shiftXValue(j[0])
+                y = self.shiftYValue(j[1])
+                r = i * 2
+                thickness = r + 0.508
+                clearance = 0.508
+                mask = r + 0.254
+                if r > minDiameter:
+                    minDiameter = r
 
-                        layer += '  Via[{0}mm {1}mm {3}mm {4}mm {5}mm {2}mm "" "hole"]\n'.format(x, y, r, thickness, clearance, mask)
+                layer += '  Via[{0}mm {1}mm {3}mm {4}mm {5}mm {2}mm "" "hole"]\n'.format(x, y, r, thickness, clearance, mask)
         #
         self.dummyFile = self.dummyFile.replace('{holes}', layer)
         return minDiameter
@@ -644,7 +641,7 @@ class geda(exportPCB):
         x = self.shiftXValue(circle['x'])
         y = self.shiftYValue(circle['y'])
         
-        return self.addArc({'r': circle['r'], 'x': x, 'y': y, 'startAngle': 0, 'angle': 360}, width)
+        return self.addArc({'r': circle['r'], 'x': x, 'y': y, 'stopAngle': 0, 'startAngle': 0, 'angle': 360}, width)
     
     def addLine(self, line, width):
         x1 = self.shiftXValue(line['x1'])
@@ -671,244 +668,255 @@ class geda(exportPCB):
 
 
 class kicad(exportPCB):
-    pass
-    # ''' Export PCB to *.kicad_pcb - KiCad '''
-    # def __init__(self, parent=None):
-        # exportPCB.__init__(self)
+    ''' Export PCB to *.kicad_pcb - KiCad '''
+    def __init__(self, parent=None):
+        exportPCB.__init__(self)
         
-        # self.dummyFile = codecs.open(__currentPath__ + "/save/untitled.kicad_pcb", "r").readlines()
-        # self.programName = 'kicad'
+        self.dummyFile = codecs.open(__currentPath__ + "/save/untitled.kicad_pcb", "r").readlines()
+        self.programName = 'kicad'
         
-        # self.pcbElem = []
-        # self.minX = 0
-        # self.minY = 0
+        self.pcbElem = []
+        self.minX = 0
+        self.minY = 0
     
-    # def export(self, fileName):
-        # '''export(filePath): save board to kicad_pcb file
-            # filePath -> strig
-            # filePath = path/fileName.kicad_pcb'''
-        # fileName = self.fileExtension(fileName)
-        # #
-        # self.exportBoard(getBoardOutline())
-        # if self.addHoles:
-            # self.exportHoles(self.getHoles())
+    def export(self, fileName):
+        '''export(filePath): save board to kicad_pcb file
+            filePath -> strig
+            filePath = path/fileName.kicad_pcb'''
+        fileName = self.fileExtension(fileName)
+        #
+        self.exportBoard()
+        if self.addHoles:
+            self.exportHoles()
         # if self.addAnnotations:
             # self.exportAnnotations(getAnnotations())
-        # if self.addDimensions:
-            # self.exportDimensions(getDimensions())
-        # if self.addGluePaths:
-            # self.exportGlue(getGlue())
-        # #
-        # self.przesunPCB()
-        # files = codecs.open(fileName, "w", "utf-8")
-        # files.write("".join(self.dummyFile))
-        # files.close()
+        if self.addDimensions:
+            self.exportDimensions(getDimensions())
+        if self.addGluePaths:
+            self.exportGlue()
+        #
+        self.przesunPCB()
+        files = codecs.open(fileName, "w", "utf-8")
+        files.write("".join(self.dummyFile))
+        files.close()
     
-    # def przesunPCB(self):
-        # for i in self.pcbElem:
-            # if i[0] == 'gr_arc':
-                # self.dummyFile.insert(-2, "  (gr_arc (start {0} {1}) (end {2} {3}) (angle {4}) (layer {6}) (width {5}))\n".format(
-                    # '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), '{0:.10f}'.format(i[4] + abs(self.minY)), i[5], i[6], i[7]))
-            # elif i[0] == 'gr_line':
-                # self.dummyFile.insert(-2, "  (gr_line (start {0} {1}) (end {2} {3}) (angle 90) (layer {5}) (width {4}))\n".format(
-                    # '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), '{0:.10f}'.format(i[4] + abs(self.minY)), i[5], i[6]))
-            # elif i[0] == 'gr_circle':
-                # self.dummyFile.insert(-2, "  (gr_circle (center {0} {1}) (end {2} {1}) (layer {4}) (width {3}))\n".format(
-                    # '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), i[4], i[5]))
-            # elif i[0] == 'gr_text':
-                # x = i[1] + abs(self.minX)
-                # y = i[2] + abs(self.minY)
+    def przesunPCB(self):
+        for i in self.pcbElem:
+            if i[0] == 'gr_arc':
+                self.dummyFile.insert(-2, "  (gr_arc (start {0} {1}) (end {2} {3}) (angle {4}) (layer {6}) (width {5}))\n".format(
+                    '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), '{0:.10f}'.format(i[4] + abs(self.minY)), i[5], i[6], i[7]))
+            elif i[0] == 'gr_line':
+                self.dummyFile.insert(-2, "  (gr_line (start {0} {1}) (end {2} {3}) (angle 90) (layer {5}) (width {4}))\n".format(
+                    '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), '{0:.10f}'.format(i[4] + abs(self.minY)), i[5], i[6]))
+            elif i[0] == 'gr_circle':
+                self.dummyFile.insert(-2, "  (gr_circle (center {0} {1}) (end {2} {1}) (layer {4}) (width {3}))\n".format(
+                    '{0:.10f}'.format(i[1] + abs(self.minX)), '{0:.10f}'.format(i[2] + abs(self.minY)), '{0:.10f}'.format(i[3] + abs(self.minX)), i[4], i[5]))
+            elif i[0] == 'gr_text':
+                x = i[1] + abs(self.minX)
+                y = i[2] + abs(self.minY)
                 
-                # self.dummyFile.insert(-2, '''
-  # (gr_text "{4}" (at {0} {1}{5}) (layer {2})
-    # (effects (font (size {3} {3}) (thickness 0.3)){6})
-  # )'''.format(x, y, i[3], i[4], i[5], i[6], i[7]))
+                self.dummyFile.insert(-2, '''
+  (gr_text "{4}" (at {0} {1}{5}) (layer {2})
+    (effects (font (size {3} {3}) (thickness 0.3)){6})
+  )'''.format(x, y, i[3], i[4], i[5], i[6], i[7]))
             
-            # elif i[0] == 'hole':
-                # x = i[1] + abs(self.minX)
-                # y = i[2] * (-1) + abs(self.minY)
-                # drill = i[3] * 2
+            elif i[0] == 'hole':
+                x = i[1] + abs(self.minX)
+                y = i[2] * (-1) + abs(self.minY)
+                drill = i[3] * 2
                 
-                # self.dummyFile.insert(-2, '''\n
-  # (module 1pin (layer F.Cu) (tedit 53DA8F8F) (tstamp 53DB092E)
-    # (at {0} {1})
-    # (descr "module 1 pin (ou trou mecanique de percage)")
-    # (tags DEV)
-    # (path 1pin)
-    # (fp_text reference "" (at 0 -3.048) (layer F.SilkS)
-      # (effects (font (size 1.016 1.016) (thickness 0.254)))
-    # )
-    # (fp_text value "" (at 0 2.794) (layer F.SilkS) hide
-      # (effects (font (size 1.016 1.016) (thickness 0.254)))
-    # )
-    # (pad 1 thru_hole circle (at 0 0) (size {3} {3}) (drill {2})
-      # (layers *.Cu *.Mask F.SilkS)
-    # )
-  # )
-# '''.format(x, y, drill, drill + 0.01))
+                self.dummyFile.insert(-2, '''\n
+  (module 1pin (layer F.Cu) (tedit 53DA8F8F) (tstamp 53DB092E)
+    (at {0} {1})
+    (descr "module 1 pin (ou trou mecanique de percage)")
+    (tags DEV)
+    (path 1pin)
+    (fp_text reference "" (at 0 -3.048) (layer F.SilkS)
+      (effects (font (size 1.016 1.016) (thickness 0.254)))
+    )
+    (fp_text value "" (at 0 2.794) (layer F.SilkS) hide
+      (effects (font (size 1.016 1.016) (thickness 0.254)))
+    )
+    (pad 1 thru_hole circle (at 0 0) (size {3} {3}) (drill {2})
+      (layers *.Cu *.Mask F.SilkS)
+    )
+  )
+'''.format(x, y, drill, drill + 0.01))
 
-            # elif i[0] == 'dim':
-                # if i[3][1] == i[4][1]:  # yS == yE
-                    # arrow1a = "{0} {1}".format("{0:.10f}".format(i[3][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)))
-                    # arrow2a = "{0} {1}".format("{0:.10f}".format(i[4][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)))
-                # elif i[3][0] == i[4][0]:  # xS == xE
-                    # arrow1a = "{0} {1}".format("{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[3][1] * (-1) + abs(self.minY)))
-                    # arrow2a = "{0} {1}".format("{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[4][1] * (-1) + abs(self.minY)))
+            elif i[0] == 'dim':
+                if i[3][1] == i[4][1]:  # yS == yE
+                    arrow1a = "{0} {1}".format("{0:.10f}".format(i[3][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)))
+                    arrow2a = "{0} {1}".format("{0:.10f}".format(i[4][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)))
+                elif i[3][0] == i[4][0]:  # xS == xE
+                    arrow1a = "{0} {1}".format("{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[3][1] * (-1) + abs(self.minY)))
+                    arrow2a = "{0} {1}".format("{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[4][1] * (-1) + abs(self.minY)))
                 
-                # self.dummyFile.insert(-2, '''(dimension {0} (width 0.3) (layer Dwgs.User)
-                    # (gr_text "{1}" (at {2} {3} {4}) (layer Dwgs.User)
-                      # (effects (font (size 1.5 1.5) (thickness 0.3)))
-                    # )
-                    # (feature1 (pts (xy {5} {6}) (xy {9})))
-                    # (feature2 (pts (xy {7} {8}) (xy {10})))
-                    # (crossbar (pts (xy {9}) (xy {10})))
-                    # (arrow1a (pts (xy {9}) (xy {9})))
-                    # (arrow1b (pts (xy {9}) (xy {9})))
-                    # (arrow2a (pts (xy {10}) (xy {10})))
-                    # (arrow2b (pts (xy {10}) (xy {10})))
-                  # )'''.format(i[1], i[2], "{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)), i[6], "{0:.10f}".format(i[3][0] + abs(self.minX)), "{0:.10f}".format(i[3][1] * (-1) + abs(self.minY)), "{0:.10f}".format(i[4][0] + abs(self.minX)), "{0:.10f}".format(i[4][1] * (-1) + abs(self.minY)), arrow1a, arrow2a))
+                self.dummyFile.insert(-2, '''(dimension {0} (width 0.3) (layer Dwgs.User)
+                    (gr_text "{1}" (at {2} {3} {4}) (layer Dwgs.User)
+                      (effects (font (size 1.5 1.5) (thickness 0.3)))
+                    )
+                    (feature1 (pts (xy {5} {6}) (xy {9})))
+                    (feature2 (pts (xy {7} {8}) (xy {10})))
+                    (crossbar (pts (xy {9}) (xy {10})))
+                    (arrow1a (pts (xy {9}) (xy {9})))
+                    (arrow1b (pts (xy {9}) (xy {9})))
+                    (arrow2a (pts (xy {10}) (xy {10})))
+                    (arrow2b (pts (xy {10}) (xy {10})))
+                  )'''.format(i[1], i[2], "{0:.10f}".format(i[5][0] + abs(self.minX)), "{0:.10f}".format(i[5][1] * (-1) + abs(self.minY)), i[6], "{0:.10f}".format(i[3][0] + abs(self.minX)), "{0:.10f}".format(i[3][1] * (-1) + abs(self.minY)), "{0:.10f}".format(i[4][0] + abs(self.minX)), "{0:.10f}".format(i[4][1] * (-1) + abs(self.minY)), arrow1a, arrow2a))
 
-    # def getMinX(self, x):
-        # if x < self.minX:
-            # self.minX = x
+    def getMinX(self, x):
+        if x < self.minX:
+            self.minX = x
             
-    # def getMinY(self, y):
-        # if y < self.minY:
-            # self.minY = y
+    def getMinY(self, y):
+        if y < self.minY:
+            self.minY = y
     
-    # def exportBoard(self, board):
-        # for i in board:
-            # if i[0] == 'line':
-                # self.addLine(i[1:], 'Edge.Cuts', 0.01)
-            # elif i[0] == 'circle':
-                # self.addCircle(i[1:], 'Edge.Cuts', 0.01)
-            # elif i[0] == 'arc':
-                # self.addArc(i[1:], 'Edge.Cuts', 0.01)
-                
-    # def exportGlue(self, glue):
-        # for i in glue:
-            # if 'tGlue' in i[-2]:
-                # layer = 'F.Adhes'
-            # else:
-                # layer = 'B.Adhes'
-                
-            # width = i[-1]
-            
-            # if i[0] == 'line':
-                # self.addLine(i[1:], layer, width)
-            # elif i[0] == 'circle':
-                # self.addCircle(i[1:], layer, width)
-            # elif i[0] == 'arc':
-                # self.addArc(i[1:], layer, width)
+    def exportBoard(self):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            board = sketcherGetGeometry(pcb[2].Border)
+            if board[0]:
+                for i in board[1]:
+                    if i['type'] == 'line':
+                        self.addLine(i, 'Edge.Cuts', 0.01)
+                    elif i['type'] == 'circle':
+                        self.addCircle(i, 'Edge.Cuts', 0.01)
+                    elif i['type'] == 'arc':
+                        self.addArc(i, 'Edge.Cuts', 0.01)
 
+    def exportGlue(self):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "Glue" in "_".join(i.Proxy.Type):
+                    if 'tGlue' in "_".join(i.Proxy.Type):
+                        layer = 'F.Adhes'
+                    else:
+                        layer = 'B.Adhes'
+                    
+                    data = sketcherGetGeometry(i.Base)
+                    
+                    if data[0]:
+                        for j in data[1]:
+                            if j['type'] == 'line':
+                                self.addLine(j, layer, i.Width.Value)
+                            elif j['type'] == 'circle':
+                                self.addCircle(j, layer, i.Width.Value)
+                            elif j['type'] == 'arc':
+                                self.addArc(j, layer, i.Width.Value)
+    
+    def addLine(self, line, layer, width):
+        x1 = line['x1']
+        y1 = line['y1'] * (-1)
+        x2 = line['x2']
+        y2 = line['y2'] * (-1)
+        
+        self.getMinX(x1)
+        self.getMinY(y1)
+        self.getMinX(x2)
+        self.getMinY(y2)
+        
+        self.pcbElem.append(['gr_line', x1, y1, x2, y2, width, layer])
+    
+    def addCircle(self, circle, layer, width):
+        xs = circle['x']
+        ys = circle['y'] * (-1)
+        xe = circle['x'] + circle['r']
+        
+        self.getMinX(xs)
+        self.getMinY(ys)
+        self.getMinX(xe)
+        
+        self.pcbElem.append(['gr_circle', xs, ys, xe, width, layer])
+    
+    def addArc(self, arc, layer, width):
+        radius = arc['r']
+        xs = arc['x']
+        ys = arc['y'] * (-1)
+        
+        angle = arc['angle']
+        if angle > 0:
+            angle *= -1
+            x1 = arc['x1']
+            y1 = arc['y1'] * (-1)
+        else:
+            x1 = arc['x2']
+            y1 = arc['y2'] * (-1)
+        
+        self.getMinX(xs)
+        self.getMinY(ys)
+        self.getMinX(x1)
+        self.getMinY(y1)
+        
+        self.pcbElem.append(['gr_arc', xs, ys, x1, y1, angle, width, layer])
+    
+    def exportAnnotations(self, annotations):
+        for i in annotations:
+            x = i[0]
+            y = i[1]
+            size = i[2]
+            layer = i[3]
+            annotation = i[4]
+            align = i[5]
+            rot = i[6]
+            mirror = i[7]
+            #spin = i[8]
+            #
+            y *= -1
+        
+            self.getMinX(x)
+            self.getMinY(y)
+            
+            if layer == 'TOP':
+                layer = 'F.Cu'
+            else:
+                layer = 'B.Cu'
+            
+            if rot == 0:
+                rot = ''
+            else:
+                rot = ' {0}'.format(rot)
+            
+            if align in ["bottom-left", "center-left", "top-left"]:
+                align = ' (justify left'
+            elif align in ["bottom-right", "center-right", "top-right"]:
+                align = ' (justify right'
+            else:
+                align = ' (justify'
+            
+            if mirror == 'Local Y axis':
+                align = align + ' mirror)'
+            else:
+                align = align + ')'
+            
+            if align == ' (justify)':
+                align = ''
                 
-    # def addLine(self, line, layer, width):
-        # x1 = float(line[0])
-        # y1 = float(line[1]) * (-1)
-        # x2 = float(line[2])
-        # y2 = float(line[3]) * (-1)
-        
-        # self.getMinX(x1)
-        # self.getMinY(y1)
-        # self.getMinX(x2)
-        # self.getMinY(y2)
-        
-        # self.pcbElem.append(['gr_line', x1, y1, x2, y2, width, layer])
+            annotation = annotation.replace('\n', '\\n')
+            
+            self.pcbElem.append(['gr_text', x, y, layer, size, annotation, rot, align])
     
-    # def addCircle(self, circle, layer, width):
-        # xs = float(circle[1])
-        # ys = float(circle[2]) * (-1)
-        # xe = float(circle[1]) + float(circle[0])
-        
-        # self.getMinX(xs)
-        # self.getMinY(ys)
-        # self.getMinX(xe)
-        
-        # self.pcbElem.append(['gr_circle', xs, ys, xe, width, layer])
+    def exportHoles(self):
+        data = getHoles()
+        for i in data.keys():
+            for j in data[i]:
+                self.getMinX(j[0])
+                self.getMinY(j[1])
+                self.pcbElem.append(['hole', j[0], j[1], i])
     
-    # def addArc(self, arc, layer, width):
-        # radius = arc[0]
-        # xs = arc[1]
-        # ys = arc[2] * (-1)
-        # sA = arc[3]
-        # eA = arc[4]
-        
-        # x1 = radius * cos(sA) + xs
-        # y1 = (radius * sin(sA)) * (-1) + ys
-        # curve = degrees(sA - eA)
-        
-        # self.getMinX(xs)
-        # self.getMinY(ys)
-        # self.getMinX(x1)
-        # self.getMinY(y1)
-        
-        # self.pcbElem.append(['gr_arc', xs, ys, x1, y1, curve, width, layer])
-    
-    # def exportAnnotations(self, annotations):
-        # for i in annotations:
-            # x = i[0]
-            # y = i[1]
-            # size = i[2]
-            # layer = i[3]
-            # annotation = i[4]
-            # align = i[5]
-            # rot = i[6]
-            # mirror = i[7]
-            # #spin = i[8]
-            # #
-            # y *= -1
-        
-            # self.getMinX(x)
-            # self.getMinY(y)
-            
-            # if layer == 'TOP':
-                # layer = 'F.Cu'
-            # else:
-                # layer = 'B.Cu'
-            
-            # if rot == 0:
-                # rot = ''
-            # else:
-                # rot = ' {0}'.format(rot)
-            
-            # if align in ["bottom-left", "center-left", "top-left"]:
-                # align = ' (justify left'
-            # elif align in ["bottom-right", "center-right", "top-right"]:
-                # align = ' (justify right'
-            # else:
-                # align = ' (justify'
-            
-            # if mirror == 'Local Y axis':
-                # align = align + ' mirror)'
-            # else:
-                # align = align + ')'
-            
-            # if align == ' (justify)':
-                # align = ''
-                
-            # annotation = annotation.replace('\n', '\\n')
-            
-            # self.pcbElem.append(['gr_text', x, y, layer, size, annotation, rot, align])
-    
-    # def exportHoles(self, holes):
-        # for i in holes:
-            # self.getMinX(i[1])
-            # self.getMinY(i[2])
-        
-            # self.pcbElem.append(['hole', i[1], i[2], i[0]])
-    
-    # def exportDimensions(self, dimensions):
-        # for i in dimensions:
-            # Start = i[0]
-            # End = i[1]
-            # Dimline = i[2]
-            # Len = i[3]
-            # #
-            # rot = 0
-            # if Start[0] == End[0]:
-                # rot = 90
+    def exportDimensions(self, dimensions):
+        for i in dimensions:
+            Start = i[0]
+            End = i[1]
+            Dimline = i[2]
+            Len = i[3]
+            #
+            rot = 0
+            if Start[0] == End[0]:
+                rot = 90
 
-            # self.pcbElem.append(['dim', Len.Value, Len, Start, End, Dimline, rot])
+            self.pcbElem.append(['dim', Len.Value, Len, Start, End, Dimline, rot])
 
 
 class fidocadj(exportPCB):
@@ -1288,9 +1296,6 @@ class eagle(exportPCB):
         pcb = getPCBheight()
         if pcb[0]:  # board is available
             for i in pcb[2].Group:
-                print(i.Proxy.Type)
-                print('\n')
-                
                 if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "Glue" in "_".join(i.Proxy.Type):
                     if 'tGlue' in "_".join(i.Proxy.Type):
                         layer = 35

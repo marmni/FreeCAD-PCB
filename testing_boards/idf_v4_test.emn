@@ -1,0 +1,1551 @@
+/*************************************************************************/
+/* Board Part */
+/*************************************************************************/
+IDF_Header (
+Version ("4.0"),
+Creation_Date_Time ("1998/06/05.10:00:00"),
+Owner_Name ("Tom Makoski"),
+Owner_Phone ("513-528-5059"),
+Owner_EMail (" Tom.Makoski@Intermedius.com "),
+Source_App_Type ("Hand_Generated"),
+Source_App_Vendor ("N/A"),
+Source_App_Name ("N/A"),
+Source_App_Version ("N/A"),
+IDF_Tx_Name ("N/A"),
+IDF_Tx_Version ("N/A"),
+Entity_Count (
+Elec_Part_Defs (0),
+Elec_Part_Insts (0),
+Mech_Part_Defs (0),
+Mech_Part_Insts (0),
+Board_Part_Defs (1),
+Board_Part_Insts (0),
+Board_Assy_Defs (0),
+Board_Assy_Insts (0),
+Panel_Part_Defs (0),
+Panel_Part_Insts (0),
+Panel_Assy_Defs (0),
+Panel_Assy_Insts (0)
+),
+Board_Part (
+"Annotation",
+"Board_Part",
+"Cavity",
+"Circle",
+"Cutout",
+"Extrusion",
+"Figure",
+"Filled_Area",
+"Footprint",
+"Graphic",
+"Hole",
+"Keepin",
+"Keepout",
+"Leader",
+"Pad",
+"Physical_Layer",
+"Polycurve_Area",
+"Polygon",
+"Polyline",
+"Text",
+"Trace"
+),
+Default_Units ("Inch"),
+Min_Res (0.0005),
+Notes (
+"This file represents a board part. The board has a cutout ",
+"(which is represented as a figure), a cavity (which is part ",
+"of a sublayout), and four mounting holes. In addition, it ",
+"contains the footprints for the component part instances and ",
+"sublayout that are contributed via the board assembly."
+)
+); /* End IDF_Header Section */
+/*************************************************************************/
+/* Parts Section */
+/*************************************************************************/
+Parts (
+/*********************** *********************/
+/* Sample Board Part Definition */
+/********************************************/
+Board_Part (
+Entity_ID (#2001),
+Part_Name ("Sample_Board"),
+Units ("Global"),
+Type ("Unspecified"),
+/***************** ***************************/
+/* Board Shape */
+/********************************************/
+Shape (
+Extrusion (
+Entity_ID (#2002),
+Top_Height (0.125),
+Bot_Height (0.0),
+Outline (
+Polycurve_Area (
+Entity_ID (#2003),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+Vertices (
+-0.05, -0.10, 0.0,
+0.80, -0.10, 0.0,
+0.85, -0.05, 90.0,
+0.85, 0.05, 0.0,
+0.90, 0.10, -90.0,
+1.05, 0.10, 0.0,
+1.10, 0.15, 90.0,
+1.10, 0.45, 0.0,
+1.05, 0.50, 90.0,
+0.90, 0.50, 0.0,
+0.85, 0.55, -90.0,
+0.85, 0.65, 0.0,
+0.80, 0.70, 90.0,
+-0.05, 0.70, 0.0,
+-0.10, 0.65, 90.0,
+-0.10, -0.05, 0.0,
+-0.05, -0.10, 90.0
+)
+); /* End Polycurve_Area */
+)
+); /* End Extrusion */
+),
+/********************************************/
+/* Physical Layer Stackup */
+/********************************************/
+Phy_Layers (
+Physical_Layer ( /* Physical Layers */
+Entity_ID (#2501),
+Layer_Name ("Conductor_Top"),
+Type ("Conductive"),
+Position (1),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2502),
+Layer_Name ("Silkscreen_Top"),
+Type ("Silkscreen"),
+Position (2),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2503),
+Layer_Name ("Conductor_Inner_1"),
+Type ("Conductive"),
+Position (3),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2504),
+Layer_Name ("Conductor_inner_2"),
+Type ("Conductive"),
+Position (4),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2505),
+Layer_Name ("Silkscreen_Bottom"),
+Type ("Silkscreen"),
+Position (5),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2506),
+Layer_Name ("Conductor_Bottom"),
+Type ("Conductive"),
+Position (6),
+Thickness (0.00)
+); /* End Physical Layer */
+),
+/********************************** **********/
+/* Features */
+/********************************************/
+Features (
+/********************************************/
+/* Keepins */
+/*********************************** *********/
+Keepin ( /* Component Keepin */
+Entity (#2004),
+Type ("Comp_All"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2005),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.075, -0.075,
+0.825, -0.075,
+0.825, 0.125,
+1.075, 0.125,
+1.075, 0.475,
+0.825, 0.475,
+0.825, 0.675,
+-0.075, 0.675,
+-0.075, -0.075
+)
+); /* End Polygon */
+),
+Properties (KI_Comp_Height (0.4))
+); /* End Keepin */
+Keepin ( /* Route Keepin */
+Entity (#2006),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2007),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.075, -0.075,
+0.825, -0.075,
+0.825, 0.125,
+1.075, 0.125,
+1.075, 0.475,
+0.825, 0.475,
+0.825, 0.675,
+-0.075, 0.675,
+-0.075, -0.075
+)
+); /* End Polygon */
+)
+); /* End Keepin */
+/********************************************/
+/* Component Keepouts */
+/**************** ****************************/
+Keepout (
+Entity (#2008),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top"),
+Outline (
+Polygon (
+Entity_ID (#2009),
+Line_Color (0.0, 100.0, 0.0),  /* Medium Green */
+Fill_Color (0.0, 100.0, 0.0),  /* Medium Green */
+XY_Pts (
+-0.05, -0.10,
+0.80, -0.10,
+0.80, 0.225,
+-0.05, 0.225,
+-0.05, -0.10
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.1))
+); /* End Keepout */
+/********************************************/
+/* Figures */
+/********************************************/
+Figure ( /* Figure with cutout and related keepouts */
+Entity_ID (#2010),
+Figure_Name ("Slot_15X10"),
+Units ("Global")
+XY_Loc (0.55, 0.50),
+Side ("Top"),
+Rotation (0.0),
+Features (
+Cutout (
+Entity (#2011),
+Outline (
+Polycurve_Area (
+Entity_ID (#2012),
+Line_Color (80.0, 93.0, 100.0),  /* Light Blue */
+Fill_Color (80.0, 93.0, 100.0),  /* Light Blue */
+Vertices (
+0.00, -0.05, 0.0,
+0.15, -0.05, 0.0,
+0.15, 0.05, 180.0,
+0.00, 0.05, 0.0,
+0.00, -0.05, 180.0
+)
+); /* End Polycurve_Area */
+)
+); /* End Cutout */
+Keepout (
+Entity (#2013),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2014),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, -0.05,
+0.20, -0.05,
+0.20, 0.05,
+-0.05, 0.05,
+-0.05, -0.05
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout (
+Entity (#2015),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2016),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, -0.05,
+0.20, -0.05,
+0.20, 0.05,
+-0.05, 0.05,
+-0.05, -0.05
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+)
+); /* End Figure */
+/********************************************/
+/* Mounting Holes and Related Keepouts */
+/********************************************/
+Hole ( /* Mounting and T ooling Hole */
+Entity_ID (#2017),
+Type ("Mount_Tool"),
+Shape_Type ("Round"),
+Outline (#2521),
+XY_Loc (0.0, 0.0),
+Rotation (0.0)
+); /* End Hole */
+Keepout ( /* Component Keepout */
+Entity (#2018),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2019),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, -0.05,
+0.05, -0.05,
+0.05, 0.05,
+-0.05, 0.05,
+-0.05, -0.05
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout ( /* Route Keepout */
+Entity (#2020),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2021),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, -0.05,
+0.05, -0.05,
+0.05, 0.05,
+-0.05, 0.05,
+-0.05, -0.05
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+Hole ( /* Mounting Hole */
+Entity_ID (#2022),
+Type ("Mounting"),
+Shape_Type ("Round"),
+Outline (#2521),
+XY_Loc (0.75, 0.0),
+Rotation (0.0)
+); /* End Hole */
+Keepout ( /* Component Keepout */
+Entity (#2023),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2024),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.70, -0.05,
+0.75, -0.05,
+0.75, 0.05,
+0.70, 0.05,
+0.70, -0.05
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout ( /* Routing Keepout */
+Entity (#2025),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2026),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.70, -0.05,
+0.75, -0.05,
+0.75, 0.05,
+0.70, 0.05,
+0.70, -0.05
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+Hole ( /* Mounting and Tooling Hole */
+Entity_ID (#2027),
+Type ("Mount_Tool"),
+Shape_Type ("Round"),
+Outline (#2521),
+XY_Loc (0.75, 0.60),
+Rotation (0.0)
+); /* End Hole */
+Keepout ( /* Component Keepout */
+Entity (#2028),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2029),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.70, 0.55,
+0.75, 0.55,
+0.75, 0.60,
+0.70, 0.60,
+0.70, 0.55
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout ( /* Route Keepout */
+Entity (#2030),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2031),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.70, 0.55,
+0.75, 0.55,
+0.75, 0.60,
+0.70, 0.60,
+0.70, 0.55
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+Hole ( /* Mounting Hole */
+Entity_ID (#2032),
+Type ("Mounting"),
+Shape_Type ("Round"),
+Outline (#2521),
+XY_Loc (0.0, 0.60),
+Rotation (0.0)
+); /* End Hole */
+Keepout ( /* ComponentKeepout */
+Entity (#2033),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Outline (
+Polygon (
+Entity_ID (#2034),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, 0.55,
+0.05, 0.55,
+0.05, 0.60,
+-0.05, 0.60,
+-0.05, 0.55
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout ( /* Route Keepout */
+Entity (#2035),
+Type ("Route_All"),
+Layer ("All"),
+Outline (
+Polygon (
+Entity_ID (#2036),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+-0.05, 0.55,
+0.05, 0.55,
+0.05, 0.60,
+-0.05, 0.60,
+-0.05, 0.55
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+/********************************************/
+/* Traces, Filled Areas, and Vias */
+/********************************************/
+Trace ( /* Trace */
+Entity-ID (#2037),
+Layer ("Conductor_Top"),
+Curve (
+Polyline (
+Entity_ID (#2038),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.10, 0.60,
+0.10, 0.625,
+0.45, 0.625,
+0.45, 0.35,
+0.85, 0.35
+)
+); /* End Polyline */
+),
+Net_Name ("Vcc")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2039),
+Layer ("Conductor_Top"),
+Curve (
+Polyline (
+Entity_ID (#2040),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.00, 0.20,
+0.00, 0.30,
+0.10, 0.30
+)
+); /* End Polyline */
+),
+Net_Name ("N51")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2041),
+Layer ("Conductor_Top"),
+Curve (
+Polyline (
+Entity_ID (#2042),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.40, 0.30,
+0.50, 0.30
+)
+); /* End Polyline */
+),
+Net_Name ("N65")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2043),
+Layer ("Conductor_Top"),
+Curve (
+Polyline (
+Entity_ID (#2044),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.90, 0.20,
+0.80, 0.20
+)
+); /* End Polyline */
+),
+Net_Name ("Ground")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2045),
+Layer ("Conductor_Inner_1"),
+Curve (
+Polyline (
+Entity_ID (#2046),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.00, 0.20,
+0.30, 0.20,
+0.30, 0.15
+)
+); /* End Polyline */
+),
+Net_Name ("N51")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2047),
+Layer ("Conductor_Inner_1"),
+Curve (
+Polyline (
+Entity_ID (#2048),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.45, 0.15,
+0.45, 0.25,
+0.50, 0.25,
+0.50, 0.30
+)
+); /* End Polyline */
+),
+Net_Name ("N65")
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2049),
+Layer ("Conductor_Bottom"),
+Curve (
+Polyline (
+Entity_ID (#2050),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.40, 0.40,
+0.40, 0.35,
+0.55, 0.35,
+0.55, 0.30,
+0.60, 0.30
+)
+); /* End Polyline */
+),
+Net_Name ("N32)
+); /* End Trace */
+Trace ( /* Trace */
+Entity-ID (#2051),
+Layer ("Conductor_Bottom"),
+Curve (
+Polyline (
+Entity_ID (#2052),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.0125),
+XY_Pts (
+0.40, 0.30,
+0.50, 0.30
+)
+); /* End Polyline */
+),
+Net_Name ("N48")
+); /* End Trace */
+Filled_Area ( /* Filled Area */
+Entity-ID (#2053),
+Layer ("Conductor_Inner_2"),
+Outline (
+Polygon (
+Entity_ID (#2054),
+Line_Color (92.0, 92.0, 92.0),  /* Light Grey */
+Fill_Color (92.0, 92.0, 92.0),  /* Light Grey */
+XY_Pts (
+0.300, 0.150,
+1.050, 0.150,
+1.050, 0.400,
+0.475, 0.400,
+0.475, 0.675,
+0.300, 0.675,
+0.300, 0.150
+)
+); /* End Polygon */
+),
+Voids (
+Polygon (
+Entity_ID (#2055),
+Line_Color (92.0, 92.0, 92.0),  /* Light Grey */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Pts (
+0.35, 0.25,
+0.60, 0.25,
+0.60, 0.35,
+0.45, 0.35,
+0.45, 0.55,
+0.35, 0.55,
+0.35, 0.25
+)
+); /* End Polygon */
+Circle (
+Entity_ID (#2056),
+Line_Color (92.0, 92.0, 92.0),  /* Light Grey */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Loc (0.40, 0.60),
+Radius (0.0125)
+); /* End Circle */
+Circle (
+Entity_ID (#2057),
+Line_Color (92.0, 92.0, 92.0),  /* Light Grey */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Loc (0.80, 0.20),
+Radius (0.0125)
+); /* End Circle */
+),
+Net_Name ("Vcc")
+); /* End Filled_Area */
+Hole ( /* Via Hole */
+Entity_ID (#2058),
+Type ("Thru_Via"),
+Shape_Type ("Round"),
+Outline (#2523),
+XY_Loc (0.00, 0.20),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("N51")
+); /* End Hole */
+Pad ( /* Via Pad */
+Entity_ID (#2059),
+Type ("Via"),
+XY_Loc (0.00, 0.20),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2522),
+Net_Name ("N51")
+); /* End Pad */
+Hole ( /* Via Hole */
+Entity_ID (#2060),
+Type ("Thru_Via"),
+Shape_Type ("Round"),
+Outline (#2523),
+XY_Loc (0.50, 0.30),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("N65")
+); /* End Hole */
+Pad ( /* Via Pad */
+Entity_ID (#2061),
+Type ("Via"),
+XY_Loc (0.50, 0.30),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2522),
+Net_Name ("N65")
+); /* End Pad */
+Hole ( /*Via Hole */
+Entity_ID (#2062),
+Type ("Blind_Via"),
+Side ("Top"),
+Shape_Type ("Round"),
+Outline (#2523),
+XY_Loc (0.80, 0.20),
+Rotation (0.0),
+Span ("Conductor_Top", "Conductor_Inner_2"),
+Plated ("True"),
+Net_Name ("Ground")
+); /* End Hole */
+Pad ( /* Via Pad */
+Entity_ID (#2063),
+Type ("Via"),
+XY_Loc (0.80, 0.20),
+Rotation (0.0),
+Layer ("Conductor_Top", "Conductor_Inner_1"),
+Geometry (#2522),
+Net_Name ("Ground")
+); /* End Pad */
+/********************************************/
+/* Annotations Describing Board Features */
+/********************************************/
+Annotation ( /* Annotation */
+Entity_ID (#2064),
+Level ("Notes"),
+Entities (
+Leader (
+Entity-ID (#2065),
+Arrow_Start ("True"),
+Arrow_End ("False"),
+Curve (
+Polyline (
+Entity_ID (#2066),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.005),
+XY_Pts (
+0.625, -0.075,
+0.775, -0.275
+)
+); /* End Polyline */
+)
+); /* End Leader */
+Text (
+Entity_ID (#2067),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("Cavity thru top layer"),
+XY_Loc (0.80, -0.30),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2068),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("(0.03 depth)."),
+XY_Loc (0.80, -0.40),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Annotation */
+Annotation ( /* Annotation */
+Entity_ID (#2069),
+Level ("Notes"),
+Entities (
+Leader (
+Entity-ID (#2070),
+Arrow_Start ("True"),
+Arrow_End ("False"),
+Curve (
+Polyline (
+Entity_ID (#2071),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.005),
+XY_Pts (
+0.825, 0.275,
+1.175, 0.425
+)
+); /* End Polyline */
+)
+); /* End Leader */
+Text (
+Entity_ID (#2072),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("Component"),
+XY_Loc (1.20, 0.40),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2073),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("keepout by"),
+XY_Loc (1.20, 0.325),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2074),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("height (0.1"),
+XY_Loc (1.20, 0.25),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2075),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("height)."),
+XY_Loc (1.20, 0.175),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Annotation */
+Annotation ( /* Annotation */
+Entity_ID (#2076),
+Level ("Notes"),
+Entities (
+Leader (
+Entity-ID (#2077),
+Arrow_Start ("True"),
+Arrow_End ("False"),
+Curve (
+Polyline (
+Entity_ID (#2078),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.005),
+XY_Pts (
+0.525, 0.625,
+0.725, 1.000
+)
+); /* End Polyline */
+)
+); /* End Leader */
+Text (
+Entity_ID (#2079),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("Cutout and related"),
+XY_Loc (0.75, 0.875),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2080),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("keepouts are"),
+XY_Loc (0.75, 0.80),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2081),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("represented as a figure.),
+XY_Loc (0.75, 0.725),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Annotation */
+Annotation ( /* Annotation */
+Entity_ID (#2082),
+Level ("Notes"),
+Entities (
+Leader (
+Entity-ID (#2083),
+Arrow_Start ("True"),
+Arrow_End ("False"),
+Curve (
+Polyline (
+Entity_ID (#2084),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Width (0.005),
+XY_Pts (
+-0.075, 0.675,
+-0.225, 0.975,
+-0.125, 0.975
+)
+); /* End Polyline */
+)
+); /* End Leader */
+Text (
+Entity_ID (#2085),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("Mounting hole with"),
+XY_Loc (-0.10, 0.95),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2086),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("routing & component"),
+XY_Loc (-0.10, 0.875),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+Text (
+Entity_ID (#2087),
+Color (0.0, 0.0, 0.0),  /* Black */
+Text_String ("keepouts."),
+XY_Loc (-0.10, 0.80),
+Height (0.0625),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Annotation */
+),
+/********************************************/
+/* Component and Sublayout Footprints */
+/********************************************/
+Footprints (
+/********************************************/
+/* Footprint for Component Instance – U1 */
+/********************************************/
+Footprint (
+Entity_ID (#2088),
+Assoc_Instance ("U1")
+Units ("Global"),
+XY_Loc (0.10, 0.60),
+Side ("Top"),
+Rotation (270.0),
+Features (
+Graphic ( /* Graphic for Refdes */
+Entity_ID (#2089),
+Type ("Silkscreen"),
+Layer ("Silkscreen_Top"),
+Entities (
+Text (
+Entity_ID (#2090),
+Color (0.0, 50.0, 0.0),  /* Dark Green */
+Text_String ("U1"),
+XY_Loc (-0.15, -0.15),
+Height (0.1),
+Rotation (90.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Graphic */
+Pad ( /* Pads and Hole for Pin – 1 */
+Entity_ID (#2091),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top"),
+Geometry (#2524),
+Net_Name ("Vcc")
+); /* End Pad */
+Pad (
+Entity_ID (#2092),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Layer (
+"Conductor_Inner_1",
+"Conductor_Inner_2",
+"Conductor_Bottom"
+),
+Geometry (#2525),
+Net_Name ("Vcc")
+); /* End Pad */
+Hole (
+Entity_ID (#2093),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("1"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("Vcc")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 2 */
+Entity_ID (#2094),
+Type ("Pin"),
+Assoc_Pin_ID ("2"),
+XY_Loc (0.10, 0.00),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525)
+); /* End Pad */
+Hole (
+Entity_ID (#2095),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("2"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.10, 0.00),
+Rotation (0.0),
+Plated ("True")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 3 */
+Entity_ID (#2096),
+Type ("Pin"),
+Assoc_Pin_ID ("3"),
+XY_Loc (0.20, 0.00),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525)
+); /* End Pad */
+Hole (
+Entity_ID (#2097),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("3"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.20, 0.00),
+Rotation (0.0),
+Plated ("True")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 4 */
+Entity_ID (#2098),
+Type ("Pin"),
+Assoc_Pin_ID ("4"),
+XY_Loc (0.30, 0.00),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525),
+Net_Name ("N51")
+); /* End Pad */
+Hole (
+Entity_ID (#2099),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("4"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.30, 0.00),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("N51")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 5 */
+Entity_ID (#2100),
+Type ("Pin"),
+Assoc_Pin_ID ("5"),
+XY_Loc (0.30, 0.30),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525),
+Net_Name ("N65")
+); /* End Pad */
+Hole (
+Entity_ID (#2101),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("5"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.30, 0.30),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("N65")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 6 */
+Entity_ID (#2102),
+Type ("Pin"),
+Assoc_Pin_ID ("6"),
+XY_Loc (0.20, 0.30),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525),
+Net_Name ("N32")
+); /* End Pad */
+Hole (
+Entity_ID (#2103),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("6"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.20, 0.30),
+Rotation (0.0),
+Plated ("True"),
+Net_Name ("N32")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 7 */
+Entity_ID (#2104),
+Type ("Pin"),
+Assoc_Pin_ID ("7"),
+XY_Loc (0.10, 0.30),
+Rotation (0.0),
+Layer ("All"),
+Geometry (#2525)
+); /* End Pad */
+Hole (
+Entity_ID (#2105),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("7"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.10, 0.30),
+Rotation (0.0),
+Plated ("True")
+); /* End Hole */
+Pad ( /* Pad and Hole for Pin – 8 */
+Entity_ID (#2106),
+Type ("Pin"),
+Assoc_Pin_ID ("8"),
+XY_Loc (0.00, 0.30),
+Rotation (0.0),
+Layer (
+"Conductor_Top",
+"Conductor_Inner_1",
+"Conductor_Bottom"
+),
+Geometry (#2525)
+); /* End Pad */
+Hole (
+Entity_ID (#2107),
+Type ("Thru_Pin"),
+Assoc_Pin_ID ("8"),
+Shape_Type ("Round"),
+Outline (#2526),
+XY_Loc (0.00, 0.30),
+Rotation (0.0),
+Plated ("True")
+); /* End Hole */
+)
+); /* End Footprint */
+/********************************************/
+/* Footprint for Component Instance – C1 */
+/********************************************/
+Footprint (
+Entity_ID (#2108),
+Assoc_Instance ("C1")
+Units ("Global"),
+XY_Loc (0.30, 0.00),
+Side ("Top"),
+Rotation (90.0),
+Features (
+Graphic ( /* Graphic for Refdes */
+Entity_ID (#2109),
+Type ("Silkscreen"),
+Layer ("Silkscreen_Top"),
+Entities (
+Text (
+Entity_ID (#2110),
+Color (0.0, 50.0, 0.0),  /* Dark Green */
+Text_String ("C1"),
+XY_Loc (0.05, 0.15),
+Height (0.1),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Graphic */
+Pad ( /* Pad for Pin – 1 */
+Entity_ID (#2111),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.0, 0.0),
+Rotation (0.0),
+Layer ("Conductor_Top"),
+Geometry (#2527),
+Net_Name ("N51")
+); /* End Pad */
+Pad ( /* Pad for Pin – 2 */
+Entity_ID (#2112),
+Type ("Pin"),
+Assoc_Pin_ID ("2"),
+XY_Loc (0.15, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top"),
+Geometry (#2527)
+); /* End Pad */
+)
+); /* End Footprint */
+/******************************************** /
+/* Footprint for Component Instance – C2 */
+/********************************************/
+Footprint (
+Entity_ID (#2113),
+Assoc_Instance ("C2")
+Units ("Global"),
+XY_Loc (0.45, 0.00),
+Side ("Top"),
+Rotation (90.0),
+Features (
+Graphic ( /* Graphic for Refdes */
+Entity_ID (#2114),
+Type ("Silkscreen"),
+Layer ("Silkscreen_Top"),
+Entities (
+Text (
+Entity_ID (#2115),
+Color (0.0, 50.0, 0.0),  /* Dark Green */
+Text_String ("C2"),
+XY_Loc (0.05, -0.05),
+Height (0.1),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Graphic */
+Pad ( /* Pad for Pin – 1 */
+Entity_ID (#2116),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top"),
+Geometry (#2527),
+Net_Name ("N65")
+); /* End Pad */
+Pad ( /* Pad for Pin – 2 */
+Entity_ID (#2117),
+Type ("Pin"),
+Assoc_Pin_ID ("2"),
+XY_Loc (0.15, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top"),
+Geometry (#2527)
+); /* End Pad */
+)
+); /* End Footprint */
+/********************************************/
+/* Footprint for Component Instance – J1 */
+/********************************************/
+Footprint (
+Entity_ID (#2118),
+Assoc_Instance ("J1")
+Units ("Global"),
+XY_Loc (0.90, 0.40),
+Side ("Top"),
+Rotation (270.0),
+Features (
+Graphic ( /* Graphic for Refdes */
+Entity_ID (#2119),
+Type ("Silkscreen"),
+Layer ("Silkscreen_Top"),
+Entities (
+Text (
+Entity_ID (#2120),
+Color (0.0, 50.0, 0.0),  /* Dark Green */
+Text_String ("J1"),
+XY_Loc (0.075, -0.15),
+Height (0.1),
+Rotation (90.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Graphic */
+Pad ( /* Pad for Pin – 1 */
+Entity_ID (#2121),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Geometry (#2528),
+Net_Name ("Vcc")
+); /* End Pad */
+Pad ( /* Pad for Pin – 2 */
+Entity_ID (#2122),
+Type ("Pin"),
+Assoc_Pin_ID ("2"),
+XY_Loc (0.10, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Geometry (#2528)
+); /* End Pad */
+Pad ( /* Pad for Pin – 3 */
+Entity_ID (#2123),
+Type ("Pin"),
+Assoc_Pin_ID ("3"),
+XY_Loc (0.20, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Top", "Conductor_Bottom"),
+Geometry (#2528),
+Net_Name ("Ground")
+); /* End Pad */
+)
+); /* End Footprint */
+/********************************************/
+/* Footprint for Component Instance – C3 */
+/********************************************/
+Footprint (
+Entity_ID (#2124),
+Assoc_Instance ("C3")
+XY_Loc (0.75, 0.30),
+Units ("Global"),
+Side ("Bottom"),
+Rotation (0.0),
+Features (
+Graphic ( /* Graphic for Refdes */
+Entity_ID (#2125),
+Type ("Silkscreen"),
+Layer ("Silkscreen_Bottom"),
+Entities (
+Text (
+Entity_ID (#2126),
+Color (0.0, 50.0, 0.0),  /* Dark Green */
+Text_String ("C3"),
+XY_Loc (0.025, -0.125),
+Height (0.1),
+Rotation (0.0),
+Font ("Ariel")
+); /* End Text */
+)
+); /* End Graphic */
+Pad ( /* Pad for Pin – 1 */
+Entity_ID (#2127),
+Type ("Pin"),
+Assoc_Pin_ID ("1"),
+XY_Loc (0.00, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Bottom"),
+Geometry (#2527)
+); /* End Pad */
+Pad ( /* Pad for Pin – 2 */
+Entity_ID (#2128),
+Type ("Pin"),
+Assoc_Pin_ID ("2"),
+XY_Loc (0.15, 0.00),
+Rotation (0.0),
+Layer ("Conductor_Bottom"),
+Geometry (#2527),
+Net_Name ("N32")
+); /* End Pad */
+)
+); /* End Footprint */
+/************************ ********************/
+/* Footprint for the Sublayout */
+/********************************************/
+Footprint (
+Entity_ID (#2129),
+Assoc_Instance ("Unassigned"),
+Units ("Global"),
+XY_Loc (0.00, 0.00),
+Side ("Top"),
+Rotation (0.0),
+Features (
+Cavity (
+Entity (#2130),
+Surface ("Top"),
+Depth (0.03),
+Outline (
+Polygon (
+Entity_ID (#2131),
+Line_Color (80.0, 93.0, 100.0),  /* Light Blue */
+Fill_Color (80.0, 93.0, 100.0),  /* Light Blue */
+XY_Pts (
+0.15, -0.05,
+0.60, -0.05,
+0.60, 0.20,
+0.15, 0.20,
+0.15, -0.05
+)
+); /* End Polygon */
+)
+); /* End Cavity */
+Keepout (
+Entity (#2132),
+Type ("Comp_By_Height"),
+Layer ("Conductor_Top"),
+Outline (
+Polygon (
+Entity_ID (#2133),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.15, -0.05,
+0.60, -0.05,
+0.60, 0.20,
+0.15, 0.20,
+0.15, -0.05
+)
+); /* End Polygon */
+),
+Properties (KO_Comp_Height (0.0))
+); /* End Keepout */
+Keepout (
+Entity (#2134),
+Type ("Route_All"),
+Layer ("Conductor_Top"),
+Outline (
+Polygon (
+Entity_ID (#2135),
+Line_Color (100.0, 0.0, 0.0),  /* Medium Red */
+Fill_Color (100.0, 0.0, 0.0),  /* Medium Red */
+XY_Pts (
+0.15, -0.05,
+0.60, -0.05,
+0.60, 0.20,
+0.15, 0.20,
+0.15, -0.05
+)
+); /* End Polygon */
+)
+); /* End Keepout */
+)
+); /* End Footprint */
+)
+); /* End Board Part */
+); /* End Parts Section */
+/*************************************************************************/
+/* Referenced Entities Section */
+/*************************************************************************/
+Ref_Entities (
+Physical_Layer ( /* Physical Layers */
+Entity_ID (#2501),
+Layer_Name ("Conductor_Top"),
+Type ("Conductive"),
+Position (1),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2502),
+Layer_Name ("Silkscreen_Top"),
+Type ("Silkscreen"),
+Position (2),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2503),
+Layer_Name ("Conductor_Inner_1"),
+Type ("Conductive"),
+Position (3),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2504),
+Layer_Name ("Conductor_inner_2"),
+Type ("Conductive"),
+Position (4),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2505),
+Layer_Name ("Silkscreen_Bottom"),
+Type ("Silkscreen"),
+Position (5),
+Thickness (0.00)
+); /* End Physical Layer */
+Physical_Layer (
+Entity_ID (#2506),
+Layer_Name ("Conductor_Bottom"),
+Type ("Conductive"),
+Position (6),
+Thickness (0.00)
+); /* End Physical Layer */
+Circle ( /* Tooling Hole Circle */
+Entity_ID (#2521),
+Line_Color (0.0, 0.0, 0.0),  /* Black */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Loc (0.0, 0.0),
+Radius (0.025)
+); /* End Circle */
+Circle ( /* Circular Pad for Via */
+Entity_ID (#2522),
+Line_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Fill_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+XY_Loc (0.0, 0.0),
+Radius (0.025)
+); /* End Circle */
+Circle ( /* Via Hole Circle */
+Entity_ID (#2523),
+Line_Color (100.0, 100.0, 100.0),  /* White */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Loc (0.0, 0.0),
+Radius (0.0125)
+); /* End Circle */
+Polygon ( /* Square Pad Shape for DIP_8 */
+Entity_ID (#2524),
+Line_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Fill_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+XY_Pts (
+-0.025, -0.025,
+0.025, -0.025,
+0.025, 0.025,
+-0.025, 0.025,
+-0.025, -0.025
+)
+); /* End Polygon */
+Circle ( /* Circular Pad Shape for DI P_8 */
+Entity_ID (#2525),
+Line_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Fill_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+XY_Loc (0.0, 0.0),
+Radius (0.025)
+); /* End Circle */
+Circle ( /* Pin Hole Circle for DIP_8 */
+Entity_ID (#2526),
+Line_Color (100.0, 100.0, 100.0),  /* White */
+Fill_Color (100.0, 100.0, 100.0),  /* White */
+XY_Loc (0.0, 0.0),
+Radius (0.0125)
+); /* End Circle */
+Polygon ( /* Rectangular Pad Shape for Cap */
+Entity_ID (#2527),
+Line_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Fill_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+XY_Pts (
+-0.025, -0.05,
+0.025, -0.05,
+0.025, 0.05,
+-0.025, 0.05,
+-0.025, -0.05,
+)
+); /* End Polygon */
+Polycurve_Area ( /* Pad Shape for Conn */
+Entity_ID (#2528),
+Line_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Fill_Color (100.0, 100.0, 0.0),  /* Dark Yellow */
+Vertices (
+-0.025, 0.00, 0.0,
+0.025, 0.00, 180.0,
+0.025, 0.20, 0.0,
+-0.025, 0.20, 0.0,
+-0.025, 0.00, 0.0
+)
+); /* End Polycurve Area */
+); /* End Referenced Entities Section */

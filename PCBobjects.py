@@ -1120,9 +1120,9 @@ class layerSilkObject(objectWire):
         self.Type = ['layer'] + typeL
         
         obj.addProperty("App::PropertyBool", "Cut", "Holes", "Cut", 8).Cut = False
+        obj.addProperty("App::PropertyBool", "CutToBoard", "Shape", "Cut to board", 8).CutToBoard = False
         #obj.addProperty("Part::PropertyPartShape", "cleanShape", "Shape", "cleanShape", 4)
-        
-        self.cutToBoard = False
+
         self.defHeight = 35
         self.spisObiektowTXT = []
         self.side = 1  # 0-bottom   1-top   2-both
@@ -1130,11 +1130,10 @@ class layerSilkObject(objectWire):
         obj.Proxy = self
     
     def __getstate__(self):
-        return [self.Type, self.cutToBoard, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
+        return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
         
     def __setstate__(self, state):
         self.Type = state[0]
-        self.cutToBoard = state[1]
         self.defHeight = state[2]
         self.side = state[3]
         
@@ -1377,6 +1376,9 @@ class layerSilkObject(objectWire):
                             pads = pads.cut(holes)
                 except Exception as e:
                     FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+                ############################################################
+                if fp.CutToBoard:
+                    pads = cutToBoardShape(pads)
                 ############################################################
                 ############################################################
                 # shifted to makeFace() function
@@ -1961,7 +1963,7 @@ class layerSilkObject(objectWire):
         #fp.purgeTouched()
     
     def onChanged(self, fp, prop):
-        if prop == "Cut":
+        if prop == "Cut" or prop == "CutToBoard":
             self.generuj(fp)
             
     def execute(self, fp):

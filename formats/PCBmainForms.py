@@ -53,8 +53,8 @@ from formats.freepcb import FreePCB
 from formats.geda import gEDA_PCB
 #from formats.fidocadj import FidoCadJ_PCB
 # from formats.razen import Razen_PCB
-# from formats.kicad_v3 import KiCadv3_PCB
-# from formats.kicad_v4 import KiCadv4_PCB
+from formats.kicad_v3 import KiCadv3_PCB
+from formats.kicad_v4 import KiCadv4_PCB
 from formats.idf_v2 import IDFv2_PCB
 from formats.idf_v3 import IDFv3_PCB
 # from formats.idf_v4 import IDFv4_PCB
@@ -88,10 +88,10 @@ class mainPCB(partsManaging):
         #    self.wersjaFormatu = FidoCadJ_PCB(filename, self)
         # elif wersjaFormatu == "razen":
             # self.wersjaFormatu = Razen_PCB()
-        # elif wersjaFormatu == "kicad_v3":
-            # self.wersjaFormatu = KiCadv3_PCB(filename, self)
-        # elif wersjaFormatu == "kicad_v4":
-            # self.wersjaFormatu = KiCadv4_PCB(filename, self)
+        elif wersjaFormatu == "kicad_v3":
+            self.wersjaFormatu = KiCadv3_PCB(filename, self)
+        elif wersjaFormatu == "kicad_v4":
+            self.wersjaFormatu = KiCadv4_PCB(filename, self)
         elif wersjaFormatu == "idf_v2":
             self.wersjaFormatu = IDFv2_PCB(filename, self)
         elif wersjaFormatu == "idf_v3":
@@ -124,7 +124,7 @@ class mainPCB(partsManaging):
     def generate(self, doc, groupBRD):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc, groupBRD, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value(), self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked())
+        self.generatePCB(doc, groupBRD, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
         # HOLES
         self.generateHoles(doc, self.wersjaFormatu.dialogMAIN.holesMin.value(), self.wersjaFormatu.dialogMAIN.holesMax.value())
         # PARTS
@@ -165,7 +165,7 @@ class mainPCB(partsManaging):
                 self.printInfo("\nImporting layer '{0}': ".format(layerName))
                 try:
                     if layerFunction in ["silk", "pads", "paths"]:
-                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction)
+                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked())
                     elif layerFunction == "measures":
                         self.generateDimensions(doc, grp, layerName, layerColor, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
                     elif layerFunction == "glue":
@@ -228,7 +228,7 @@ class mainPCB(partsManaging):
             glue.generate()
             #glue.recompute()
     
-    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant):
+    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles):
         layerName = "{0}_{1}".format(layerNameO, layerNumber)
         #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
         layerType = [layerName]
@@ -238,6 +238,7 @@ class mainPCB(partsManaging):
         layerNew.holes = self.showHoles()
         layerNew.side = layerSide
         layerNew.defHeight = defHeight
+        layerNew.Cut = cutHoles
         #
         if layerVariant == "paths":
             self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
@@ -288,7 +289,7 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc, groupBRD, gruboscPlytki, cutHoles):
+    def generatePCB(self, doc, groupBRD, gruboscPlytki):
         self.printInfo('\nGenerate board: ')
         
         try:
@@ -301,7 +302,6 @@ class mainPCB(partsManaging):
             PCBboardObject(PCBboard)
             PCBboard.Thickness = gruboscPlytki
             PCBboard.Border = doc.PCB_Border
-            PCBboard.Cut = cutHoles
             viewProviderPCBboardObject(PCBboard.ViewObject)
             groupBRD.addObject(doc.Board)
             FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = PCBconf.PCB_COLOR

@@ -89,7 +89,6 @@ modelsCategories = {
 #            PCB_COLOR = (0.33, 0.67, 0.0)
 PCB_COLOR = getFromSettings_Color('boardColor', 1437204735)
 
-
 #  partPaths = [path_1, path_2, etc]
 #       for example: /home/mariusz/.FreeCAD/Mod/EaglePCB_2_FreeCAD/parts/
 #       used in: PCBpartManaging.partExist()
@@ -98,11 +97,7 @@ partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod\PCB\parts"), os.path.join(
 #  default software list
 defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
 
-
-#  DATABASES LIST
-#  libPath - default position of library for program (if necessary)
-#       for example: FidoCadJ -> 'libPath': 'C:\\Users\\mariusz\\Downloads\\Desktop\\fidocadj.jar'
-
+#########################
 exportData = {
     "eagle" : {
         'name': 'Eagle',
@@ -136,140 +131,143 @@ exportData = {
         'format': '*.fpc',
         'icon': ':/data/img/freepcb.png',
     },
-}
-
-
-supSoftware = {
-    "eagle" : {
-        'name': 'Eagle',
-        'pathToBase': __currentPath__ + '/data/data.cfg',
-        'libPath': '',
-        'export': True,
-        'exportLayers': ['dim', 'hol', 'anno', 'glue'],
-        'exportClass': 'eagle()',
-        'description': 'Eagle',
-        'format': '*.brd',
-        'icon': ':/data/img/eagle.png',
-    },
     "kicad" : {
-        'name': 'KiCad',
-        'pathToBase': __currentPath__ + '/data/kicad.cfg',
-        'libPath': '',
-        'export': True,
+        'name': 'KiCad v4',
         'exportLayers': ['dim', 'hol', 'anno', 'glue'],
         'exportClass': 'kicad()',
         'description': 'KiCad',
         'format': '*.kicad_pcb',
         'icon': ':/data/img/kicad.png',
     },
-    "fidocadj" : {
-        'name': 'FidoCadJ',
-        'pathToBase': __currentPath__ + '/data/fidocadj.cfg',
-        'libPath': FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("librariesPathFidoCADJ","").strip(),
-        'export': True,
-        'exportLayers': ['hol', 'anno'],
-        'exportClass': 'fidocadj()',
-        'description': 'FidoCadJ',
-        'format': '*.fcd',
-        'icon': ':/data/img/fidocadj.png',
-    },
-    "geda" : {
-        'name': 'gEDA',
-        'pathToBase': __currentPath__ + '/data/kicad.cfg',
-        'pathToBase': '',
-        'libPath': '',
-        'export': True,
-        'exportLayers': ['hol', 'anno'],
-        'exportClass': 'geda()',
-        'description': 'gEDA',
-        'format': '*.pcb',
-        'icon': ':/data/img/geda.png',
-    },
-    "freepcb" : {
-        'name': 'FreePCB',
-        'pathToBase': __currentPath__ + '/data/freepcb.cfg',
-        'libPath': '',
-        'export': False,
-        'exportLayers': ['anno'],
-        'exportClass': 'exportPCB_FreePCB()',
-        'description': 'FreePCB',
-        'format': '*.fpc',
-        'icon': ':/data/img/freepcb.png',
-    },
-    "razen" : {
-        'name': 'Razen',
-        'pathToBase': __currentPath__ + '/data/razen.cfg',
-        'libPath': FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("librariesPathRazen","").strip(),
-        'export': True,
-        'exportLayers': ['hol', 'anno'],
-        'exportClass': 'razen()',
-        'description': 'Razen',
-        'format': '*.rzp',
-        'icon': ':/data/img/razen.png',
-    },
-    "idf" : {
-        'name': 'IDF',
-        'pathToBase': __currentPath__ + '/data/idf.cfg',
-        'libPath': '',
-        'export': False,
-        'exportLayers': ['hol'],
-        'exportClass': 'idf_v2()',
-        'description': 'IDF',
-        'format': '*.emn',
-        'icon': '',
-    },
-    
-    
-    "idf_v2" : {
-        'name': 'IDF v2',
-        'pathToBase': __currentPath__ + '/data/idf.cfg',
-        'libPath': '',
-        'export': False,
-        'exportLayers': ['hol'],
-        'exportClass': 'idf_v2()',
-        'description': 'IDF v2',
-        'format': '*.emn',
-        'icon': '',
-    },
-    "idf_v3" : {
-        'name': 'IDF v3',
-        'pathToBase': __currentPath__ + '/data/idf.cfg',
-        'libPath': '',
-        'export': True,
-        'exportLayers': ['hol', 'anno'],
-        'exportClass': 'idf_v3()',
-        'description': 'IDF v3',
-        'format': '*.emn',
-        'icon': '',
-    },
-    "idf_v4" : {
-        'name': 'IDF v4',
-        'pathToBase': __currentPath__ + '/data/idf.cfg',
-        'libPath': '',
-        'export': False,
-        'exportLayers': [],
-        'exportClass': '',
-        'description': 'IDF v4',
-        'format': '*.idf',
-        'icon': '',
-    },
-    "hyp" : {
-        'name': 'HyperLynx',
-        'pathToBase': __currentPath__ + '/data/idf.cfg',
-        'libPath': '',
-        'export': False,
-        'exportLayers': [],
-        'exportClass': '',
-        'description': 'HyperLynx',
-        'format': '*.HYP',
-        'icon': '',
-    }
 }
-
-##
-# pathToDAtabase = moved to PCBfunctions.py getFromSettings_databasePath()
-
-
+#########################
+# supSoftware = {
+    # "eagle" : {
+        # 'name': 'Eagle',
+        # 'pathToBase': __currentPath__ + '/data/data.cfg',
+        # 'libPath': '',
+        # 'export': True,
+        # 'exportLayers': ['dim', 'hol', 'anno', 'glue'],
+        # 'exportClass': 'eagle()',
+        # 'description': 'Eagle',
+        # 'format': '*.brd',
+        # 'icon': ':/data/img/eagle.png',
+    # },
+    # "kicad" : {
+        # 'name': 'KiCad',
+        # 'pathToBase': __currentPath__ + '/data/kicad.cfg',
+        # 'libPath': '',
+        # 'export': True,
+        # 'exportLayers': ['dim', 'hol', 'anno', 'glue'],
+        # 'exportClass': 'kicad()',
+        # 'description': 'KiCad',
+        # 'format': '*.kicad_pcb',
+        # 'icon': ':/data/img/kicad.png',
+    # },
+    # "fidocadj" : {
+        # 'name': 'FidoCadJ',
+        # 'pathToBase': __currentPath__ + '/data/fidocadj.cfg',
+        # 'libPath': FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("librariesPathFidoCADJ","").strip(),
+        # 'export': True,
+        # 'exportLayers': ['hol', 'anno'],
+        # 'exportClass': 'fidocadj()',
+        # 'description': 'FidoCadJ',
+        # 'format': '*.fcd',
+        # 'icon': ':/data/img/fidocadj.png',
+    # },
+    # "geda" : {
+        # 'name': 'gEDA',
+        # 'pathToBase': __currentPath__ + '/data/kicad.cfg',
+        # 'pathToBase': '',
+        # 'libPath': '',
+        # 'export': True,
+        # 'exportLayers': ['hol', 'anno'],
+        # 'exportClass': 'geda()',
+        # 'description': 'gEDA',
+        # 'format': '*.pcb',
+        # 'icon': ':/data/img/geda.png',
+    # },
+    # "freepcb" : {
+        # 'name': 'FreePCB',
+        # 'pathToBase': __currentPath__ + '/data/freepcb.cfg',
+        # 'libPath': '',
+        # 'export': False,
+        # 'exportLayers': ['anno'],
+        # 'exportClass': 'exportPCB_FreePCB()',
+        # 'description': 'FreePCB',
+        # 'format': '*.fpc',
+        # 'icon': ':/data/img/freepcb.png',
+    # },
+    # "razen" : {
+        # 'name': 'Razen',
+        # 'pathToBase': __currentPath__ + '/data/razen.cfg',
+        # 'libPath': FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("librariesPathRazen","").strip(),
+        # 'export': True,
+        # 'exportLayers': ['hol', 'anno'],
+        # 'exportClass': 'razen()',
+        # 'description': 'Razen',
+        # 'format': '*.rzp',
+        # 'icon': ':/data/img/razen.png',
+    # },
+    # "idf" : {
+        # 'name': 'IDF',
+        # 'pathToBase': __currentPath__ + '/data/idf.cfg',
+        # 'libPath': '',
+        # 'export': False,
+        # 'exportLayers': ['hol'],
+        # 'exportClass': 'idf_v2()',
+        # 'description': 'IDF',
+        # 'format': '*.emn',
+        # 'icon': '',
+    # },
+    
+    
+    # "idf_v2" : {
+        # 'name': 'IDF v2',
+        # 'pathToBase': __currentPath__ + '/data/idf.cfg',
+        # 'libPath': '',
+        # 'export': False,
+        # 'exportLayers': ['hol'],
+        # 'exportClass': 'idf_v2()',
+        # 'description': 'IDF v2',
+        # 'format': '*.emn',
+        # 'icon': '',
+    # },
+    # "idf_v3" : {
+        # 'name': 'IDF v3',
+        # 'pathToBase': __currentPath__ + '/data/idf.cfg',
+        # 'libPath': '',
+        # 'export': True,
+        # 'exportLayers': ['hol', 'anno'],
+        # 'exportClass': 'idf_v3()',
+        # 'description': 'IDF v3',
+        # 'format': '*.emn',
+        # 'icon': '',
+    # },
+    # "idf_v4" : {
+        # 'name': 'IDF v4',
+        # 'pathToBase': __currentPath__ + '/data/idf.cfg',
+        # 'libPath': '',
+        # 'export': False,
+        # 'exportLayers': [],
+        # 'exportClass': '',
+        # 'description': 'IDF v4',
+        # 'format': '*.idf',
+        # 'icon': '',
+    # },
+    # "hyp" : {
+        # 'name': 'HyperLynx',
+        # 'pathToBase': __currentPath__ + '/data/idf.cfg',
+        # 'libPath': '',
+        # 'export': False,
+        # 'exportLayers': [],
+        # 'exportClass': '',
+        # 'description': 'HyperLynx',
+        # 'format': '*.HYP',
+        # 'icon': '',
+    # }
+# }
+#########################
 #  PCBconstraintAreas = layerName: [layer nape for menu, [layerType], [Type, Surfix, Value, Min, Max], [R, G, B], layer description]
 #
 #  layerPosition
@@ -374,40 +372,40 @@ softLayers = {
         "silkT": {"side": 1, "mirrorLayer": "silkB", "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed top screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
         "silkB": {"side": 0, "mirrorLayer": "silkT", "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Detailed bottom screen print", "value": ['double', u'μm', 34.8, 0, 350]}, 
     },
-    # "kicad": {
-        # 15: {"side": 1, "mirrorLayer": 0, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
-        # 0: {"side": 0, "mirrorLayer": 15, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
-        # 33: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, top side", "value": None}, 
-        # 32: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, bottom side", "value": None}, 
-        # 107: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
-        # 108: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]}, 
-        # 21: {"side": 1, "mirrorLayer": 22, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, top side", "value": ['double', u'μm', 34.8, 0, 350]}, 
-        # 20: {"side": 0, "mirrorLayer": 21, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, bottom side", "value": ['double', u'μm', 34.8, 0, 350]}, 
-        # 106: {"name": "Measures", "side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('MeasuresColor', 1879048447), "description": "Measures", "value": None}, 
-        # 900: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "ltype": 'tPlaceKeepout', "description": "Place Keepout, top side", "value": ['int', '%', 50, 0, 100]},
-        # 901: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "ltype": 'bPlaceKeepout', "description": "Place Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
-        # 902: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "Route Keepout, top side", "value": ['int', '%', 50, 0, 100]},
-        # 903: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bRouteKeepoutColor', 65535), "ltype": 'bRouteKeepout', "description": "Route Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
-        # 904: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "Via Keepout", "value": ['int', '%', 50, 0, 100]},
-        # #1: ["Annotations", "Annotations"],
-    # },
-    # "kicad_v4": {
-        # 0: {"side": 1, "mirrorLayer": 31, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
-        # 31: {"side": 0, "mirrorLayer": 0, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
-        # 33: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, top side", "value": None}, 
-        # 32: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, bottom side", "value": None}, 
-        # 107: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
-        # 108: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]}, 
-        # 37: {"side": 1, "mirrorLayer": 22, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, top side", "value": ['double', u'μm', 34.8, 0, 350]}, 
-        # 36: {"side": 0, "mirrorLayer": 21, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, bottom side", "value": ['double', u'μm', 34.8, 0, 350]}, 
-        # 106: {"name": "Measures", "side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('MeasuresColor', 1879048447), "description": "Measures", "value": None}, 
-        # 900: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "ltype": 'tPlaceKeepout', "description": "Place Keepout, top side", "value": ['int', '%', 50, 0, 100]},
-        # 901: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "ltype": 'bPlaceKeepout', "description": "Place Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
-        # 902: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "Route Keepout, top side", "value": ['int', '%', 50, 0, 100]},
-        # 903: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bRouteKeepoutColor', 65535), "ltype": 'bRouteKeepout', "description": "Route Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
-        # 904: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "Via Keepout", "value": ['int', '%', 50, 0, 100]},
-        # #105: ["Annotations", "Annotations"],
-    # }
+    "kicad": {
+        15: {"side": 1, "mirrorLayer": 0, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        0: {"side": 0, "mirrorLayer": 15, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        33: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, top side", "value": None}, 
+        32: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, bottom side", "value": None}, 
+        107: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
+        108: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]}, 
+        21: {"side": 1, "mirrorLayer": 22, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, top side", "value": ['double', u'μm', 34.8, 0, 350]}, 
+        20: {"side": 0, "mirrorLayer": 21, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, bottom side", "value": ['double', u'μm', 34.8, 0, 350]}, 
+        106: {"name": "Measures", "side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('MeasuresColor', 1879048447), "description": "Measures", "value": None}, 
+        900: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "ltype": 'tPlaceKeepout', "description": "Place Keepout, top side", "value": ['int', '%', 50, 0, 100]},
+        901: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "ltype": 'bPlaceKeepout', "description": "Place Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
+        902: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "Route Keepout, top side", "value": ['int', '%', 50, 0, 100]},
+        903: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bRouteKeepoutColor', 65535), "ltype": 'bRouteKeepout', "description": "Route Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
+        904: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "Via Keepout", "value": ['int', '%', 50, 0, 100]},
+        905: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
+    },
+    "kicad_v4": {
+        0: {"side": 1, "mirrorLayer": 31, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        31: {"side": 0, "mirrorLayer": 0, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        33: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, top side", "value": None}, 
+        32: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('GlueColor', 4290230271), "description": "Glue, bottom side", "value": None}, 
+        107: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
+        108: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]}, 
+        37: {"side": 1, "mirrorLayer": 22, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, top side", "value": ['double', u'μm', 34.8, 0, 350]}, 
+        36: {"side": 0, "mirrorLayer": 21, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Silk screen, bottom side", "value": ['double', u'μm', 34.8, 0, 350]}, 
+        106: {"name": "Measures", "side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('MeasuresColor', 1879048447), "description": "Measures", "value": None}, 
+        900: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "ltype": 'tPlaceKeepout', "description": "Place Keepout, top side", "value": ['int', '%', 50, 0, 100]},
+        901: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "ltype": 'bPlaceKeepout', "description": "Place Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
+        902: {"side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "ltype": 'tRouteKeepout', "description": "Route Keepout, top side", "value": ['int', '%', 50, 0, 100]},
+        903: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bRouteKeepoutColor', 65535), "ltype": 'bRouteKeepout', "description": "Route Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
+        904: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "Via Keepout", "value": ['int', '%', 50, 0, 100]},
+        905: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
+    }
 }
 
 

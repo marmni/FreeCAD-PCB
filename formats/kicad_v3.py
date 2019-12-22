@@ -98,13 +98,18 @@ class dialogMAIN(dialogMAIN_FORM):
         
         layers = re.search(r'\[start\]\(layers(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL).group(0)
         for i in re.findall(r'\((.*?) (.*?) .*?\)', layers):
-            dane[int(i[0])] = {"name": i[1], "color": None}
+            side = "TOP"
+            if i[1].startswith("B."):
+                side = "BOTTOM"
+            dane[int(i[0])] = {"name": i[1], "color": None, "side": side}
         
         ####################
         # EXTRA LAYERS
         ####################
         # measures
         dane[106] = {"name": softLayers["kicad"][106]["name"], "color": softLayers["kicad"][106]["color"]}
+        #  annotations
+        dane[905] = {"name": softLayers[self.databaseType][905]["description"], "color": softLayers[self.databaseType][905]["color"], "type": "anno", "number": 0}
         # pad
         dane[107] = {"name": softLayers["kicad"][107]["name"], "color": softLayers["kicad"][107]["color"]}
         dane[108] = {"name": softLayers["kicad"][108]["name"], "color": softLayers["kicad"][108]["color"]}
@@ -397,16 +402,16 @@ class KiCadv3_PCB(mathFunctions):
                                     x2 = x + dx / 2. - e
                                     y2 = y - dy / 2.
                                     
-                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y1, 0)))
-                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y2, 0), FreeCAD.Vector(x2, y2, 0)))
+                                    holesObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y1, 0)))
+                                    holesObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y2, 0), FreeCAD.Vector(x2, y2, 0)))
                                     
                                     [x3, y3] = self.arcMidPoint([x1, y1], [x1, y2], 90)
                                     arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x1, y2, 0.0))
-                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    holesObject.addGeometry(arc)
                                     
                                     [x3, y3] = self.arcMidPoint([x2, y1], [x2, y2], -90)
                                     arc = Part.Arc(FreeCAD.Vector(x2, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    holesObject.addGeometry(arc)
                                 else:
                                     e = (dx * 50 / 100.) / 2.
                                     x1 = x - dx / 2.
@@ -414,16 +419,16 @@ class KiCadv3_PCB(mathFunctions):
                                     x2 = x + dx / 2.
                                     y2 = y - dy / 2. + e
                                     
-                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x1, y2, 0)))
-                                    holesObject.addGeometry(Part.Line(FreeCAD.Vector(x2, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+                                    holesObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x1, y2, 0)))
+                                    holesObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x2, y1, 0), FreeCAD.Vector(x2, y2, 0)))
                                     
                                     [x3, y3] = self.arcMidPoint([x1, y1], [x2, y1], -90)
                                     arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y1, 0.0))
-                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    holesObject.addGeometry(arc)
                                     
                                     [x3, y3] = self.arcMidPoint([x1, y2], [x2, y2], 90)
                                     arc = Part.Arc(FreeCAD.Vector(x1, y2, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
-                                    holesObject.addGeometry(self.Draft2Sketch(arc, holesObject))
+                                    holesObject.addGeometry(arc)
     
     def getLine(self, layer, source, oType, m=[0,0]):
         data = []
@@ -535,7 +540,7 @@ class KiCadv3_PCB(mathFunctions):
     def getPCB(self, borderObject):
         # lines
         for i in self.getLine(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_line'):
-            borderObject.addGeometry(Part.Line(FreeCAD.Vector(i['x1'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y2'], 0)))
+            borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x1'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y2'], 0)))
         # circles
         for i in self.getCircle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_circle'):
             borderObject.addGeometry(Part.Circle(FreeCAD.Vector(i['x'], i['y']), FreeCAD.Vector(0, 0, 1), i['r']))
@@ -543,7 +548,7 @@ class KiCadv3_PCB(mathFunctions):
         for i in self.getArc(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_arc'):
             [x3, y3] = self.arcMidPoint([i['x2'], i['y2']], [i['x1'], i['y1']], i['curve'])
             arc = Part.Arc(FreeCAD.Vector(i['x2'], i['y2'], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(i['x1'], i['y1'], 0.0))
-            borderObject.addGeometry(self.Draft2Sketch(arc, borderObject))
+            borderObject.addGeometry(arc)
         ############
         ###### obj
         lType = re.escape(self.getLayerName(self.borderLayerNumber))
@@ -574,7 +579,7 @@ class KiCadv3_PCB(mathFunctions):
             for i in self.getLine(lType, j, 'fp_line', [X1, Y1]):
                 [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
                 [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
-                borderObject.addGeometry(Part.Line(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+                borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
             # circle
             for i in self.getCircle(lType, j, 'fp_circle', [X1, Y1]):
                 [x, y] = self.obrocPunkt2([i['x'], i['y']], [X1, Y1], ROT)
@@ -587,7 +592,7 @@ class KiCadv3_PCB(mathFunctions):
                 
                 [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], i['curve'])
                 arc = Part.Arc(FreeCAD.Vector(x2, y2, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x1, y1, 0.0))
-                borderObject.addGeometry(self.Draft2Sketch(arc, borderObject))
+                borderObject.addGeometry(arc)
                 
     def getLayerName(self, value):
         for i, j in self.spisWarstw.items():
@@ -595,7 +600,7 @@ class KiCadv3_PCB(mathFunctions):
                 return i
         return 'eeeeeefsdfstdgdfgdfghdfgdfgdfgfd'
         
-    def getAnnotations(self):
+    def getNormalAnnotations(self, mode='anno'):
         adnotacje = []
         #
         for i in re.findall(r'\[start\]\(gr_text(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -608,21 +613,15 @@ class KiCadv3_PCB(mathFunctions):
             except:
                 continue
             #
-            x = float(x)
-            y = float(y) * (-1)
             if rot == '':
                 rot = 0.0
             else:
                 rot = float(rot)
             
-            if self.spisWarstw[layer] in [15, 21]:
+            if self.spisWarstw[layer] in [15, 21] and self.databaseType == "kicad_v3" or self.spisWarstw[layer] in [0, 37] and self.databaseType == "kicad_v4":
                 side = 'TOP'
             else:
                 side = 'BOTTOM'
-            
-            size = float(size)
-            spin = True
-            font = 'proportional'
             
             extra = re.findall(r'\(justify( [left|right]+|)( mirror|)\)', justify, re.DOTALL)
             if len(extra):
@@ -641,7 +640,23 @@ class KiCadv3_PCB(mathFunctions):
                 align = 'center'
                 mirror = False
 
-            adnotacje.append([txt, x, y, size, rot, side, align, spin, mirror, font])
+            adnotacje.append({
+                "text": txt,
+                "x": float(x),
+                "y": float(y) * (-1),
+                "z": 0,
+                "size": float(size),
+                "rot": rot,
+                "side": side,
+                "align": align,
+                "spin": True,
+                "font": 'Proportional',
+                "display": True,
+                "distance": 1,
+                "tracking": 0,
+                "mirror": mirror,
+                "mode": mode
+            })
         #
         return adnotacje
     
@@ -710,6 +725,8 @@ class KiCadv3_PCB(mathFunctions):
             return "glue"
         elif layerNumber in [900, 901, 902, 903, 904]:  # ConstraintAreas
             return "constraint"
+        elif layerNumber == 905:
+            return "annotations"
         else:
             return "silk"
 
@@ -834,181 +851,74 @@ class KiCadv3_PCB(mathFunctions):
         ###########
         for i in self.elements:
             if i['side'] == 1:
-                side = "TOP"
+                i['side'] = "TOP"
             else:
-                side = "BOTTOM"
-            ###########
-            # textReferencere
-            textReferencere = re.search(r'\(fp_text reference\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
-            [tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
-            tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
-            tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
-            tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
-            tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
+                i['side'] = "BOTTOM"
             #
-            tr_x = float(tr_x)
-            tr_y = float(tr_y) * (-1)
-            if tr_rot == '':
-                tr_rot = i['rot']
-            else:
-                tr_rot = float(tr_rot)
-            
-            if tr_fontSize == '':
-                tr_fontSize = 0.7
-            else:
-                tr_fontSize = float(tr_fontSize.split()[1])
-            
-            if tr_visibility == 'hide':
-                tr_visibility = False
-            else:
-                tr_visibility = True
-            
-            EL_Name = [tr_value, tr_x + i['x'], tr_y + i['y'], tr_fontSize, tr_rot, side, "center", False, i['mirror'], '', True]
-            ###########
-            # textValue
-            textValue = re.search(r'\(fp_text value\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
-            [tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
-            tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
-            tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
-            tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
-            tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
-            #
-            tv_x = float(tv_x)
-            tv_y = float(tv_y) * (-1)
-            if tv_rot == '':
-                tv_rot = i['rot']
-            else:
-                tv_rot = float(tv_rot)
-            
-            if tv_fontSize == '':
-                tv_fontSize = 0.7
-            else:
-                tv_fontSize = float(tv_fontSize.split()[1])
-            
-            if tv_visibility == 'hide':
-                tv_visibility = False
-            else:
-                tv_visibility = True
-            
-            EL_Value = [tv_value, tv_x + i['x'], tv_y + i['y'], tv_fontSize, tv_rot, side, "center", False, i['mirror'], '', tv_visibility]
-            ###########
-            ###########
-            newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
-            parts.append(newPart)
-        ###########
+            parts.append(i)
+        #
         return parts
-    
-    
-    #def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
-        #PCB_ER = []
-        ##
-        #for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
-            #[x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
-            #layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
-            ###
-            ##package = re.search(r'\s+(".+?"|.+?)\s+\(layer', i).groups()[0]
-            ##package = re.search(r'\s+(".+?"|.+?)([\s+locked\s+|\s+]+)\(layer', i).groups()[0]
-            ##if ':' in package:
-                ##package = package.replace('"', '').split(':')[-1]
-            ##else:
-                ##if '"' in package:
-                    ##package = package.replace('"', '')
-                ##else:
-                    ##package = package
-            #package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
-            #package = re.sub('locked|placed|pla', '', package).split(':')[-1]
-            #package = package.replace('"', '').strip()
-            ##3D package from KiCad
-            #try:
-                #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                #if package3D and self.partExist(os.path.basename(package3D), "", False):
-                    #package = os.path.basename(package3D)
-            #except:
-                #pass
-            ##
-            #library = package
+            # if i['side'] == 1:
+                # side = "TOP"
+            # else:
+                # side = "BOTTOM"
+            # ###########
+            # # textReferencere
+            # textReferencere = re.search(r'\(fp_text reference\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
+            # [tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
+            # tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
+            # tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
+            # tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
+            # tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
+            # #
+            # tr_x = float(tr_x)
+            # tr_y = float(tr_y) * (-1)
+            # if tr_rot == '':
+                # tr_rot = i['rot']
+            # else:
+                # tr_rot = float(tr_rot)
             
-            #x = float(x)
-            #y = float(y) * (-1)
-            #if rot == '':
-                #rot = 0.0
-            #else:
-                #rot = float(rot)
+            # if tr_fontSize == '':
+                # tr_fontSize = 0.7
+            # else:
+                # tr_fontSize = float(tr_fontSize.split()[1])
             
-            #if self.spisWarstw[layer] == 15:  # top
-                #side = "TOP"
-                #mirror = 'None'
-            #else:
-                #side = "BOTTOM"
-                ##rot = (rot + 180) * (-1)
-                #if rot < 180:
-                    #rot = (180 - rot)
-                #else:
-                    #rot = int(rot % 180) * (-1)
-                #mirror = 'Local Y axis'
-            #####
-            ## textReferencere
-            #textReferencere = re.search(r'\(fp_text reference\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
-            #[tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
-            #tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
-            #tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
-            #tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
-            #tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
-            ##
-            #tr_x = float(tr_x)
-            #tr_y = float(tr_y) * (-1)
-            #if tr_rot == '':
-                #tr_rot = rot
-            #else:
-                #tr_rot = float(tr_rot)
+            # if tr_visibility == 'hide':
+                # tr_visibility = False
+            # else:
+                # tr_visibility = True
             
-            #if tr_fontSize == '':
-                #tr_fontSize = 0.7
-            #else:
-                #tr_fontSize = float(tr_fontSize.split()[1])
+            # EL_Name = [tr_value, tr_x + i['x'], tr_y + i['y'], tr_fontSize, tr_rot, side, "center", False, i['mirror'], '', True]
+            # ###########
+            # # textValue
+            # textValue = re.search(r'\(fp_text value\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
+            # [tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
+            # tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
+            # tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
+            # tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
+            # tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
+            # #
+            # tv_x = float(tv_x)
+            # tv_y = float(tv_y) * (-1)
+            # if tv_rot == '':
+                # tv_rot = i['rot']
+            # else:
+                # tv_rot = float(tv_rot)
             
-            #if tr_visibility == 'hide':
-                #tr_visibility = False
-            #else:
-                #tr_visibility = True
+            # if tv_fontSize == '':
+                # tv_fontSize = 0.7
+            # else:
+                # tv_fontSize = float(tv_fontSize.split()[1])
             
-            #EL_Name = [tr_value, tr_x + x, tr_y + y, tr_fontSize, tr_rot, side, "center", False, mirror, '', True]
-            #####
-            ## textValue
-            #textValue = re.search(r'\(fp_text value\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
-            #[tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
-            #tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
-            #tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
-            #tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
-            #tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
-            ##
-            #tv_x = float(tv_x)
-            #tv_y = float(tv_y) * (-1)
-            #if tv_rot == '':
-                #tv_rot = rot
-            #else:
-                #tv_rot = float(tv_rot)
+            # if tv_visibility == 'hide':
+                # tv_visibility = False
+            # else:
+                # tv_visibility = True
             
-            #if tv_fontSize == '':
-                #tv_fontSize = 0.7
-            #else:
-                #tv_fontSize = float(tv_fontSize.split()[1])
-            
-            #if tv_visibility == 'hide':
-                #tv_visibility = False
-            #else:
-                #tv_visibility = True
-            
-            #EL_Value = [tv_value, tv_x + x, tv_y + y, tv_fontSize, tv_rot, side, "center", False, mirror, '', tv_visibility]
-            ##
-            #newPart = [[EL_Name[0], package, EL_Value[0], x, y, rot, side, library], EL_Name, EL_Value]
-            #wyn = self.addPart(newPart, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            ##
-            #if wyn[0] == 'Error':  # lista brakujacych elementow
-                #partNameTXT = partNameTXT_label = self.generateNewLabel(EL_Name[0])
-                #if isinstance(partNameTXT, str):
-                    #partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-                
-                #PCB_ER.append([partNameTXT, package, EL_Value[0], library])
-        #####
-        #return PCB_ER
+            # EL_Value = [tv_value, tv_x + i['x'], tv_y + i['y'], tv_fontSize, tv_rot, side, "center", False, i['mirror'], '', tv_visibility]
+            # ###########
+            # ###########
+            # newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
+            # parts.append(newPart)
+        # ###########
+        # return parts

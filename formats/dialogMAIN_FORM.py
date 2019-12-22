@@ -40,7 +40,7 @@ import unicodedata
 #
 import PCBconf
 from PCBpartManaging import partsManaging
-from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1, configParserRead, configParserWrite
+from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1
 from PCBobjects import layerPolygonObject, viewProviderLayerPolygonObject, constraintAreaObject, viewProviderConstraintAreaObject
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
@@ -263,6 +263,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         layRightSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding), 5, 1, 1, 1)
         #
         self.splitter = QtGui.QSplitter()
+        self.splitter.setStyleSheet('QSplitter::handle {background: rgba(31.8, 33.3, 33.7, 0.1); cursor: col-resize;} ')
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(mainWidgetLeftSide)
         self.splitter.addWidget(mainWidgetRightSide)
@@ -277,39 +278,25 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.readSize()
     
     def readSize(self):
-        data = configParserRead('openWindow')
-        if data:
-            try:
-                x = int(data['window_x'])
-                y = int(data['window_y'])
-                w = int(data['window_w'])
-                h = int(data['window_h'])
+        try:
+            data = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("openWindow", "").strip()
+            if data != "":
+                data = eval(data)
+                
+                x = int(data[0])
+                y = int(data[1]) + 30
+                w = int(data[2])
+                h = int(data[3])
                 
                 self.setGeometry(x, y, w, h)
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
-    
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+
     def closeEvent(self, event):
-        data = {}
-        data['window_x'] = self.x()
-        data['window_y'] = self.y()
-        data['window_w'] = self.width()
-        data['window_h'] = self.height()
-        
-        configParserWrite('openWindow', data)
-        ###########
+        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('openWindow', str([self.x(), self.y(), self.width(), self.height()]))
+        #
         event.accept()
-        
-    #def reject(self):
-        ##dialSize = QtCore.QByteArray()
-        ##value = freecadSettings.GetString("pcbSettingsDialGeometry", "01d9d0cb0001000000000000000000000000027f000001df00000000000000000000027f000001df000000000000")
-        
-        ##dialSize.fromHex(eval(value))
-        ##self.restoreGeometry(dialSize)
-        #FreeCAD.Console.PrintWarning("test")
-        
-        #return True
-        
+
     def selectAllCategories(self):
         if self.spisWarstw.rowCount() > 0:
             for i in range(self.spisWarstw.rowCount()):
@@ -353,8 +340,10 @@ class dialogMAIN_FORM(QtGui.QDialog):
                     layerColor = getFromSettings_Color_1('', 4294967295)
                 
                 layerValue = ['double', u'μm', 34.6, 0, 350]
+                #
                 layerSide = [1, False]  # [layer side, block drop down list TRUE/FALSE]
-            
+                if "side" in j.keys() and j["side"] == "BOTTOM":
+                    layerSide[0] = 0
             ######################################
             # gEDA
             if self.databaseType == "geda":

@@ -188,18 +188,21 @@ def getPCBsize():
 
 def cutToBoardShape(pads):
     if not FreeCAD.activeDocument():
-        return False
+        return pads
     #
-    # cut to board shape
-    board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-    #board = FreeCAD.ActiveDocument.Board.Border.Shape
-    #board = Part.Face(board)
-    board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
-    board.Placement.Base.z = -1
-    #Part.show(board)
-    pads = board.common(pads)
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        # cut to board shape
+        board = OpenSCAD2Dgeom.edgestofaces(pcb[2].Border.Shape.Edges)
+        #board = FreeCAD.ActiveDocument.Board.Border.Shape
+        #board = Part.Face(board)
+        board = board.extrude(FreeCAD.Base.Vector(0, 0, pcb[2].Thickness + 2))
+        board.Placement.Base.z = -1
+        #Part.show(board)
+        pads = board.common(pads)
+        return pads
+    #
     return pads
-
 
 def addObject(self, obj):
     self.Group += [obj]

@@ -120,9 +120,6 @@ def wersjaFormatuF(filename):
                 except:
                     return [False]
     elif rozsz == ".kicad_pcb":
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
         try:  # kicad
             projektBRD = builtins.open(filename, "r").read()
             version = re.findall('^\(kicad_pcb \(version (.+?)\)', projektBRD)[0]
@@ -131,8 +128,8 @@ def wersjaFormatuF(filename):
                 return ["kicad_v3", "KiCad (version 3)"]
             elif version == '4':
                 return ["kicad_v4", "KiCad (version 4)"]
-            elif int(version[:4]) >= 2016:  # nightly build v4
-                return ["kicad_v4", "KiCad (version 4 NB)"]
+            elif int(version[:4]) >= 2016:
+                return ["kicad_v4", "KiCad (version {0})".format(version)]
             else:
                 FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
                 return [False]

@@ -32,7 +32,7 @@ from PySide import QtCore, QtGui
 import os
 import time
 from shutil import copy2, make_archive, rmtree
-import configparser
+# import configparser
 import glob
 import zipfile
 import tempfile
@@ -46,37 +46,37 @@ __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
 ## configparser
 ########################################################################
 
-def configParserRead(sectionName):
-    try:
-        config = configparser.RawConfigParser()
-        config.read(os.path.join(__currentPath__, 'PCBsettings.cfg'))
+# def configParserRead(sectionName):
+    # try:
+        # config = configparser.RawConfigParser()
+        # config.read(os.path.join(__currentPath__, 'PCBsettings.cfg'))
         
-        if sectionName in config.sections():
-            dane = {}
-            for i in config.items(sectionName):
-                dane[i[0]] = i[1]
-            return dane
-        else:
-            return False
-    except Exception as e:
-        FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
+        # if sectionName in config.sections():
+            # dane = {}
+            # for i in config.items(sectionName):
+                # dane[i[0]] = i[1]
+            # return dane
+        # else:
+            # return False
+    # except Exception as e:
+        # FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
 
-def configParserWrite(sectionName, data):
-    try:
-        config = configparser.RawConfigParser()
-        config.read(os.path.join(__currentPath__, 'PCBsettings.cfg'))
+# def configParserWrite(sectionName, data):
+    # try:
+        # config = configparser.RawConfigParser()
+        # config.read(os.path.join(__currentPath__, 'PCBsettings.cfg'))
         
-        if not sectionName in config.sections():
-            config.add_section(sectionName)
+        # if not sectionName in config.sections():
+            # config.add_section(sectionName)
         
-        for i, j in data.items():
-            config.set(sectionName, i, j)
+        # for i, j in data.items():
+            # config.set(sectionName, i, j)
             
-        with open(os.path.join(__currentPath__, 'PCBsettings.cfg'), 'w') as configfile:
-            config.write(configfile)
+        # with open(os.path.join(__currentPath__, 'PCBsettings.cfg'), 'w') as configfile:
+            # config.write(configfile)
         
-    except Exception as e:
-        FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
+    # except Exception as e:
+        # FreeCAD.Console.PrintWarning(u"Error: {0} \n".format(e))
 
 ########################################################################
 ########################################################################
@@ -285,8 +285,8 @@ def sketcherGetGeometry(sketcherIN):
     if not sketcherIN.isDerivedFrom("Sketcher::SketchObject"):
         FreeCAD.Console.PrintWarning("Error: Object is not a sketcher.\n")
         return [False]
-    elif not len(sketcherIN.Geometry):
-        FreeCAD.Console.PrintWarning("Error: No geometry.\n")
+    elif len(sketcherIN.Geometry) < 1:
+        #FreeCAD.Console.PrintWarning("Error: No geometry 1.\n")
         return [False]
     elif not FreeCAD.activeDocument():
         FreeCAD.Console.PrintWarning("Error: FreeCAD is not activated.\n")

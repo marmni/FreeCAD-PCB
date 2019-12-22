@@ -123,17 +123,37 @@ class pcbToolBarView(pcbToolBarMain):
         scriptCmd_viewInternalView = self.createAction(u"Display mode: Internal View", u"Display mode: Internal View", ":/data/img/viewInternalView.png")
         par = partial(self.changeDisplayMode, 'Internal View')
         QtCore.QObject.connect(scriptCmd_viewInternalView, QtCore.SIGNAL("triggered()"), par)
-        
-        self.scriptCmd_HeightDisplay = self.createAction(u"Show/hide height", u"Show/hide height", ":/data/img/uklad.png")
-        QtCore.QObject.connect(self.scriptCmd_HeightDisplay, QtCore.SIGNAL("triggered()"), self.heightDisplay)
-        self.scriptCmd_HeightDisplay.setCheckable(True)
-        
+
         scriptCmd_Layers = self.createAction(u"Layers settings", u"Layers settings", ":/data/img/layers_TI.svg")
         QtCore.QObject.connect(scriptCmd_Layers, QtCore.SIGNAL("triggered()"), self.Flayers)
+        # Cut to board outline
+        scriptCmd_cutToBoardOutlineON = self.createAction(u"Cut to board outline - ON", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineON, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, True))
         
-        scriptCmd_cutToBoardOutline = self.createAction(u"Cut to board outline (ON/OFF)", u"Cut to board outline (ON/OFF)", ":/data/img/cutToBoard.svg")
-        QtCore.QObject.connect(scriptCmd_cutToBoardOutline, QtCore.SIGNAL("triggered()"), self.cutToBoardOutline)
+        scriptCmd_cutToBoardOutlineON2 = self.createAction(u"Cut to board outline - ON", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineON2, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, True))
         
+        scriptCmd_cutToBoardOutlineOFF = self.createAction(u"Cut to board outline - OFF", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineOFF, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, False))
+        
+        groupsMenuCTB = QtGui.QMenu(self)
+        groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineON2)
+        groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineOFF)
+        scriptCmd_cutToBoardOutlineON.setMenu(groupsMenuCTB)
+        # Cut holes through all layers ON/OFF
+        scriptCmd_cutHolesThroughAllLayersON = self.createAction(u"Cut holes through all layers - ON", u"Cut holes through all layers - ON", ":/data/img/layers_TI_Holes.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersON, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, True))
+        
+        scriptCmd_cutHolesThroughAllLayersON2 = self.createAction(u"Cut holes through all layers - ON", u"Cut holes through all layers - ON", ":/data/img/layers_TI_Holes.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersON2, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, True))
+        
+        scriptCmd_cutHolesThroughAllLayersOFF = self.createAction(u"Cut holes through all layers - OFF", u"Cut holes through all layers - OFF", ":/data/img/layers_TI.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersOFF, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, False))
+        
+        groupsMenuCH = QtGui.QMenu(self)
+        groupsMenuCH.addAction(scriptCmd_cutHolesThroughAllLayersON2)
+        groupsMenuCH.addAction(scriptCmd_cutHolesThroughAllLayersOFF)
+        scriptCmd_cutHolesThroughAllLayersON.setMenu(groupsMenuCH)
         # rendering
         scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.ico")
         QtCore.QObject.connect(scriptCmd_ExportToKerkythea, QtCore.SIGNAL("triggered()"), self.exportToKerkytheaF)
@@ -168,7 +188,8 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_viewInternalView)
         self.addSeparator()
         self.addAction(scriptCmd_Layers)
-        self.addAction(scriptCmd_cutToBoardOutline)
+        self.addAction(scriptCmd_cutHolesThroughAllLayersON)
+        self.addAction(scriptCmd_cutToBoardOutlineON)
         self.addAction(scriptCmd_ungroupParts)
         self.addAction(scriptCmd_groupParts)
         self.addSeparator()
@@ -179,18 +200,21 @@ class pcbToolBarView(pcbToolBarMain):
         #self.addAction(scriptCmd_QuickAssembly2)
         #self.addAction(scriptCmd_exportAssembly)
         #self.addAction(scriptCmd_CheckForCollisions)
-        #self.addAction(self.scriptCmd_HeightDisplay)
         self.addToolBar(self)
     
-    def cutToBoardOutline(self):
-        for j in FreeCAD.activeDocument().Objects:
-            try:
-                if hasattr(j, "Proxy") and hasattr(j.Proxy, "cutToBoard"):
-                    j.Proxy.cutToBoard = not j.Proxy.cutToBoard
-                    j.Proxy.generuj(j)
-            except Exception as e:
-                pass
-                #FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    def cutHolesThroughAllLayers(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Cut") and not i.Cut == value:
+                    i.Cut = value
+    
+    def cutToBoardOutline(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "CutToBoard") and not i.CutToBoard == value:
+                    i.CutToBoard = value
     
     def ungroupParts(self):
         pcb = getPCBheight()
@@ -263,13 +287,6 @@ class pcbToolBarView(pcbToolBarMain):
             except Exception as e:
                 pass
 
-    def heightDisplay(self):
-        if FreeCAD.activeDocument():
-            mode = self.scriptCmd_HeightDisplay.isChecked()
-            for i in FreeCAD.activeDocument().Objects:
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'PCBpart':
-                    i.ViewObject.ShowHeight = mode
-        
     def changeDisplayMode(self, mode):
         hidePCB = False
         if mode == 'Internal View':

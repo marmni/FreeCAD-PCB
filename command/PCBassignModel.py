@@ -33,7 +33,7 @@ import sys
 #
 from PCBdataBase import dataBase
 from PCBconf import defSoftware, partPaths
-from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScriptCopy, importScriptCopy, configParserRead, configParserWrite
+from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScriptCopy, importScriptCopy
 from PCBcategories import addCategoryGui, removeCategoryGui, updateCategoryGui, setOneCategoryGui
 from PCBpartManaging import partExistPath, partsManaging
 from PCBobjects import *
@@ -768,6 +768,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         
         # main layout
         self.splitter = QtGui.QSplitter()
+        self.splitter.setStyleSheet('QSplitter::handle {background: rgba(31.8, 33.3, 33.7, 0.1); cursor: col-resize;} ')
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(mainWidgetLeftSide)
         self.splitter.addWidget(self.mainWidgetRightSide())
@@ -780,19 +781,21 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.reloadList()
         
     def readSize(self):
-        data = configParserRead('assignWindow')
-        if data:
-            try:
-                x = int(data['window_x'])
-                y = int(data['window_y'])
-                w = int(data['window_w'])
-                h = int(data['window_h'])
-                self.splitter.setSizes(eval(data['window_splitter']))
-                self.modelsList.setColumnWidth(0, int(data['window_modellist']))
+        try:
+            data = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("assignWindow", "").strip()
+            if data != "":
+                data = eval(data)
                 
-                self.setGeometry(x, y + 30, w, h)
-            except Exception as e:
-                FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+                x = int(data[0])
+                y = int(data[1]) + 30
+                w = int(data[2])
+                h = int(data[3])
+                self.splitter.setSizes(data[4])
+                self.modelsList.setColumnWidth(0, data[5])
+                
+                self.setGeometry(x, y, w, h)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
     
     def showEvent (self, event):
         self.readSize()
@@ -801,20 +804,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         event.accept()
     
     def closeEvent(self, event):
-        try:
-            event.ignore()
-            FreeCAD.getDocument('modelPreview').removeObject("preview")
-        except:
-            pass
-        #
-        data = {}
-        data['window_x'] = self.x()
-        data['window_y'] = self.y()
-        data['window_w'] = self.width()
-        data['window_h'] = self.height()
-        data['window_splitter'] = self.splitter.sizes()
-        data['window_modellist'] = self.modelsList.columnWidth(0)
-        configParserWrite('assignWindow', data)
+        FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString("assignWindow", str([self.x(), self.y(), self.width(), self.height(), self.splitter.sizes(), self.modelsList.columnWidth(0)]))
         #
         event.accept()
 
