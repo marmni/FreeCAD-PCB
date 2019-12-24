@@ -707,7 +707,7 @@ class modelsList(QtGui.QTreeWidget):
         
         self.clear()
         
-        # models withoud category
+        # models without category
         for i in self.sql.getAllModelsByCategory(0):
             self.addTopLevelItem(self.addNewModel(i))
         

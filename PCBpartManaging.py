@@ -424,7 +424,7 @@ class partsManaging(mathFunctions):
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
-            step_model.Rot = newPart['rot'] # after settting X/Y
+            step_model.Rot = newPart['rot'] # after setting X/Y
             if newPart["side"] == "BOTTOM":
                 step_model.Side = newPart["side"]
             step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
@@ -447,7 +447,7 @@ class partsManaging(mathFunctions):
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
-            step_model.Rot = newPart['rot'] # after settting X/Y
+            step_model.Rot = newPart['rot'] # after setting X/Y
             if newPart["side"] == "BOTTOM":
                 step_model.Side = newPart["side"]
             step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)

@@ -211,7 +211,7 @@ class viewProviderWireSEPointObject:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 
@@ -365,7 +365,7 @@ class viewProviderWirePointObject:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 

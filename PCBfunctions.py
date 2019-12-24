@@ -1332,7 +1332,7 @@ class mathFunctions(object):
 
         return angle_1 - angle_2
         
-    def toQuaternion(self, heading, attitude, bank):  # rotation heading=arround Y, attitude =arround Z,  bank attitude =arround X
+    def toQuaternion(self, heading, attitude, bank):  # rotation heading=around Y, attitude =around Z,  bank attitude =around X
         ''' #***************************************************************************
             #*              (c) Milos Koutny (milos.koutny@gmail.com) 2010             *
             #***************************************************************************

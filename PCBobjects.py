@@ -252,7 +252,7 @@ class viewProviderPartObject:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 
@@ -389,7 +389,7 @@ class viewProviderPartObject_E:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 
@@ -883,7 +883,7 @@ class viewProviderLayerPolygonObject:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 
@@ -1065,7 +1065,7 @@ class viewProviderLayerPolygonObject:
 
     #def setDisplayMode(self, mode):
         #''' Map the display mode defined in attach with those defined in getDisplayModes.
-        #Since they have the same names nothing needs to be done. This method is optinal.
+        #Since they have the same names nothing needs to be done. This method is optional.
         #'''
         #return mode
 
@@ -2129,7 +2129,7 @@ class viewProviderConstraintAreaObject:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 

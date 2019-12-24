@@ -467,7 +467,7 @@ class drl(exportFileMain):
 
     def export(self):
         '''export(filePath): save holes to drl file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.drl'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('drl'):
@@ -542,7 +542,7 @@ class txt(exportFileMain):
         
     def export(self):
         '''export(filePath): save holes to txt file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.txt'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('txt'):
@@ -640,7 +640,7 @@ class html(exportFileMain):
     
     def export(self):
         '''export(filePath): save holes to html file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.html'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('html'):
@@ -685,7 +685,7 @@ class csv(exportFileMain):
         
     def export(self):
         '''export(filePath): save holes to csv file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.csv'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('csv'):
