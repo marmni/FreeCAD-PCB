@@ -452,7 +452,7 @@ class html(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to html file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.html'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('html'):
@@ -492,7 +492,7 @@ class txt(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to txt file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.txt'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('txt'):
@@ -596,7 +596,7 @@ class csv(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to csv file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.csv'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('csv'):

@@ -140,7 +140,7 @@ class exportPCB_Gui(QtGui.QWizard):
         program = str(self.listaFormatow.currentItem().data(QtCore.Qt.UserRole))
         
         self.exportType = eval(exportData[program]['exportClass'])
-        self.nazwaProgramu.setText(u'<b>Progam:</b> ' + exportData[program]['name'])
+        self.nazwaProgramu.setText(u'<b>Program:</b> ' + exportData[program]['name'])
         self.formatPliku.setText(u'<b>Format:</b> ' + exportData[program]['format'])
         self.ikonaProgramu.setPixmap(QtGui.QPixmap(exportData[program]['icon']))
         self.pathToFile.setText(QtCore.QDir.homePath() + '/untitled.' + exportData[program]['format'].split('.')[1])
@@ -297,7 +297,7 @@ class razen(exportPCB):
     
     # def export(self, fileName):
         # '''export(filePath): save board to pcb file
-            # filePath -> strig
+            # filePath -> string
             # filePath = path/fileName.rzp'''
         # fileName = self.fileExtension(fileName)
         
@@ -414,7 +414,7 @@ class freePCB(exportPCB):
         
     def export(self, fileName):
         '''export(filePath): save board to pcb file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.pcb'''
         #
         self.exportBoard()
@@ -563,7 +563,7 @@ class geda(exportPCB):
     
     def export(self, fileName):
         '''export(filePath): save board to pcb file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.pcb'''
         fileName = self.fileExtension(fileName)
         self.setHeader()
@@ -681,7 +681,7 @@ class kicad(exportPCB):
     
     def export(self, fileName):
         '''export(filePath): save board to kicad_pcb file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.kicad_pcb'''
         fileName = self.fileExtension(fileName)
         #
@@ -935,7 +935,7 @@ class fidocadj(exportPCB):
 
     # def export(self, fileName):
         # '''export(filePath): save board to fcd file
-            # filePath -> strig
+            # filePath -> string
             # filePath = path/fileName.fcd'''
         # fileName = self.fileExtension(fileName)
         # #
@@ -1041,7 +1041,7 @@ class fidocadj(exportPCB):
     
     # def export(self, fileName):
         # '''export(filePath): save board to emn file
-            # filePath -> strig
+            # filePath -> string
             # filePath = path/fileName.emn'''
         # fileName = self.fileExtension(fileName)
         # #
@@ -1145,7 +1145,7 @@ BOARD_FILE 3.0 "FreeCAD-PCB" {0} 1
     
     def export(self, fileName):
         '''export(filePath): save board to emn file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.emn'''
         fileName = self.fileExtension(fileName)
         #
@@ -1239,7 +1239,7 @@ class eagle(exportPCB):
     
     def export(self, fileName):
         '''export(filePath): save board to brd file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.brd'''
         fileName = self.fileExtension(fileName)
         #
