@@ -1,12 +1,24 @@
-Printed Circuit Board Workbench for FreeCAD PCB 
-Flexible Printed Circuit Board Workbench for FreeCAD FPCB 
-Copyright (c) 2013, 2014, 2015 
-marmni <marmni@onet.eu> 
+# FreeCAD PCB
+Flexible Printed Circuit Board (FPCB) Workbench for FreeCAD  
+Copyright (c) 2013, 2014, 2015 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
  
-
 ![screenshot](http://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/FreeCAD-PCB_assembly.png)
 
+## Prerequisite
+FreeCAD v0.
 
+
+## Installation
+Install this workbench via the [FreeCAD Addon Manager](https://github.com/FreeCAD/FreeCAD-addons#1-builtin-addon-manager)
+
+
+## Usage
+
+
+## Feedback
+
+
+## Licence
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License (LGPL)
 as published by the Free Software Foundation; either version 2 of
