@@ -1,11 +1,11 @@
 # FreeCAD PCB
-Flexible Printed Circuit Board (FPCB) Workbench for FreeCAD  
-Copyright (c) 2013, 2014, 2015 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
+Printed Circuit Board (PCB) Workbench for FreeCAD  
+Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
  
-![screenshot](http://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/FreeCAD-PCB_assembly.png)
+![screenshot](https://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/Tube_amplifier_FreeCAD-PCB.png/max/max/1)
 
 ## Prerequisite
-FreeCAD v0.
+FreeCAD v0.18
 
 
 ## Installation
