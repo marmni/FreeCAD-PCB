@@ -108,7 +108,11 @@ Units used = "mm"
         if pcb[0]:
             for i in pcb[2].Group:
                 if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(i.Label, i.Side, i.X, i.Y, i.Rot % 360)
+                    try:
+                        partName = i.PartName.String
+                    except:
+                        partName = ""
+                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(partName, i.Side, i.X, i.Y, i.Rot % 360)
         
         self.reportPrev.setPlainText(txt)
 
@@ -273,7 +277,7 @@ class exportBOM_Gui(QtGui.QDialog):
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
-        #super(exportBOM_Gui, self).accept()
+        super(exportBOM_Gui, self).accept()
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -293,24 +297,35 @@ class createCentroid(QtGui.QDialog):
         self.fileName = 'untitled'  # def. value
 
     def export(self):
-        fileName = os.path.join(self.filePath, self.fileName + "_centroid")
-        if not fileName.endswith('txt'):
-            fileName = fileName + '.txt'
+        try:
+            fileName = os.path.join(self.filePath, self.fileName + "_centroid")
+            if not fileName.endswith('txt'):
+                fileName = fileName + '.txt'
+            
+            self.files = codecs.open(fileName, "w", "utf-8")
+            #
+            self.files.write('Report Origin = (0.0, 0.0)\n')
+            self.files.write('Units used = "mm"\n')
+            self.files.write('"RefDes","Layer","LocationX","LocationY","Rotation"\n')
+            self.files.write('\n')
+            
+            pcb = getPCBheight()
+            if pcb[0]:
+                for i in pcb[2].Group:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                        try:
+                            partName = i.PartName.String
+                        except:
+                            partName = ""
+                        
+                        self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(partName, i.Side, i.X, i.Y, i.Rot % 360))
+            #
+            self.files.close()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
         
-        self.files = codecs.open(fileName, "w", "utf-8")
-        #
-        self.files.write('Report Origin = (0.0, 0.0)\n')
-        self.files.write('Units used = "mm"\n')
-        self.files.write('"RefDes","Layer","LocationX","LocationY","Rotation"\n')
-        self.files.write('\n')
-        
-        pcb = getPCBheight()
-        if pcb[0]:
-            for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(i.Label, i.Side, i.X, i.Y, i.Rot % 360))
-        #
-        self.files.close()
 
 
 class exportBOM:
@@ -368,7 +383,9 @@ class exportBOM:
             exportClass.export()
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
+        
     def getParts(self):
         ''' get param from all packages from current document '''
         parts = {}
@@ -377,15 +394,22 @@ class exportBOM:
         if pcb[0]:
             for i in pcb[2].Group:
                 if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    partValue = ""
+                    if i.PartValue:
+                        partValue = i.PartValue.String
+                    partName = ""
+                    if i.PartName:
+                        partName = i.PartName.String
+                    
                     if not i.Package in parts.keys():
                         parts[i.Package] = {}
-                    if not '_'.join(i.PartValue.ViewObject.Text) in parts[i.Package].keys():
-                        parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)] = {}
+                    if not partValue in parts[i.Package].keys():
+                        parts[i.Package][partValue] = {}
                     
                     x = self.prepareX(i.X.Value)
                     y = self.prepareY(i.Y.Value)
                     
-                    parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)]['_'.join(i.PartName.ViewObject.Text)] = {'side': i.Side, 'x': x, 'y': y, 'z': self.prepareZ(i.Z.Value), 'rot': i.Rot.Value}
+                    parts[i.Package][partValue][partName] = {'side': i.Side, 'x': x, 'y': y, 'z': self.prepareZ(i.Socket.Value), 'rot': i.Rot.Value}
         #
         return parts
 

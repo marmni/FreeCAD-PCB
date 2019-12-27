@@ -453,12 +453,95 @@ class partsManaging(mathFunctions):
             step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
             #
             result = ['Error']
-        ################################################################
+        ##################################################################
+        ## part name object
+        ##################################################################
+        # 'EL_Name': {
+                # 'text': 'NAME', 
+                # 'x': 16.73,
+                # 'y': 6.23, 
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 135, 
+                # 'side': 'TOP', 
+                # 'align': 'center', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'
+            # }, 
+        try:
+            annotation = createAnnotation()
+            annotation.X = newPart['EL_Name']["x"]
+            annotation.Y = newPart['EL_Name']["y"]
+            annotation.Z = newPart['EL_Name']["z"]
+            annotation.Side = newPart['EL_Name']["side"]
+            annotation.Rot = newPart['EL_Name']["rot"]
+            annotation.Text = newPart['name']
+            annotation.Align = newPart['EL_Name']["align"]
+            annotation.Size = newPart['EL_Name']["size"]
+            annotation.Spin = newPart['EL_Name']["spin"]
+            annotation.tracking = newPart['EL_Name']["tracking"]
+            annotation.lineDistance = newPart['EL_Name']["distance"]
+            annotation.Color = (1., 1., 1.)
+            annotation.Font = newPart['EL_Name']["font"]
+            annotation.Visibility = newPart['EL_Name']["display"]
+            annotation.mode = newPart['EL_Name']["mode"]
+            annotation.generate(False)
+            step_model.PartName = annotation.Annotation
+        except:
+            pass
+        ##################################################################
+        ## part value object
+        ##################################################################
+        # 'EL_Value': {
+                # 'text': 'VALUE', 
+                # 'x': 21.54, 
+                # 'y': 4.23,
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 90, 
+                # 'side': 'TOP', 
+                # 'align': 'bottom-left', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'}
+        # }
+        try:
+            annotation = createAnnotation()
+            annotation.X = newPart['EL_Value']["x"]
+            annotation.Y = newPart['EL_Value']["y"]
+            annotation.Z = newPart['EL_Value']["z"]
+            annotation.Side = newPart['EL_Value']["side"]
+            annotation.Rot = newPart['EL_Value']["rot"]
+            annotation.Text = newPart['value']
+            annotation.Align = newPart['EL_Value']["align"]
+            annotation.Size = newPart['EL_Value']["size"]
+            annotation.Spin = newPart['EL_Value']["spin"]
+            annotation.tracking = newPart['EL_Value']["tracking"]
+            annotation.lineDistance = newPart['EL_Value']["distance"]
+            annotation.Color = (1., 1., 1.)
+            annotation.Font = newPart['EL_Value']["font"]
+            annotation.Visibility = newPart['EL_Value']["display"]
+            annotation.mode = newPart['EL_Value']["mode"]
+            annotation.generate(False)
+            step_model.PartValue = annotation.Annotation
+        except:
+            pass
+        ##################################################################
         result.append(step_model)
         self.addPartToGroup(groupParts, step_model)
         pcb[2].Proxy.addObject(pcb[2], step_model)
         self.updateView()
         return result
+    
+    def partGenerateAnnotation(self, data, ):
+        pass
     
     def addPartToGroup(self, groupParts, step_model):
         if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:

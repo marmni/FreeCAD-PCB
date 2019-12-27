@@ -585,7 +585,7 @@ class EaglePCB(mathFunctions):
             else:
                 i['side'] = "BOTTOM"
             #
-            if i['smashed'] != "yes":
+            if not i['smashed']:
                 for j in self.getAnnotations(self.libraries[i['library']][i['package']].getElementsByTagName("text")):
                     x1 = i['x'] + j["x"]
                     y1 = i['y'] + j["y"]
@@ -629,7 +629,7 @@ class EaglePCB(mathFunctions):
                             # package = attr.getAttribute('value').strip()
                         # else:
                             # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
-                elif attr.getAttribute('name') in ['NAME', 'VALUE'] and i['smashed'] == "yes":
+                elif attr.getAttribute('name') in ['NAME', 'VALUE'] and i['smashed']:
                     data = self.getAnnotations([attr], mode='param')[0]
                     
                     if data["text"] == "NAME":

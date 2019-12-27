@@ -89,51 +89,54 @@ class createAnnotation:
         if isinstance(self.defaultName, str):
             self.defaultName = unicodedata.normalize('NFKD', self.defaultName).encode('ascii', 'ignore')
         
-    def generate(self):
+    def generate(self, addToGroup=True):
         pcb = getPCBheight()
 
         if pcb[0]:
-            grp = createGroup_Annotations()
-            ##
             text = self.Text
-            if not type(text) == list:
-                text = text.split('\n')
-            
+            if self.mode == 'anno':
+                if not type(text) == list:
+                    text = text.split('\n')
+            else:
+                if type(text) == list:
+                    text = '_'.join(text)
+            #
             self.setName(self.defaultName)
             #
-            obj = FreeCAD.ActiveDocument.addObject("Part::Part2DObjectPython", 'PCBannotation_0000')
-            obj.Label = 'PCBannotation_0000'
-            PCBannotation(obj)
-            obj.Placement.Base = FreeCAD.Vector(0, 0, 0)
-            
-            obj.Proxy.mode = self.mode
-            obj.Justification = self.Align
-            obj.X = self.X
-            obj.Y = self.Y
-            obj.Z = self.Z
-            obj.Side = self.Side.upper()
-            obj.Rot = self.Rot
-            obj.Size = self.Size
-            obj.Spin = self.Spin
-            obj.LineDistance = self.lineDistance
-            obj.Tracking = self.tracking
-            obj.Font = self.Font
-            obj.Proxy.block = False
-            obj.String = text
-            viewProviderPCBannotation(obj.ViewObject)
+            self.Annotation = FreeCAD.ActiveDocument.addObject("Part::Part2DObjectPython", 'PCBannotation_0000')
+            self.Annotation.Label = 'PCBannotation_0000'
+            PCBannotation(self.Annotation, self.mode)
+            self.Annotation.Placement.Base = FreeCAD.Vector(0, 0, 0)
+            #self.Annotation.Proxy.mode = self.mode
+            self.Annotation.Justification = self.Align
+            self.Annotation.X = self.X
+            self.Annotation.Y = self.Y
+            self.Annotation.Z = self.Z
+            self.Annotation.Side = self.Side.upper()
+            self.Annotation.Rot = self.Rot
+            self.Annotation.Size = self.Size
+            self.Annotation.Spin = self.Spin
+            self.Annotation.LineDistance = self.lineDistance
+            self.Annotation.Tracking = self.tracking
+            self.Annotation.Font = self.Font
+            self.Annotation.Proxy.block = False
+            self.Annotation.String = text
+            viewProviderPCBannotation(self.Annotation.ViewObject)
             
             try:
-                obj.ViewObject.ShapeColor = self.Color
+                self.Annotation.ViewObject.ShapeColor = self.Color
             except:
-                obj.ViewObject.ShapeColor = (1.0, 1.0, 1.0)
-            obj.ViewObject.Visibility = self.Visibility
+                self.Annotation.ViewObject.ShapeColor = (1.0, 1.0, 1.0)
+            self.Annotation.ViewObject.Visibility = self.Visibility
             
-            obj.Proxy.updatePosition_Z(obj, pcb[1])
+            self.Annotation.Proxy.updatePosition_Z(self.Annotation, pcb[1])
             #Draft.formatObject(obj)
             #obj.recompute()
             #
-            grp.addObject(obj)
-            pcb[2].Proxy.addObject(pcb[2], obj)
+            if addToGroup:
+                grp = createGroup_Annotations()
+                grp.addObject(self.Annotation)
+            pcb[2].Proxy.addObject(pcb[2], self.Annotation)
 
 
 #***********************************************************************
@@ -388,13 +391,13 @@ class createAnnotation_Gui(QtGui.QWidget):
 #***********************************************************************
 class PCBannotation(_DraftObject):
     """The ShapeString object"""
-
-    def __init__(self, obj):
+    def __init__(self, obj, mode='anno'):
         self.Type = PCBlayers["Annotations"][0]
-        self.mode = 'anno'  # anno/anno_name/anno_value
+        self.mode = mode  # anno/param
         self.przX = 0
         self.przY = 0
         self.block = True
+        self.react = True
         
         _DraftObject.__init__(self,obj,"ShapeString")
 
@@ -429,12 +432,13 @@ class PCBannotation(_DraftObject):
         obj.Proxy = self
     
     def __getstate__(self):
-        return [self.Type, self.block]
+        return [self.Type, self.block, self.react]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
             self.block  = state[1]
+            self.react = state[2]
     
     def textAlign(self):
         FreeCAD.Console.PrintWarning("{0}\n".format(self.alignParam))
@@ -585,6 +589,13 @@ class PCBannotation(_DraftObject):
         return ret
     
     def onChanged(self, fp, prop):
+        if self.mode == "param" and self.react:
+            if prop == "String":
+                for i in fp.InList:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                        if i.PartName == fp:
+                            i.Label = fp.String
+        ######################
         if prop == "Font":  # pre. def. fonts
             fp.FontFile = fontFile[fp.Font]
         
@@ -736,7 +747,7 @@ class PCBannotation(_DraftObject):
                 rotZ = -fp.Rot.Value
             
             if fp.Spin == False and 90 < abs(fp.Rot.Value) < 271:
-                fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ-180, rotY ,0), FreeCAD.Vector(self.przX, self.przY, fp.Z.Value))
+                fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ - 180, rotY ,0), FreeCAD.Vector(self.przX, self.przY, fp.Z.Value))
             else:
                 fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ, rotY, 0), FreeCAD.Vector(self.przX, self.przY, fp.Z.Value))
             
@@ -746,83 +757,16 @@ class PCBannotation(_DraftObject):
         except Exception as e:
             FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
 
-# class PCBannotation:
+# class PCBannotation_Object(PCBannotation):
     # def __init__(self, obj):
-        # self.Type = PCBlayers["Annotations"][3]
-        # obj.Proxy = self
+        # PCBannotation.__init__(self, obj)
         
-        # obj.addProperty("App::PropertyDistance", "X", "Placement", "X").X = 0
-        # obj.addProperty("App::PropertyDistance", "Y", "Placement", "Y").Y = 0
-        # obj.addProperty("App::PropertyDistance", "Z", "Placement", "Z").Z = 0
-        # obj.addProperty("App::PropertyAngle", "Rot", "Placement", "Rot").Rot = 0
-        # obj.addProperty("App::PropertyEnumeration", "Side", "Placement", "Side").Side = 0
-        
-        # obj.setEditorMode("Placement", 2)
-        # obj.setEditorMode("Z", 2)
-        # obj.Side = objectSides
-        
-        # self.mode = 'anno'  # anno/anno_name/anno_value
-        
-    # def reverseSide(self, fp):
-        # if objectSides[0] == fp.Side:
-            # fp.Side = objectSides[1]
-        # else:
-            # fp.Side = objectSides[0]
-            
-        # if fp.ViewObject.Mirror == mirror[0]:
-            # fp.ViewObject.Mirror = mirror[1]
-        # else:
-            # fp.ViewObject.Mirror = mirror[0]
-        
-        # self.changeSide(fp)
-        
-    # def changeSide(self, fp):
-        # ''' ROT Y '''
-        # self.rotateZ(fp)
-        # self.updatePosition_Z(fp)
-
-    # def updatePosition_Z(self, fp, dummy=None):
-        # thickness = getPCBheight()[1]
-        
-        # if fp.Side == objectSides[0]:  # TOP
-            # fp.Placement.Base.z = thickness + 0.001 + fp.Z.Value
-        # else:
-            # fp.Placement.Base.z = -0.001 - fp.Z.Value
-        
-    # def changePos(self, fp):
-        # ''' change placement - X, Y '''
-        # fp.Placement.Base.x = fp.X.Value
-        # fp.Placement.Base.y = fp.Y.Value
-        
-    # def rotateZ(self, fp):
-        # ''' ROT Z '''
-        # rotZ = fp.Rot.Value
-        # rotY = 0
-
-        # try:
-            # if fp.ViewObject.Mirror == 'Global Y axis':
-                # rotY = 180
-                # rotZ = fp.Rot.Value * -1
-                
-            # elif fp.ViewObject.Mirror == 'Local Y axis':
-                # rotZ = fp.Rot.Value
-        # except:
-            # # FreeCAD.Console.PrintWarning(str(e) + " -\n")
-            # pass
-
-        # fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ, rotY, 0))
-        
-        # try:
-            # if not fp.ViewObject.Spin:
-                # fp.ViewObject.Proxy.execute(fp.ViewObject)
-        # except:
-            # # FreeCAD.Console.PrintWarning(str(e) + " -\n")
-            # pass
+        # obj.setEditorMode("Z", 0)
     
     # def onChanged(self, fp, prop):
         # try:
             # fp.setEditorMode("Placement", 2)
-            # fp.setEditorMode("Z", 2)
+            # fp.setEditorMode("Z", 0)
         # except:
             # pass
         
@@ -837,44 +781,6 @@ class PCBannotation(_DraftObject):
                 # self.rotateZ(fp)
         # except:
             # pass
-
-    # def execute(self, fp):
-        # pass
-
-    # def __getstate__(self):
-        # return [self.Type, self.mode]
-
-    # def __setstate__(self, state):
-        # if state:
-            # self.Type = state[0]
-            # self.mode = state[1]
-
-
-class PCBannotation_Object(PCBannotation):
-    def __init__(self, obj):
-        PCBannotation.__init__(self, obj)
-        
-        obj.setEditorMode("Z", 0)
-    
-    def onChanged(self, fp, prop):
-        try:
-            fp.setEditorMode("Placement", 2)
-            fp.setEditorMode("Z", 0)
-        except:
-            pass
-        
-        try:
-            if prop == "Side":
-                self.changeSide(fp)
-            elif prop in ["Z"]:
-                self.changeSide(fp)
-            elif prop in ["X", "Y"]:
-                self.changePos(fp)
-            elif prop == "Rot":
-                self.rotateZ(fp)
-        except:
-            pass
-
 
 class viewProviderPCBannotation:
     def __init__(self, obj):

@@ -1262,7 +1262,7 @@ class mathFunctions(object):
         x1R = (punkt[0] * cosKAT) - (punkt[1] * sinKAT) + srodek[0]
         y1R = (punkt[0] * sinKAT) + (punkt[1] * cosKAT) + srodek[1]
         return [x1R, y1R]
-        
+
     def odbijWspolrzedne(self, punkt, srodek):
         ''' mirror '''
         return srodek + (srodek - punkt)

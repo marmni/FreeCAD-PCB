@@ -55,6 +55,7 @@ class partsObject(mathFunctions):
         self.Type = typeL
         self.oldX = None
         self.oldY = None
+        self.oldZ = None
         self.oldROT = 0
         self.offsetZ = 0
         
@@ -122,7 +123,7 @@ class partsObject(mathFunctions):
         pass
 
     def __getstate__(self):
-        return [self.Type, self.oldROT, self.oldX, self.oldY, self.offsetZ]
+        return [self.Type, self.oldROT, self.oldX, self.oldY, self.offsetZ, self.oldZ]
 
     def __setstate__(self, state):
         if state:
@@ -131,19 +132,58 @@ class partsObject(mathFunctions):
             self.oldX = state[2]
             self.oldY = state[3]
             self.offsetZ = state[4]
+            self.oldZ = state[5]
 
 
 class partObject(partsObject):
     def __init__(self, obj):
         partsObject.__init__(self, obj, "PCBpart")
-    
+
     def onChanged(self, fp, prop):
         fp.setEditorMode("Placement", 2)
         fp.setEditorMode("Label", 2)
         fp.setEditorMode("PartName", 1)
         fp.setEditorMode("PartValue", 1)
         fp.setEditorMode("Package", 1)
-        #
+        ################################################################
+        if self.oldZ == None:
+            self.oldZ = fp.Socket.Value
+        ################################################################
+        if prop in ['X', 'Y', 'Socket', 'Rot', 'Side']:
+            for i in fp.OutList:
+                if prop == 'X':
+                    try:
+                        i.X.Value = i.X.Value + (fp.X.Value - self.oldX)
+                    except:
+                        pass
+                elif prop == 'Y':
+                    try:
+                        i.Y.Value = i.Y.Value + (fp.Y.Value - self.oldY)
+                    except:
+                        pass
+                elif prop == 'Socket':
+                    try:
+                        i.Z.Value = i.Z.Value + (fp.Socket.Value - self.oldZ)
+                    except:
+                        pass
+                elif prop == 'Rot':
+                    if fp.Side == "TOP": # TOP
+                        i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
+                        [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
+                    else: # BOTTOM
+                        i.Rot.Value = i.Rot.Value - (fp.Rot.Value - self.oldROT)
+                        [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
+                    
+                    i.X.Value = x
+                    i.Y.Value = y
+                elif prop == 'Side':
+                    if i.Side.lower() == "top":
+                        i.Side = "BOTTOM"
+                    else:
+                        i.Side = "TOP"
+                    
+                    i.X.Value = self.odbijWspolrzedne(i.X.Value, fp.X.Value) # mirror i.X.Value by Y axis
+        ################################################################
         try:
             if prop == "Rot":
                 self.rotateZ(fp)
@@ -152,6 +192,13 @@ class partObject(partsObject):
                 #Draft.rotate([fp], 180, FreeCAD.Vector(fp.X.Value, fp.Y.Value, 0), axis=FreeCAD.Vector(0.0, 1.0, 0.0), copy=False)
                 self.updatePosition_Z(fp, getPCBheight()[1], True)
                 self.rotateZ(fp)
+            elif prop == "Label":
+                try:
+                    fp.PartName.Proxy.react = False
+                    fp.PartName.String = fp.Label
+                    fp.PartName.Proxy.react = True
+                except:
+                    pass
             elif prop == "X":
                 if self.oldX == None:
                     self.oldX = fp.X.Value
@@ -166,15 +213,14 @@ class partObject(partsObject):
                 self.oldY = fp.Y.Value
             elif prop == "Socket":
                 self.updatePosition_Z(fp, getPCBheight()[1], True)
+                self.oldZ = fp.Socket.Value
         except Exception as e:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass
 
-
 class partObject_E(partsObject):
     def __init__(self, obj):
         partsObject.__init__(self, obj, "PCBpart_E")
-        
         obj.setEditorMode("Placement", 2)
         obj.setEditorMode("Package", 1)
         obj.setEditorMode("Side", 1)
@@ -210,8 +256,10 @@ class viewProviderPartObject:
         self.Object = obj.Object
     
     def claimChildren(self):
-        return []
-        #return [self.Object.PartName, self.Object.PartValue]
+        try:
+            return [self.Object.PartName, self.Object.PartValue]
+        except AttributeError:
+            return []
         
         #self.heightFlag = SoSeparator()
         #obj.addProperty("App::PropertyBool", "ShowHeight", "Base", "ShowHeight").ShowHeight = False
