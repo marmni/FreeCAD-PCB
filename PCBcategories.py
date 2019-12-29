@@ -32,18 +32,88 @@ try:
     from PCBconf import modelsCategories
 except:
     modelsCategories = {}
+from functools import partial
 
 __freecadSettings__ = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
 
 #***********************************************************************
 #*                             GUI
 #***********************************************************************
+
+class submenuCategorySelector(QtGui.QMenu):
+    def __init__(self, title, categoryID, parent, button):
+        QtGui.QMenu.__init__(self, parent)
+        #
+        self.setTitle(title)
+        self.button = button
+        self.categoryID = categoryID
+    
+    def mousePressEvent(self, event):
+        try:
+            self.button.showMenuF(self.title(), self.categoryID)
+        except Exception as e:
+            pass
+        
+        return QtGui.QMenu.mousePressEvent(self, event)
+
+
+class categorySelector(QtGui.QPushButton):
+    def __init__(self, parent=None):
+        QtGui.QPushButton.__init__(self, parent)
+        #
+        self.reset()
+    
+    def setData(self, categoryID, text):
+        if categoryID == 0:
+            self.reset()
+        else:
+            self.categoryID = categoryID
+            self.setText(text)
+    
+    def reset(self):
+        self.setText("None")
+        self.categoryID = 0
+    
+    def addNewSubmenu(self, category, parent):
+        if len(category[1]['sub'].items()):
+            menu = submenuCategorySelector(category[0], category[1]['id'], parent, self)
+            parent.addMenu(menu)
+            #
+            action = menu.addAction(category[0])
+            action.triggered.connect(partial(self.showMenuF, category[0], category[1]['id']))
+            menu.addSeparator()
+            #
+            for i in sorted(category[1]['sub'].items()):
+                self.addNewSubmenu(i, menu)
+        else:
+            action = parent.addAction(category[0])
+            action.triggered.connect(partial(self.showMenuF, category[0], category[1]['id']))
+        
+    def setMenuF(self, data):
+        #
+        mainMenu = QtGui.QMenu(self)
+        action = mainMenu.addAction("None")
+        action.triggered.connect(partial(self.showMenuF, "None", 0))
+        
+        mainMenu.addSeparator()
+        #
+        for i in sorted(data):
+            self.addNewSubmenu(i, mainMenu)
+        #
+        self.setMenu(mainMenu)
+        
+    def showMenuF(self, value, categoryID):
+        self.setText(value)
+        self.categoryID = categoryID
+        #self.menu().setVisible(False)
+
+
 class setOneCategoryGui(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'Set one category for all selected models')
         #
-        self.parentCategory = QtGui.QComboBox()
+        self.parentCategory = categorySelector()
         # buttons
         buttons = QtGui.QDialogButtonBox()
         buttons.setOrientation(QtCore.Qt.Horizontal)
@@ -61,12 +131,9 @@ class setOneCategoryGui(QtGui.QDialog):
         lay.setColumnStretch(1, 10)
     
     def loadCategories(self, categories):
-        for i in categories:
-            self.parentCategory.addItem(i.name, i.id)
-        
-        self.parentCategory.insertItem(-1, 'None', 0)
-        self.parentCategory.setCurrentIndex(self.parentCategory.findData(-1))
-    
+        self.parentCategory.setMenuF(categories)
+
+
 class addCategoryGui(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
@@ -75,7 +142,7 @@ class addCategoryGui(QtGui.QDialog):
         self.categoryName = QtGui.QLineEdit('')
         self.categoryName.setStyleSheet('background-color:#FFF;')
         
-        self.parentCategory = QtGui.QComboBox()
+        self.parentCategory = categorySelector()
         
         self.categoryDescription = QtGui.QTextEdit('')
         # buttons
@@ -96,14 +163,13 @@ class addCategoryGui(QtGui.QDialog):
         lay.addWidget(buttons, 0, 2, 2, 1, QtCore.Qt.AlignCenter)
         lay.setRowStretch(2, 10)
     
-    def loadCategories(self, categories, defParent):
-        for i in categories:
-            self.parentCategory.addItem(i.name, i.id)
+    def loadCategories(self, categories, parentID, parentName):
+        self.parentCategory.setMenuF(categories)
         
-        self.parentCategory.insertItem(-1, 'None', 0)
-        #self.parentCategory.setCurrentIndex(0)
-        self.parentCategory.setCurrentIndex(self.parentCategory.findText(defParent))
-
+        if parentID >= 1:
+            self.parentCategory.setData(parentID, parentName)
+        else:
+            self.parentCategory.setData(0, '')
 
 class removeCategoryGui(QtGui.QMessageBox):
     def __init__(self, categoryName, parent=None):
@@ -125,7 +191,7 @@ class updateCategoryGui(QtGui.QDialog):
         self.categoryName.setStyleSheet('background-color:#FFF;')
         #self.categoryName.setText()
         
-        self.parentCategory = QtGui.QComboBox()
+        self.parentCategory = categorySelector()
         
         self.categoryDescription = QtGui.QTextEdit('')
         #self.categoryDescription.setText()
@@ -147,12 +213,13 @@ class updateCategoryGui(QtGui.QDialog):
         lay.addWidget(buttons, 0, 2, 2, 1, QtCore.Qt.AlignCenter)
         lay.setRowStretch(2, 10)
     
-    def loadCategories(self, categories, setInedx):
-        for i in categories:
-            self.parentCategory.addItem(i.name, i.id)
+    def loadCategories(self, categories, parentID, parentName):
+        self.parentCategory.setMenuF(categories)
         
-        self.parentCategory.insertItem(-1, 'None', 0)
-        self.parentCategory.setCurrentIndex(self.parentCategory.findData(setInedx))
+        if parentID >= 1:
+            self.parentCategory.setData(parentID, parentName)
+        else:
+            self.parentCategory.setData(0, '')
 
 #***********************************************************************
 #*                             CONSOLE

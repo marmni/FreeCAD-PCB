@@ -634,8 +634,10 @@ class EaglePCB(mathFunctions):
                     
                     if data["text"] == "NAME":
                         i['EL_Name'] = data
+                        #i['EL_Name']['rot'] = i['EL_Name']['rot'] - i['rot']
                     elif attr.getAttribute('name') == "VALUE":
                         i['EL_Value'] = data
+                        #i['EL_Value']['rot'] = i['EL_Value']['rot'] - i['rot']
             #####################
             # RESULT - EXAMPLE
             #####################

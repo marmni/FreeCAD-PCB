@@ -82,12 +82,12 @@ class dialogMAIN(dialogMAIN_FORM):
         # EXTRA LAYERS
         ####################
         # measures
-        dane[106] = {"name": softLayers["kicad_v4"][106]["name"], "color": softLayers["kicad_v4"][106]["color"]}
+        dane[106] = {"name": softLayers[self.databaseType][106]["name"], "color": softLayers[self.databaseType][106]["color"]}
         #  annotations
         dane[905] = {"name": softLayers[self.databaseType][905]["description"], "color": softLayers[self.databaseType][905]["color"], "type": "anno", "number": 0}
         # pad
-        dane[107] = {"name": softLayers["kicad_v4"][107]["name"], "color": softLayers["kicad_v4"][107]["color"]}
-        dane[108] = {"name": softLayers["kicad_v4"][108]["name"], "color": softLayers["kicad_v4"][108]["color"]}
+        dane[107] = {"name": softLayers[self.databaseType][107]["name"], "color": softLayers[self.databaseType][107]["color"]}
+        dane[108] = {"name": softLayers[self.databaseType][108]["name"], "color": softLayers[self.databaseType][108]["color"]}
         ####################
         ####################
         return dane

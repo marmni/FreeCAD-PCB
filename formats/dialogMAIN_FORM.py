@@ -308,6 +308,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
     def generateLayers(self, forbidden=[]):
         ''' '''
         for i, j in self.layersNames.items():
+            layerName = j['name']
             ######################################
             if self.databaseType == "geda": # gEDA
                 layerID = j["type"]
@@ -323,8 +324,6 @@ class dialogMAIN_FORM(QtGui.QDialog):
             ######################################
             if layerID in forbidden:
                 continue
-            
-            layerName = j['name']
             #
             if layerID in PCBconf.softLayers[self.databaseType]:
                 if "name" in PCBconf.softLayers[self.databaseType][layerID].keys():

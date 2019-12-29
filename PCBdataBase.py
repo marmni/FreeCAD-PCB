@@ -44,6 +44,42 @@ import FreeCAD
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
 Base = declarative_base()
 
+
+class modelsParam(Base):
+    __tablename__ = "modelsParam"
+    
+    id = Column(Integer, primary_key=True)
+    modelID = Column(Integer)
+    name = Column(String)
+    active = Column(Boolean)
+    display = Column(Boolean)
+    x = Column(Float)
+    y = Column(Float)
+    z = Column(Float)
+    rz = Column(Float)
+    size = Column(Float)
+    color = Column(String)
+    align = Column(String)
+    spin = Column(Boolean)
+    
+    def __init__(self, modelID, name, color, align, active=True, display=True, x=0.0, y=0.0, z=0.0, rz=0.0, size=1.27, spin=False):
+        self.modelID = modelID
+        self.name = name
+        self.active = active
+        self.display = display
+        self.x = x
+        self.y = y
+        self.z = z
+        self.rz = rz
+        self.size = size
+        self.color = color
+        self.align = align
+        self.spin = spin
+        
+    def __repr__(self):
+        return "<modelsParam('%s')>" % (name)
+
+
 class Categories(Base):
     __tablename__ = "categories"
     
@@ -357,7 +393,7 @@ class dataBase:
             modelData['software'].append(self.convertToTable(i))
         
         return modelData
-    
+
     def getPackageByID(self, param):
         if param <= 0:
             return False
@@ -492,6 +528,7 @@ class dataBase:
             self.session.query(Models).filter(Models.socketID == modelID).update({"socketID" : 0, "socketIDSocket" : False})
             self.session.query(Packages).filter(Packages.modelID == modelID).delete()
             self.session.query(Models).filter(Models.id == modelID).delete()
+            self.session.query(modelsParam).filter(modelsParam.modelID == modelID).delete()
             self.session.commit()
         except Exception as e:
             self.session.rollback()
@@ -526,7 +563,7 @@ class dataBase:
             self.session.commit()
             self.lastInsertedID = model.id
             self.lastInsertedModelID = model.id
-            
+            #
             for i in data["software"]:
                 if i['blanked']:
                     continue
@@ -544,6 +581,10 @@ class dataBase:
                         #self.updatePackage(int(i['id']), i)
                     #else:  # add package
                         #self.addPackage(i, modelName=name)
+            #
+            for i in data["params"].keys():
+                if data["params"][i]["active"]:
+                    self.addNewParam(model.id, i, data["params"][i])
 
         except Exception as e:
             self.session.rollback()
@@ -553,6 +594,77 @@ class dataBase:
             FreeCAD.Console.PrintWarning("Model {0} was added.\n".format(name))
             return True
     
+    def paramsDataToDictionary(self, modelData):
+        modelData["params"] = []
+        
+        for i in self.getParamsByModelID(modelData['id']):
+            modelData["params"].append(self.convertToTable(i))
+        
+        return modelData
+    
+    def getParamsByModelID(self, param, name='*'):
+        try:
+            if name == "*":
+                query = self.session.query(modelsParam).filter(modelsParam.modelID == int(param))
+            else:
+                query = self.session.query(modelsParam).filter(modelsParam.modelID == int(param), modelsParam.name == name)
+            
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return []
+    
+    def addNewParam(self, modelID, name, data):
+        try:
+            modelID = int(modelID)
+            name = self.clearString(name)
+            color = self.clearString(str(data['color']))
+            align = self.clearString(data['align'])
+            active = bool(data['active'])
+            display = bool(eval(data['display']))
+            x = float(data['x'])
+            y = float(data['y'])
+            z = float(data['z'])
+            rz = float(data['rz'])
+            size = float(data['size'])
+            spin = bool(eval(data['spin']))
+            
+            param = modelsParam(modelID, name, color, align, active, display, x, y, z, rz, size, spin)
+            self.session.add(param)
+            self.session.commit()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (A_PARAM): {0} (add param).\n".format(e))
+            return [False]
+
+    def updateParam(self, paramID, data):
+        try:
+            paramID = int(paramID)
+            
+            if paramID <= 0:
+                raise MandatoryError()
+            
+            self.session.query(modelsParam).filter(modelsParam.id == paramID).update({
+                    "active": bool(data['active']),
+                    "display": bool(eval(data['display'])),
+                    "x": float(data["x"]),
+                    "y": float(data["y"]),
+                    "z": float(data["z"]),
+                    "rz": float(data["rz"]),
+                    "size": float(data["size"]),
+                    "color": self.clearString(str(data['color'])),
+                    "align": self.clearString(data['align']),
+                    "spin": bool(eval(data['spin'])),
+             })
+             
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (U_PARAM): {0} (update param).\n".format(self.errorsDescription(e)))
+            return False
+
     def setCategoryForModel(self, modelID, categoryID):
         try:
             modelID = int(modelID)
@@ -615,7 +727,7 @@ class dataBase:
             })
             
             self.session.commit()
-            
+            #
             for i in data["software"]:
                 if i['blanked']:
                     if int(i['id']) == -1:
@@ -627,7 +739,12 @@ class dataBase:
                         self.updatePackage(int(i['id']), i)
                     else:  # add package
                         self.addPackage(i, modelID=modelID)
-            
+            #
+            for i in data["params"].keys():
+                if data["params"][i]["id"] == -1 and data["params"][i]["active"]: # add new param
+                    self.addNewParam(modelID, i, data["params"][i])
+                elif not data["params"][i]["id"] == -1:  # update param
+                    self.updateParam(data["params"][i]["id"], data["params"][i])
         except Exception as e:
             self.session.rollback()
             FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update model).\n".format(self.errorsDescription(e)))

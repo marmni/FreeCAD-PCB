@@ -37,6 +37,7 @@ import PCBrc
 from PCBobjects import *
 from PCBboard import getPCBheight
 from PCBpartManaging import partsManaging
+from PCBdataBase import dataBase
 from command.PCBassignModel import dodajElement
 from command.PCBexplode import *
 from command.PCBwire import *
@@ -516,6 +517,8 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation",  ":/data/img/modelAddAnnotation.png")
         QtCore.QObject.connect(scriptCmd_addAnnotation, QtCore.SIGNAL("triggered()"), self.addAnnotation)
 
+        scriptCmd_storeNameValueAsParam = self.createAction(u"Store Name/Value as param", u"Store Name/Value as param",  ":/data/img/modelAddAnnotationToParam.svg")
+        QtCore.QObject.connect(scriptCmd_storeNameValueAsParam, QtCore.SIGNAL("triggered()"), self.storeNameValueAsParam)
         ##########
         self.addAction(scriptCmd_Export)
         self.addAction(scriptCmd_ExportBOM)
@@ -526,6 +529,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_CreatePCB)
         self.addAction(scriptCmd_CreateGluePath)
         self.addAction(scriptCmd_addAnnotation)
+        self.addAction(scriptCmd_storeNameValueAsParam)
         self.addSeparator()
         self.addAction(scriptCmd_Assign)
         self.addAction(scriptCmd_AddModel)
@@ -544,7 +548,87 @@ class pcbToolBar(pcbToolBarMain):
         #self.addAction(scriptCmd_addWirePointStartEnd)
         #self.addAction(scriptCmd_addWirePoint)
         self.addToolBar(self)
-
+    
+    def storeNameValueAsParam(self):
+        sel = FreeCADGui.Selection.getSelection()
+        if not FreeCAD.activeDocument():
+            return
+        elif len(sel) > 1:
+            FreeCAD.Console.PrintWarning("Select only one part.\n")
+            return
+        elif not len(sel):
+            FreeCAD.Console.PrintWarning("No part selected.\n")
+            return
+        elif hasattr(sel[0], "Proxy") and hasattr(sel[0].Proxy, "Type") and not sel[0].Proxy.Type in ["PCBpart"]:
+            FreeCAD.Console.PrintWarning("Wrong part type selected.\n")
+            return
+        #
+        sql = dataBase()
+        sql.connect()
+        
+        model = sel[0]
+        #
+        packageData = sql.findPackage(model.Package, '*')
+        if packageData:
+            modelData = sql.getModelByID(packageData.modelID)
+            if modelData[0]:
+                [mX, mY, mROT] = [model.X.Value, model.Y.Value, model.Rot.Value]
+                model.X.Value = 0
+                model.Y.Value = 0
+                model.Rot.Value = 0
+                ###############################
+                modelData = modelData[1]
+                # NAME
+                if model.PartName:
+                    #
+                    nameParam = model.PartName
+                    
+                    table = {
+                        'active': True,
+                        'display': str(nameParam.ViewObject.Visibility),
+                        'x': nameParam.X.Value - model.X.Value,
+                        'y': nameParam.Y.Value - model.Y.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value,
+                        'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
+                        'size': nameParam.Size,
+                        'color': nameParam.ViewObject.ShapeColor,
+                        'align': nameParam.Justification,
+                        'spin': str(nameParam.Spin)
+                    }
+                    #
+                    paramData = sql.getParamsByModelID(modelData.id, 'Name')
+                    if isinstance(paramData, list):  # new param
+                        sql.addNewParam(modelData.id, 'Name', table)
+                    else:
+                        sql.updateParam(paramData[0].id, table)
+                # VALUE
+                if model.PartValue:
+                    #
+                    nameParam = model.PartValue
+                    
+                    table = {
+                        'active': True,
+                        'display': str(nameParam.ViewObject.Visibility),
+                        'x': nameParam.X.Value - model.X.Value,
+                        'y': nameParam.Y.Value - model.Y.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value,
+                        'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
+                        'size': nameParam.Size,
+                        'color': nameParam.ViewObject.ShapeColor,
+                        'align': nameParam.Justification,
+                        'spin': str(nameParam.Spin)
+                    }
+                    #
+                    paramData = sql.getParamsByModelID(modelData.id, 'Value')
+                    if isinstance(paramData, list):  # new param
+                        sql.addNewParam(modelData.id, 'Value', table)
+                    else:
+                        sql.updateParam(paramData[0].id, table)
+                ###############################
+                model.X.Value = mX
+                model.Y.Value = mY
+                model.Rot.Value = mROT
+            
     def addAnnotation(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             FreeCADGui.Control.showDialog(createAnnotation_Gui())

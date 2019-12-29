@@ -113,6 +113,59 @@ class FreePCB(mathFunctions):
         parts = []
         #
         for k in self.elements:
+            align = "bottom-left"
+            
+            if k['side'] == "BOTTOM":
+                align = "bottom-right"
+            ##############################
+            nameData = re.search(r'ref_text:\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\n', k['dataElement']).groups()
+            
+            if float(nameData[2]) == 0:
+                rotN = 0
+            else:
+                rotN = 360 - float(nameData[2])
+            
+            k['EL_Name'] = {
+                "text": "NAME",
+                "x": k['x'] + float(nameData[3]) * self.mnoznik,
+                "y": k['y'] + float(nameData[4]) * self.mnoznik,
+                "z": 0,
+                "size": float(nameData[0]) * self.mnoznik,
+                "rot": rotN,
+                "side": k['side'],
+                "align": align,
+                "spin": True,
+                "font": "Fixed",
+                "display": bool(int(nameData[5])),
+                "distance": 1,
+                "tracking": 0,
+                "mode": 'param'
+            }
+            ##############################
+            valueData = re.search(r'value:\s+".*?"\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\n', k['dataElement']).groups()
+            
+            if float(valueData[2]) == 0:
+                rotN = 0
+            else:
+                rotN = 360 - float(valueData[2])
+            
+            k['EL_Value'] = {
+                "text": "VALUE",
+                "x": k['x'] + float(valueData[3]) * self.mnoznik,
+                "y": k['y'] + float(valueData[4]) * self.mnoznik,
+                "z": 0,
+                "size": float(valueData[0]) * self.mnoznik,
+                "rot": rotN,
+                "side": k['side'],
+                "align": align,
+                "spin": True,
+                "font": "Fixed",
+                "display": bool(int(valueData[5])),
+                "distance": 1,
+                "tracking": 0,
+                "mode": 'param'
+            }
+            ##############################
             parts.append(k)
         #
         return parts
@@ -420,7 +473,7 @@ class FreePCB(mathFunctions):
                         'name': i[0], 
                         'library': "", 
                         'package': re.search(r'shape:\s+"(.*?)"', i[1]).groups()[0], 
-                        'value': "", 
+                        'value': re.search(r'value:\s+"(.*?)"', i[1]).groups()[0], 
                         'x': float(partPos[0]) * mnoznik, 
                         'y': float(partPos[1]) * mnoznik, 
                         'locked': locked,

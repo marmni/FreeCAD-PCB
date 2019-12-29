@@ -62,9 +62,6 @@ from formats.idf_v3 import IDFv3_PCB
 # from formats.hyp import HYP_PCB
 
 
-
-
-
 class mainPCB(partsManaging):
     def __init__(self, wersjaFormatu, filename, parent=None):
         #reload(PCBconf)
@@ -247,7 +244,6 @@ class mainPCB(partsManaging):
             if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
                 self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
                 self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
-                
             if layerVariant == "pads":
                 self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)
         #

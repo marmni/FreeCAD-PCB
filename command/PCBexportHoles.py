@@ -272,7 +272,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
         packageFooter.setContentsMargins(10, 0, 10, 10)
         # report
         self.reportPrev = QtGui.QTextEdit()
-    
+        self.reportPrev.setReadOnly(True)
         ########
         centerLay = QtGui.QGridLayout()
         centerLay.addWidget(QtGui.QLabel(u'Output directory:'), 0, 0, 1, 1)
@@ -290,22 +290,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
         self.showReport()
         
     def showReport(self):
-        holes = getHoles()
-        #
-        txt = ''
-        txt += 'Drill report for: {0}\n'.format(FreeCAD.ActiveDocument.Label)
-        txt += 'Created on: {0}\n'.format(datetime.datetime.now())
-        txt += 'Drill report for plated through holes:\n'
-        
-        num = 0
-        for i in range(len(holes.keys())):
-            key = list(holes)
-            txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]]))
-            num += len(holes[key[i]])
-        
-        txt += '\nTotal plated holes count: {0}\n'.format(num)
-        
-        self.reportPrev.setPlainText(txt)
+        self.reportPrev.setPlainText(generatetHolesReport())
     
     def accept(self):
         export = exportHolesReport()
@@ -405,7 +390,25 @@ class exportHoles:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         else:
             FreeCAD.Console.PrintWarning("File has been successfully exported\n")
-            
+
+
+def generatetHolesReport():
+    holes = getHoles()
+    #
+    txt = ''
+    txt += 'Drill report for: {0}\n'.format(FreeCAD.ActiveDocument.Label)
+    txt += 'Created on: {0}\n'.format(datetime.datetime.now())
+    txt += 'Drill report for plated through holes:\n'
+    
+    num = 0
+    for i in range(len(holes.keys())):
+        key = list(holes)
+        txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]]))
+        num += len(holes[key[i]])
+    
+    txt += '\nTotal plated holes count: {0}\n'.format(num)
+    
+    return txt
 
 
 class exportHolesReport(exportHoles):
@@ -425,19 +428,7 @@ class exportHolesReport(exportHoles):
                 fileName = fileName + '.rpt'
             
             self.files = codecs.open(fileName, "w", "utf-8")
-            #
-            self.files.write('Drill report for {0}\n'.format(self.fileName))
-            self.files.write('Created on {0}\n'.format(datetime.datetime.now()))
-            self.files.write('Drill report for plated through holes:\n')
-            
-            num = 0
-            for i in range(len(holes.keys())):
-                key = list(holes)
-                self.files.write('T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]])))
-                num += len(holes[key[i]])
-            
-            self.files.write('\nTotal plated holes count: {0}\n'.format(num))
-            #
+            self.files.write(generatetHolesReport())
             self.files.close()
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))

@@ -107,12 +107,12 @@ class dialogMAIN(dialogMAIN_FORM):
         # EXTRA LAYERS
         ####################
         # measures
-        dane[106] = {"name": softLayers["kicad"][106]["name"], "color": softLayers["kicad"][106]["color"]}
+        dane[106] = {"name": softLayers[self.databaseType][106]["name"], "color": softLayers[self.databaseType][106]["color"]}
         #  annotations
         dane[905] = {"name": softLayers[self.databaseType][905]["description"], "color": softLayers[self.databaseType][905]["color"], "type": "anno", "number": 0}
         # pad
-        dane[107] = {"name": softLayers["kicad"][107]["name"], "color": softLayers["kicad"][107]["color"]}
-        dane[108] = {"name": softLayers["kicad"][108]["name"], "color": softLayers["kicad"][108]["color"]}
+        dane[107] = {"name": softLayers[self.databaseType][107]["name"], "color": softLayers[self.databaseType][107]["color"]}
+        dane[108] = {"name": softLayers[self.databaseType][108]["name"], "color": softLayers[self.databaseType][108]["color"]}
         ####################
         ####################
         return dane
@@ -198,7 +198,7 @@ class KiCadv3_PCB(mathFunctions):
             glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], True])
         ##
         return glue
-        
+
     def getPads(self, layerNew, layerNumber, layerSide):
         # via
         via_drill = float(self.getSettings('via_drill'))
@@ -219,7 +219,7 @@ class KiCadv3_PCB(mathFunctions):
         self.getElements()
         #
         for i in self.elements:
-            for j in self.getPadsList(i['data']):
+            for j in self.getPadsList(i['dataElement']):
                 xs = j['x'] + i['x']
                 ys = j['y'] + i['y']
                 numerWarstwy = j['layers'].split(' ')
@@ -239,7 +239,6 @@ class KiCadv3_PCB(mathFunctions):
                     dodaj = True
                 elif '*.Cu' in numerWarstwy:
                     dodaj = True
-                #####
                 #####
                 if dodaj:
                     if j['padShape'] == 'rect':
@@ -599,11 +598,11 @@ class KiCadv3_PCB(mathFunctions):
             if j == value:
                 return i
         return 'eeeeeefsdfstdgdfgdfghdfgdfgdfgfd'
-        
-    def getNormalAnnotations(self, mode='anno'):
+    
+    def getAnnotations(self, data, mode='anno'):
         adnotacje = []
         #
-        for i in re.findall(r'\[start\]\(gr_text(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+        for i in data:
             try:
                 txt = re.search(r'\s(.*?)\s\(at', i).groups(0)[0].replace('"', '').replace('\r\n', '\n').replace('\r', '\n').replace('\\n', '\n')
                 [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
@@ -618,7 +617,7 @@ class KiCadv3_PCB(mathFunctions):
             else:
                 rot = float(rot)
             
-            if self.spisWarstw[layer] in [15, 21] and self.databaseType == "kicad_v3" or self.spisWarstw[layer] in [0, 37] and self.databaseType == "kicad_v4":
+            if layer.startswith('F.') or (self.spisWarstw[layer] in [15, 21] and self.databaseType == "kicad") or (self.spisWarstw[layer] in [0, 33, 35, 37, 39, 40, 41, 42, 43, 44, 45, 47, 49] and self.databaseType == "kicad_v4"):
                 side = 'TOP'
             else:
                 side = 'BOTTOM'
@@ -649,7 +648,7 @@ class KiCadv3_PCB(mathFunctions):
                 "rot": rot,
                 "side": side,
                 "align": align,
-                "spin": True,
+                "spin": False,
                 "font": 'Proportional',
                 "display": True,
                 "distance": 1,
@@ -660,6 +659,9 @@ class KiCadv3_PCB(mathFunctions):
         #
         return adnotacje
     
+    def getNormalAnnotations(self):
+        return self.getAnnotations(re.findall(r'\[start\]\(gr_text(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL), mode='anno')
+        
     def getConstraintAreas(self, layerNumber):
         areas = []
         #
@@ -797,7 +799,7 @@ class KiCadv3_PCB(mathFunctions):
             else:
                 szukanaWarstwa = layerNumber[1]
             ####
-            self.addStandardShapes(i['data'], layerNew, szukanaWarstwa, parent=i)
+            self.addStandardShapes(i['dataElement'], layerNew, szukanaWarstwa, parent=i)
         
     def getElements(self):
         if len(self.elements) == 0:
@@ -843,7 +845,18 @@ class KiCadv3_PCB(mathFunctions):
                         rot = int(rot % 180) * (-1)
                     mirror = 'Local Y axis'
                 
-                self.elements.append({'name': name, 'library': library, 'package': package, 'value': value, 'x': x, 'y': y, 'rot': rot, 'side': side, 'data': i, 'mirror': mirror})
+                self.elements.append({
+                    'name': name, 
+                    'library': library, 
+                    'package': package, 
+                    'value': value, 
+                    'x': x, 
+                    'y': y, 
+                    'rot': rot,
+                    'side': side, 
+                    'dataElement': i, 
+                    'mirror': mirror
+                })
     
     def getParts(self):
         self.getElements()
@@ -854,71 +867,21 @@ class KiCadv3_PCB(mathFunctions):
                 i['side'] = "TOP"
             else:
                 i['side'] = "BOTTOM"
-            #
+            ####################################
+            dataName = self.getAnnotations(re.findall(r'\(fp_text reference(.+?)\)\n\s+\)\n\s+\(', i['dataElement'], re.MULTILINE|re.DOTALL), mode='param')
+            i['EL_Name'] = dataName[0]
+            i['EL_Name']["text"] = "NAME"
+            i['EL_Name']["x"] = i['EL_Name']["x"] + i["x"]
+            i['EL_Name']["y"] = i['EL_Name']["y"] + i["y"]
+            i['EL_Name']["rot"] = i['EL_Name']["rot"] - i["rot"]
+            ####################################
+            dataValue = self.getAnnotations(re.findall(r'\(fp_text value(.+?)\)\n\s+\)\n\s+\(', i['dataElement'], re.MULTILINE|re.DOTALL), mode='param')
+            i['EL_Value'] = dataValue[0]
+            i['EL_Value']["text"] = "VALUE"
+            i['EL_Value']["x"] = i['EL_Value']["x"] + i["x"]
+            i['EL_Value']["y"] = i['EL_Value']["y"] + i["y"]
+            i['EL_Value']["rot"] = i['EL_Value']["rot"] - i["rot"]
+            ####################################
             parts.append(i)
         #
         return parts
-            # if i['side'] == 1:
-                # side = "TOP"
-            # else:
-                # side = "BOTTOM"
-            # ###########
-            # # textReferencere
-            # textReferencere = re.search(r'\(fp_text reference\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
-            # [tr_x, tr_y, tr_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textReferencere).groups()
-            # tr_layer = re.search(r'\(layer\s+(.+?)\)', textReferencere).groups()[0]
-            # tr_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textReferencere).groups()[0]
-            # tr_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textReferencere).groups()[0]
-            # tr_value = re.search(r'^(".+?"|.+?)\s', textReferencere).groups()[0].replace('"', '')
-            # #
-            # tr_x = float(tr_x)
-            # tr_y = float(tr_y) * (-1)
-            # if tr_rot == '':
-                # tr_rot = i['rot']
-            # else:
-                # tr_rot = float(tr_rot)
-            
-            # if tr_fontSize == '':
-                # tr_fontSize = 0.7
-            # else:
-                # tr_fontSize = float(tr_fontSize.split()[1])
-            
-            # if tr_visibility == 'hide':
-                # tr_visibility = False
-            # else:
-                # tr_visibility = True
-            
-            # EL_Name = [tr_value, tr_x + i['x'], tr_y + i['y'], tr_fontSize, tr_rot, side, "center", False, i['mirror'], '', True]
-            # ###########
-            # # textValue
-            # textValue = re.search(r'\(fp_text value\s+(.*)', i['data'], re.MULTILINE|re.DOTALL).groups()[0]
-            # [tv_x, tv_y, tv_rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', textValue).groups()
-            # tv_layer = re.search(r'\(layer\s+(.+?)\)', textValue).groups()[0]
-            # tv_fontSize = re.search(r'\(font\s+(\(size\s+(.+?) .+?\)|)', textValue).groups()[0]
-            # tv_visibility = re.search(r'\(layer\s+.+?\)\s+(hide|)', textValue).groups()[0]
-            # tv_value  = re.search(r'^(".+?"|.+?)\s', textValue).groups()[0].replace('"', '')
-            # #
-            # tv_x = float(tv_x)
-            # tv_y = float(tv_y) * (-1)
-            # if tv_rot == '':
-                # tv_rot = i['rot']
-            # else:
-                # tv_rot = float(tv_rot)
-            
-            # if tv_fontSize == '':
-                # tv_fontSize = 0.7
-            # else:
-                # tv_fontSize = float(tv_fontSize.split()[1])
-            
-            # if tv_visibility == 'hide':
-                # tv_visibility = False
-            # else:
-                # tv_visibility = True
-            
-            # EL_Value = [tv_value, tv_x + i['x'], tv_y + i['y'], tv_fontSize, tv_rot, side, "center", False, i['mirror'], '', tv_visibility]
-            # ###########
-            # ###########
-            # newPart = [[i['name'], i['package'], i['value'], i['x'], i['y'], i['rot'], side, i['library']], EL_Name, EL_Value]
-            # parts.append(newPart)
-        # ###########
-        # return parts

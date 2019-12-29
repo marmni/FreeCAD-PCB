@@ -422,6 +422,7 @@ class PCBannotation(_DraftObject):
         obj.addProperty("App::PropertyEnumeration", "Side", "Placement", "Side").Side = 0
         
         obj.setEditorMode("MapMode", 2)
+        obj.setEditorMode("Label", 2)
         obj.setEditorMode("Placement", 2)
         
         obj.Justification = alignParam
@@ -432,13 +433,14 @@ class PCBannotation(_DraftObject):
         obj.Proxy = self
     
     def __getstate__(self):
-        return [self.Type, self.block, self.react]
+        return [self.Type, self.block, self.react, self.mode]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
             self.block  = state[1]
             self.react = state[2]
+            self.mode = state[3]
     
     def textAlign(self):
         FreeCAD.Console.PrintWarning("{0}\n".format(self.alignParam))
@@ -589,31 +591,41 @@ class PCBannotation(_DraftObject):
         return ret
     
     def onChanged(self, fp, prop):
-        if self.mode == "param" and self.react:
+        fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("MapMode", 2)
+        #
+        if hasattr(fp.Proxy, "mode") and self.mode == "param" and self.react:
             if prop == "String":
                 for i in fp.InList:
                     if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
                         if i.PartName == fp:
                             i.Label = fp.String
         ######################
-        if prop == "Font":  # pre. def. fonts
-            fp.FontFile = fontFile[fp.Font]
-        
-        if self.block:
-            return
-        
-        #FreeCAD.Console.PrintWarning(u"{0}\n".format(prop))
-        if prop == "Justification" or prop == "X" or prop == "Y" or prop == "Rot" or prop == "Spin":
-            self.changeJustification(fp)
-        elif prop == "Z" or prop == "Side":
-            thickness = getPCBheight()
-            if thickness[0]:
-                self.updatePosition_Z(fp, thickness[1])
-            else:
-                self.updatePosition_Z(fp, 0)
-            self.changeJustification(fp)
-        elif prop == "String" or prop == "FontFile" or prop == "Tracking" or prop == "LineDistance" or prop == "Size":  # pre. def. fonts
-            self.generate(fp)
+        try:
+            if prop == "Font":  # pre. def. fonts
+                fp.FontFile = fontFile[fp.Font]
+            
+            if self.block:
+                return
+            
+            #FreeCAD.Console.PrintWarning(u"{0}\n".format(prop))
+            if prop == "Justification" or prop == "X" or prop == "Y" or prop == "Rot" or prop == "Spin":
+                self.changeJustification(fp)
+            elif prop == "Z" or prop == "Side":
+                thickness = getPCBheight()
+                if thickness[0]:
+                    self.updatePosition_Z(fp, thickness[1])
+                else:
+                    self.updatePosition_Z(fp, 0)
+                self.changeJustification(fp)
+            elif prop == "String" or prop == "FontFile" or prop == "Tracking" or prop == "LineDistance" or prop == "Size":  # pre. def. fonts
+                if prop == "String" and fp.String == "":
+                    fp.String = " "
+                
+                self.generate(fp)
+        except Exception as e:
+            pass
         
     def changeJustification(self, fp):
         try:
@@ -755,32 +767,9 @@ class PCBannotation(_DraftObject):
                 fp.Placement.Base.z = 0
             
         except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            pass
 
-# class PCBannotation_Object(PCBannotation):
-    # def __init__(self, obj):
-        # PCBannotation.__init__(self, obj)
-        
-        # obj.setEditorMode("Z", 0)
-    
-    # def onChanged(self, fp, prop):
-        # try:
-            # fp.setEditorMode("Placement", 2)
-            # fp.setEditorMode("Z", 0)
-        # except:
-            # pass
-        
-        # try:
-            # if prop == "Side":
-                # self.changeSide(fp)
-            # elif prop in ["Z"]:
-                # self.changeSide(fp)
-            # elif prop in ["X", "Y"]:
-                # self.changePos(fp)
-            # elif prop == "Rot":
-                # self.rotateZ(fp)
-        # except:
-            # pass
 
 class viewProviderPCBannotation:
     def __init__(self, obj):

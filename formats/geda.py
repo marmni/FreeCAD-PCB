@@ -209,7 +209,44 @@ class gEDA_PCB(mathFunctions):
                             # package = attr.getAttribute('value').strip()
                         # else:
                             # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
-            #
+                elif i[0] == 'VALUE':
+                    if not i[1].strip() == "":
+                        k['value'] = i[1].strip()
+                        
+                        k['EL_Value'] = {
+                            "text": "VALUE",
+                            "x": k['txtX'] + k['x'] + 0.5,
+                            "y": -k['txtY'] + k['y'] + 0.5,
+                            "z": 0,
+                            "size": k['txtSize'],
+                            "rot": k['rot'],
+                            "side": k['side'],
+                            "align": "bottom-center",
+                            "spin": True,
+                            "font": "Fixed",
+                            "display": True,
+                            "distance": 1,
+                            "tracking": 0,
+                            "mode": 'param'
+                        }
+            ####################################
+            k['EL_Name'] = {
+                "text": "NAME",
+                "x": k['txtX'] + k['x'] - 0.5,
+                "y": k['txtY'] + k['y'] - 0.5,
+                "z": 0,
+                "size": k['txtSize'],
+                "rot": k['rot'],
+                "side": k['side'],
+                "align": "top-left",
+                "spin": True,
+                "font": "Fixed",
+                "display": True,
+                "distance": 1,
+                "tracking": 0,
+                "mode": 'param'
+            }
+            ####################################
             parts.append(k)
         #
         return parts
@@ -539,7 +576,7 @@ class gEDA_PCB(mathFunctions):
                     'name': data[2], 
                     'library': "", 
                     'package': data[3], 
-                    'value': data[3], 
+                    'value': '', 
                     'x': self.setUnit(data[4]), 
                     'y': 0 - self.setUnit(data[5]), 
                     'locked': locked,
@@ -547,7 +584,10 @@ class gEDA_PCB(mathFunctions):
                     'smashed': False, 
                     'rot': int(data[8]) * 90, 
                     'side': side,
-                    'dataElement': i
+                    'dataElement': i,
+                    'txtX': self.setUnit(data[6]), 
+                    'txtY': 0 - self.setUnit(data[7]),
+                    'txtSize': (float(data[9]) * 1.016) / 100, # 1.016 == 40mils (default size)
                 })
 
     def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):

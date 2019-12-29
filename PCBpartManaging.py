@@ -424,7 +424,8 @@ class partsManaging(mathFunctions):
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
-            step_model.Rot = newPart['rot'] # after setting X/Y
+            if not self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+                step_model.Rot = newPart['rot'] # after setting X/Y
             if newPart["side"] == "BOTTOM":
                 step_model.Side = newPart["side"]
             step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
@@ -489,6 +490,24 @@ class partsManaging(mathFunctions):
             annotation.Font = newPart['EL_Name']["font"]
             annotation.Visibility = newPart['EL_Name']["display"]
             annotation.mode = newPart['EL_Name']["mode"]
+            #
+            if adjustParts:
+                paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Name')
+                if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
+                    try:
+                        [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        annotation.X = x
+                        annotation.Y = y
+                        annotation.Z = paramData[0].z + step_model.Socket.Value
+                        annotation.Color = eval(paramData[0].color)
+                        annotation.Visibility = paramData[0].display
+                        annotation.Size = paramData[0].size
+                        annotation.Align = paramData[0].align
+                        annotation.Rot = paramData[0].rz + newPart['rot']
+                        annotation.Spin = paramData[0].spin
+                    except Exception as e:
+                        print(e)
+            #
             annotation.generate(False)
             step_model.PartName = annotation.Annotation
         except:
@@ -529,10 +548,32 @@ class partsManaging(mathFunctions):
             annotation.Font = newPart['EL_Value']["font"]
             annotation.Visibility = newPart['EL_Value']["display"]
             annotation.mode = newPart['EL_Value']["mode"]
+            #
+            if adjustParts:
+                paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Value')
+                if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
+                    try:
+                        [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        annotation.X = x
+                        annotation.Y = y
+                        annotation.Z = paramData[0].z + step_model.Socket.Value
+                        annotation.Color = eval(paramData[0].color)
+                        annotation.Visibility = paramData[0].display
+                        annotation.Size = paramData[0].size
+                        annotation.Align = paramData[0].align
+                        annotation.Rot = paramData[0].rz + newPart['rot']
+                        annotation.Spin = paramData[0].spin
+                    except Exception as e:
+                        print(e)
+            #
             annotation.generate(False)
             step_model.PartValue = annotation.Annotation
         except:
             pass
+        ##################################################################
+        #step_model.Rot = newPart['rot'] # after setting X/Y
+        if self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+            step_model.Rot = newPart['rot'] # after setting X/Y
         ##################################################################
         result.append(step_model)
         self.addPartToGroup(groupParts, step_model)
@@ -893,7 +934,7 @@ class partsManaging(mathFunctions):
         
         try:
             databaseType = self.databaseType
-            if databaseType in ['kicad_v3', 'kicad_v4']:
+            if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
             
             #

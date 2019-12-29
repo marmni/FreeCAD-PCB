@@ -167,22 +167,24 @@ class partObject(partsObject):
                     except:
                         pass
                 elif prop == 'Rot':
-                    if fp.Side == "TOP": # TOP
-                        i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
-                        [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
-                    else: # BOTTOM
-                        i.Rot.Value = i.Rot.Value - (fp.Rot.Value - self.oldROT)
-                        [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
-                    
-                    i.X.Value = x
-                    i.Y.Value = y
+                    if hasattr(fp, "Side"):
+                        if fp.Side == "TOP": # TOP
+                            i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
+                            [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
+                        else: # BOTTOM
+                            i.Rot.Value = i.Rot.Value - (fp.Rot.Value - self.oldROT)
+                            [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
+                        
+                        i.X.Value = x
+                        i.Y.Value = y
                 elif prop == 'Side':
-                    if i.Side.lower() == "top":
-                        i.Side = "BOTTOM"
-                    else:
-                        i.Side = "TOP"
-                    
-                    i.X.Value = self.odbijWspolrzedne(i.X.Value, fp.X.Value) # mirror i.X.Value by Y axis
+                    if hasattr(i, "Side"):
+                        if i.Side == "TOP":
+                            i.Side = "BOTTOM"
+                        else:
+                            i.Side = "TOP"
+                        
+                        i.X.Value = self.odbijWspolrzedne(i.X.Value, fp.X.Value) # mirror i.X.Value by Y axis
         ################################################################
         try:
             if prop == "Rot":
@@ -1178,7 +1180,10 @@ class layerSilkObject(objectWire):
         obj.Proxy = self
     
     def __getstate__(self):
-        return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
+        try:
+            return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
+        except:
+            return [self.Type, None, self.defHeight, self.side, Part.Shape().exportBrepToString()]
         
     def __setstate__(self, state):
         self.Type = state[0]

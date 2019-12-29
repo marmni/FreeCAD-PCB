@@ -57,30 +57,30 @@ spisKolorowSTP = {
 #*                                                                          *
 #****************************************************************************
 #  def. categories fo models for assign window
-modelsCategories = {
-        1: ['Capacitors', ''],
-        2: ['Resistors', ''],
-        3: ['Relays', ''],
-        4: ['Rectifiers', ''],
-        5: ['Heatsinks', ''],
-        6: ['Crystals', ''],
-        7: ['Diodes', ''],
-        8: ['Led', ''],
-        9: ['Buzzers', ''],
-        10: ['Goldpins', ''],
-        11: ['Jumpers', ''],
-        12: ['Packages', ''],
-        13: ['con-phoenix', ''],
-        14: ['Varistors', ''],
-        15: ["Connectors", ""],
-        16: ["Potentiometers", ""],
-        17: ["Batteries", ""],
-        18: ["con-harting", ""],
-        19: ["Packages-*BGA", ""],
-        20: ["Display", ""],
-        21: ["Switch-dil", ""],
-        22: ["Inductor", ""]
-    }
+# modelsCategories = {
+        # 1: ['Capacitors', ''],
+        # 2: ['Resistors', ''],
+        # 3: ['Relays', ''],
+        # 4: ['Rectifiers', ''],
+        # 5: ['Heatsinks', ''],
+        # 6: ['Crystals', ''],
+        # 7: ['Diodes', ''],
+        # 8: ['Led', ''],
+        # 9: ['Buzzers', ''],
+        # 10: ['Goldpins', ''],
+        # 11: ['Jumpers', ''],
+        # 12: ['Packages', ''],
+        # 13: ['con-phoenix', ''],
+        # 14: ['Varistors', ''],
+        # 15: ["Connectors", ""],
+        # 16: ["Potentiometers", ""],
+        # 17: ["Batteries", ""],
+        # 18: ["con-harting", ""],
+        # 19: ["Packages-*BGA", ""],
+        # 20: ["Display", ""],
+        # 21: ["Switch-dil", ""],
+        # 22: ["Inductor", ""]
+    # }
 ############
 
 #  default pcb color
@@ -95,7 +95,8 @@ PCB_COLOR = getFromSettings_Color('boardColor', 1437204735)
 partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod\PCB\parts"), os.path.join(__currentPath__, "parts")]
 
 #  default software list
-defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
+#defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
+defSoftware = ['Eagle', 'KiCad', 'FreePCB', 'gEDA', 'IDF']  # do not change order!
 
 #########################
 exportData = {

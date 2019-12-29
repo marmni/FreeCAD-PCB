@@ -180,7 +180,7 @@ class IDFv2_PCB(mathFunctions):
             for i in [" ".join(data[i:i+2]) for i in range(0, len(data), 2)]:
                 param = re.findall(r'(".*?"|.*?)[\s|\n]+', i + "\n", re.DOTALL)
                 if len(param) > 1:
-                    parts.append({
+                    dataO = {
                         'name': param[2].replace('"', ''), 
                         'library': param[1].replace('"', ''), 
                         'package': param[0].replace('"', ''), 
@@ -193,7 +193,43 @@ class IDFv2_PCB(mathFunctions):
                         'rot': float(param[5]), 
                         'side': param[6],
                         'dataElement': i + "__"
-                    })
+                    }
+                    
+                    dataO['EL_Name'] = {
+                        "text": "NAME",
+                        "x": dataO['x'] - 2,
+                        "y": dataO['y'] + 2,
+                        "z": 0,
+                        "size": 1.27,
+                        "rot": dataO['rot'],
+                        "side": dataO['side'],
+                        "align": "bottom-left",
+                        "spin": True,
+                        "font": "Fixed",
+                        "display": True,
+                        "distance": 1,
+                        "tracking": 0,
+                        "mode": 'param'
+                    }
+                    
+                    dataO['EL_Value'] = {
+                        "text": "VALUE",
+                        "x": dataO['x'] - 2,
+                        "y": dataO['y'] - 2,
+                        "z": 0,
+                        "size": 1.27,
+                        "rot": dataO['rot'],
+                        "side": dataO['side'],
+                        "align": "bottom-left",
+                        "spin": True,
+                        "font": "Fixed",
+                        "display": False,
+                        "distance": 1,
+                        "tracking": 0,
+                        "mode": 'param'
+                    }
+                    #
+                    parts.append(dataO)
         except:
             pass
         #

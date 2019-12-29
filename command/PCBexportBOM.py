@@ -81,6 +81,7 @@ class createCentroid_Gui(QtGui.QDialog):
         packageFooter.setContentsMargins(10, 0, 10, 10)
         # report
         self.reportPrev = QtGui.QTextEdit()
+        self.reportPrev.setReadOnly(True)
     
         ########
         centerLay = QtGui.QGridLayout()
@@ -99,22 +100,7 @@ class createCentroid_Gui(QtGui.QDialog):
         self.showReport()
         
     def showReport(self):
-        txt = '''Report Origin = (0.0, 0.0)
-Units used = "mm"
-"RefDes","Layer","LocationX","LocationY","Rotation"
-
-'''
-        pcb = getPCBheight()
-        if pcb[0]:
-            for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    try:
-                        partName = i.PartName.String
-                    except:
-                        partName = ""
-                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(partName, i.Side, i.X, i.Y, i.Rot % 360)
-        
-        self.reportPrev.setPlainText(txt)
+        self.reportPrev.setPlainText(generateCentroidReport())
 
     def accept(self):
         try:
@@ -290,6 +276,27 @@ class exportBOM_Gui(QtGui.QDialog):
 #***********************************************************************
 #*                             CONSOLE
 #***********************************************************************
+
+def lJ(value):
+    return str(value).ljust(18)
+
+def generateCentroidReport():
+    txt = '''Report Origin = (0.0, 0.0)
+Units used = "mm"
+
+'''
+    txt += '{0}{1}{2}{3}{4}\n'.format(lJ("RefDes"), lJ("Layer"), lJ("X"), lJ("Y"), lJ("Rotation"))
+    pcb = getPCBheight()
+    if pcb[0]:
+        for i in pcb[2].Group:
+            if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                try:
+                    partName = i.PartName.String
+                except:
+                    partName = ""
+                txt += '{0}{1}{2}{3}{4}\n'.format(lJ(partName), lJ(i.Side), lJ(i.X), lJ(i.Y), lJ(i.Rot % 360))
+    return txt
+
 class createCentroid(QtGui.QDialog):
     def __init__(self):
         self.fileFormat = 'txt'
@@ -303,23 +310,7 @@ class createCentroid(QtGui.QDialog):
                 fileName = fileName + '.txt'
             
             self.files = codecs.open(fileName, "w", "utf-8")
-            #
-            self.files.write('Report Origin = (0.0, 0.0)\n')
-            self.files.write('Units used = "mm"\n')
-            self.files.write('"RefDes","Layer","LocationX","LocationY","Rotation"\n')
-            self.files.write('\n')
-            
-            pcb = getPCBheight()
-            if pcb[0]:
-                for i in pcb[2].Group:
-                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                        try:
-                            partName = i.PartName.String
-                        except:
-                            partName = ""
-                        
-                        self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(partName, i.Side, i.X, i.Y, i.Rot % 360))
-            #
+            self.files.write(generateCentroidReport())
             self.files.close()
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))

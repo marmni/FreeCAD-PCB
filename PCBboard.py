@@ -211,6 +211,7 @@ class PCBboardObject:
     def __init__(self, obj):
         self.Type = 'PCBboard'
         obj.setEditorMode("Placement", 2)
+        obj.setEditorMode("Label", 2)
         #  board
         obj.addProperty("App::PropertyFloatConstraint", "Thickness", "PCB", "Thickness").Thickness = (1.6, 0.5, 10, 0.5)
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
@@ -238,8 +239,8 @@ class PCBboardObject:
         fp.Group += [obj]
         
     def onChanged(self, fp, prop):
-        #print(prop)
         fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
         #
         if prop == "Shape":
             self.getHoles(fp)

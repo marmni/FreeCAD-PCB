@@ -436,7 +436,7 @@ class kolorWarstwy(QtGui.QPushButton):
             QPushButton
             {
                 border: 1px solid #000;
-                background-color: rgb(255, 0, 0);
+                background-color: rgb(255, 255, 255);
                 margin: 1px;
             }
         ''')
@@ -547,9 +547,9 @@ class importScriptCopy(QtGui.QDialog):
         self.tabs.setTabPosition(QtGui.QTabWidget.West)
         self.tabs.setObjectName('tabs_widget')
         self.tabs.addTab(self.tabCategories(), u'Models')
-        self.tabs.addTab(self.tabSettings(), u'FreeCAD settings')
+        #self.tabs.addTab(self.tabSettings(), u'FreeCAD settings')
         self.tabs.setTabEnabled(0, False)
-        self.tabs.setTabEnabled(1, False)
+        #self.tabs.setTabEnabled(1, False)
         
         # buttons
         buttons = QtGui.QDialogButtonBox()
@@ -565,12 +565,20 @@ class importScriptCopy(QtGui.QDialog):
         buttonsLayout.addWidget(buttons)
         buttonsLayout.setContentsMargins(0, 0, 0, 0)
         
+        # settings
+        self.importFcSettings = QtGui.QCheckBox("Import FreeCAD settings")
+        self.importFcSettings.setDisabled(True)
+        
+        settingsLay = QtGui.QVBoxLayout()
+        settingsLay.addWidget(self.importFcSettings)
+        
         # main layout
         lay = QtGui.QGridLayout(self)
         lay.addWidget(filePathFrame, 0, 0, 1, 1)
-        lay.addWidget(self.tabs, 1, 0, 1, 1)
-        lay.addWidget(buttonsFrame, 2, 0, 1, 1)
-        lay.setRowStretch(1, 10)
+        lay.addLayout(settingsLay, 1, 0, 1, 1)
+        lay.addWidget(self.tabs, 2, 0, 1, 1)
+        lay.addWidget(buttonsFrame, 3, 0, 1, 1)
+        lay.setRowStretch(2, 10)
         lay.setContentsMargins(5, 5, 5, 5)
         
         #loadingGif = QtGui.QMovie('C:/Users/marmn/Desktop/FreeCAD_0.18.14495_Conda_Py3QT5-WinVS2016_x64/Mod/PCB/data/loading.gif')
@@ -691,6 +699,10 @@ class importScriptCopy(QtGui.QDialog):
         
     def accept(self):
         self.showLoading()
+        #################
+        if self.importFcSettings.isChecked():
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").Import(os.path.join(self.tmpDir, "freecad_pcb_settings.FCParam"))
+        #################
         categoriesID = {}  # OLD_ID : [[], NEW_ID]
         socketsID = {}
         
@@ -806,9 +818,13 @@ class importScriptCopy(QtGui.QDialog):
     def showInfoF(self, item, num):
         self.showInfo.setText(item.data(0, QtCore.Qt.UserRole + 3))
         
-    def tabSettings(self):
-        tab = QtGui.QWidget()
-        return tab
+    # def tabSettings(self):
+        # tab = QtGui.QWidget()
+        # return tab
+ 
+    def importParameters(self):
+        if self.importSettings['settings']:
+            self.importFcSettings.setDisabled(False)
  
     def importDataBase(self):
         if self.importSettings['database']:
@@ -822,7 +838,7 @@ class importScriptCopy(QtGui.QDialog):
                 self.originalDatabase.connect()
                 #
                 self.tabs.setTabEnabled(0, True)
-                self.tabs.setTabEnabled(1, False)
+                #self.tabs.setTabEnabled(1, False)
                 self.loadCategoryData(self.importDatabase.getAllcategoriesWithSubCat(), self.categoriesTable, True)
                 self.loadModelsData(self.categoriesTable, 0, True)  # models without category
             except Exception as e:
@@ -974,13 +990,15 @@ class importScriptCopy(QtGui.QDialog):
         self.categoriesTable.clear()
         self.showInfo.setText('')
         self.tabs.setTabEnabled(0, False)
-        self.tabs.setTabEnabled(1, False)
+        #self.tabs.setTabEnabled(1, False)
+        self.importFcSettings.setDisabled(True)
         #
         newDatabase = QtGui.QFileDialog.getOpenFileName(None, u'Choose file to import', os.path.expanduser("~"), '*.zip')
         if newDatabase[0].strip() != '' and self.checkFile(newDatabase[0].strip()):
             self.filePath.setText(newDatabase[0])
             #
             self.showLoading()
+            self.importParameters()
             self.importDataBase()
             self.hideLoading()
             
@@ -1012,7 +1030,6 @@ class prepareScriptCopy(QtGui.QDialog):
         self.optionSaveModels = QtGui.QCheckBox("Models")
         self.optionSaveModels.setDisabled(True)
         self.optionSaveFreecadSettings = QtGui.QCheckBox("FreeCAD settings")
-        self.optionSaveFreecadSettings.setDisabled(True)
         
         self.path = QtGui.QLineEdit(os.path.expanduser("~"))
         self.path.setReadOnly(True)
@@ -1124,7 +1141,7 @@ class prepareScriptCopy(QtGui.QDialog):
             self.printInfo("<br><span style='color:rgb(0, 0, 0);'>Copy FreeCAD settings:&nbsp;</span>")
             if self.optionSaveFreecadSettings.isChecked():
                 data = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
-                data.Export(os.path.join(mainPath, 'freecad_pcb_settings.fcparam'))
+                data.Export(os.path.join(mainPath, 'freecad_pcb_settings.FCParam'))
                 
                 self.printInfo("<span style='color:rgb(0, 255, 0);'>done</span>")
             else:
