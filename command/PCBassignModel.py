@@ -37,6 +37,7 @@ from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScri
 from PCBcategories import addCategoryGui, removeCategoryGui, updateCategoryGui, setOneCategoryGui, categorySelector
 from PCBpartManaging import partExistPath, partsManaging
 from PCBobjects import *
+from command.PCBannotations import createAnnotation
 __currentPath__ = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -1334,6 +1335,23 @@ class dodajElement(QtGui.QDialog, partsManaging):
             
             self.modelPreview = self.getPartShape(path, self.modelPreview, True)
             self.modelPreview.ViewObject.DiffuseColor = self.modelPreview.ViewObject.DiffuseColor
+            # annotation = createAnnotation()
+            # annotation.X = 0
+            # annotation.Y = 0
+            # annotation.Z = 4.07
+            # annotation.Side = "TOP"
+            # annotation.Rot = 0
+            # annotation.Text = "TEST"
+            # annotation.Align = "bottom-left"
+            # annotation.Size = 1.27
+            # annotation.Spin = True
+            # annotation.tracking = 0
+            # annotation.lineDistance = 1
+            # annotation.Color = (1., 0.0, 0.0)
+            # annotation.Font = "Vector"
+            # annotation.Visibility = True
+            # annotation.mode = "param"
+            # annotation.generatePreview()
             FreeCAD.ActiveDocument.recompute()
             
             #FreeCADGui.SendMsgToActiveView("ViewFit")

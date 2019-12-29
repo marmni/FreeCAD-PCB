@@ -495,10 +495,13 @@ class partsManaging(mathFunctions):
                 paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Name')
                 if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
                     try:
-                        [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        if newPart["side"] == "TOP":
+                            [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        else:
+                            [x, y] = self.obrocPunkt2([-paramData[0].x + step_model.X.Value, -paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], -newPart['rot'])
                         annotation.X = x
                         annotation.Y = y
-                        annotation.Z = paramData[0].z + step_model.Socket.Value
+                        annotation.Z = paramData[0].z + step_model.Socket.Value + pcb[1]
                         annotation.Color = eval(paramData[0].color)
                         annotation.Visibility = paramData[0].display
                         annotation.Size = paramData[0].size
@@ -553,10 +556,13 @@ class partsManaging(mathFunctions):
                 paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Value')
                 if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
                     try:
-                        [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        if newPart["side"] == "TOP":
+                            [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        else:
+                            [x, y] = self.obrocPunkt2([-paramData[0].x + step_model.X.Value, -paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], -newPart['rot'])
                         annotation.X = x
                         annotation.Y = y
-                        annotation.Z = paramData[0].z + step_model.Socket.Value
+                        annotation.Z = paramData[0].z + step_model.Socket.Value + pcb[1]
                         annotation.Color = eval(paramData[0].color)
                         annotation.Visibility = paramData[0].display
                         annotation.Size = paramData[0].size

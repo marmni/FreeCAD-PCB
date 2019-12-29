@@ -562,6 +562,11 @@ class pcbToolBar(pcbToolBarMain):
         elif hasattr(sel[0], "Proxy") and hasattr(sel[0].Proxy, "Type") and not sel[0].Proxy.Type in ["PCBpart"]:
             FreeCAD.Console.PrintWarning("Wrong part type selected.\n")
             return
+        
+        pcb = getPCBheight()
+        if not pcb[0]:
+            FreeCAD.Console.PrintWarning("PCB not found.\n")
+            return
         #
         sql = dataBase()
         sql.connect()
@@ -572,10 +577,12 @@ class pcbToolBar(pcbToolBarMain):
         if packageData:
             modelData = sql.getModelByID(packageData.modelID)
             if modelData[0]:
-                [mX, mY, mROT] = [model.X.Value, model.Y.Value, model.Rot.Value]
+                
+                [mX, mY, mROT, mSIDE] = [model.X.Value, model.Y.Value, model.Rot.Value, model.Side]
                 model.X.Value = 0
                 model.Y.Value = 0
                 model.Rot.Value = 0
+                model.Side = "TOP"
                 ###############################
                 modelData = modelData[1]
                 # NAME
@@ -586,9 +593,9 @@ class pcbToolBar(pcbToolBarMain):
                     table = {
                         'active': True,
                         'display': str(nameParam.ViewObject.Visibility),
-                        'x': nameParam.X.Value - model.X.Value,
+                        'x': model.X.Value - nameParam.X.Value,
                         'y': nameParam.Y.Value - model.Y.Value,
-                        'z': nameParam.Z.Value - model.Socket.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value - pcb[1],
                         'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
                         'size': nameParam.Size,
                         'color': nameParam.ViewObject.ShapeColor,
@@ -609,9 +616,9 @@ class pcbToolBar(pcbToolBarMain):
                     table = {
                         'active': True,
                         'display': str(nameParam.ViewObject.Visibility),
-                        'x': nameParam.X.Value - model.X.Value,
+                        'x': model.X.Value - nameParam.X.Value,
                         'y': nameParam.Y.Value - model.Y.Value,
-                        'z': nameParam.Z.Value - model.Socket.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value - pcb[1],
                         'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
                         'size': nameParam.Size,
                         'color': nameParam.ViewObject.ShapeColor,
@@ -628,6 +635,7 @@ class pcbToolBar(pcbToolBarMain):
                 model.X.Value = mX
                 model.Y.Value = mY
                 model.Rot.Value = mROT
+                model.Side = mSIDE
             
     def addAnnotation(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:

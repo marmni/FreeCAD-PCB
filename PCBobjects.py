@@ -172,7 +172,7 @@ class partObject(partsObject):
                             i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
                             [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
                         else: # BOTTOM
-                            i.Rot.Value = i.Rot.Value - (fp.Rot.Value - self.oldROT)
+                            i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
                             [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
                         
                         i.X.Value = x

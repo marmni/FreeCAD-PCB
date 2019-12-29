@@ -613,12 +613,12 @@ class PCBannotation(_DraftObject):
             if prop == "Justification" or prop == "X" or prop == "Y" or prop == "Rot" or prop == "Spin":
                 self.changeJustification(fp)
             elif prop == "Z" or prop == "Side":
-                thickness = getPCBheight()
-                if thickness[0]:
-                    self.updatePosition_Z(fp, thickness[1])
-                else:
-                    self.updatePosition_Z(fp, 0)
+                #thickness = getPCBheight()
                 self.changeJustification(fp)
+                # if thickness[0]:
+                    # self.updatePosition_Z(fp, thickness[1])
+                # else:
+                    # self.updatePosition_Z(fp, 0)
             elif prop == "String" or prop == "FontFile" or prop == "Tracking" or prop == "LineDistance" or prop == "Size":  # pre. def. fonts
                 if prop == "String" and fp.String == "":
                     fp.String = " "
@@ -751,7 +751,7 @@ class PCBannotation(_DraftObject):
                     self.przX = fp.Shape.BoundBox.XLength
                     self.przY = fp.Shape.BoundBox.YLength
             
-            if fp.Side.lower() == "top":
+            if fp.Side == "TOP":
                 rotY = 0
                 rotZ = fp.Rot.Value
             else:
@@ -765,6 +765,12 @@ class PCBannotation(_DraftObject):
             
             if str(fp.Placement.Base.z) == "nan":
                 fp.Placement.Base.z = 0
+            #
+            thickness = getPCBheight()
+            if thickness[0]:
+                self.updatePosition_Z(fp, thickness[1])
+            else:
+                self.updatePosition_Z(fp, 0)
             
         except Exception as e:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
