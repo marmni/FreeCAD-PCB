@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -108,7 +108,7 @@ class createDrillcenter_Gui(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle(u"Create drill center")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/drill-icon.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/drilling.svg"))
         #
         self.holeSize = QtGui.QDoubleSpinBox()
         self.holeSize.setValue(0.4)

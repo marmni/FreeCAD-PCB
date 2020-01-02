@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -62,6 +62,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Create drilling map")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/drilling.svg"))
         #
         # Output file format
         self.formatList = QtGui.QComboBox()
@@ -89,7 +90,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         packageFooter.setContentsMargins(10, 0, 10, 10)
         # header
         icon = QtGui.QLabel('')
-        icon.setPixmap(QtGui.QPixmap(":/data/img/drill-icon.png"))
+        icon.setPixmap(QtGui.QPixmap(":/data/img/drilling1.svg"))
         
         headerWidget = QtGui.QWidget()
         headerWidget.setStyleSheet("padding: 10px; border-bottom: 1px solid #dcdcdc; background-color:#FFF;")

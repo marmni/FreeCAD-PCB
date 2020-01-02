@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -128,7 +128,7 @@ class updateParts(partsManaging):
         partsManaging.__init__(self)
         self.form = updateWizardWidget()
         self.form.setWindowTitle('Update model')
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/updateModels.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         self.updateModel = updateModel
         
         self.setDatabase()

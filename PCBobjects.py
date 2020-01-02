@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -231,6 +231,45 @@ class partObject_E(partsObject):
         obj.setEditorMode("Rot", 1)
         obj.setEditorMode("Label", 2)
         obj.setEditorMode("Socket", 1)
+    
+    def onChanged(self, fp, prop):
+        fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Package", 1)
+        fp.setEditorMode("Side", 1)
+        fp.setEditorMode("X", 1)
+        fp.setEditorMode("Y", 1)
+        fp.setEditorMode("Rot", 1)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("Socket", 1)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("PartName", 1)
+        fp.setEditorMode("PartValue", 1)
+        fp.setEditorMode("Package", 1)
+        #######
+        if prop in ['Rot']:
+            for i in fp.OutList:
+                if prop == 'Rot':
+                    if hasattr(fp, "Side"):
+                        if fp.Side == "TOP": # TOP
+                            i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
+                            [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], fp.Rot.Value - self.oldROT)
+                        else: # BOTTOM
+                            i.Rot.Value = i.Rot.Value + (fp.Rot.Value - self.oldROT)
+                            [x, y] = self.obrocPunkt2([i.X.Value, i.Y.Value], [fp.X.Value, fp.Y.Value], -(fp.Rot.Value - self.oldROT))
+                        
+                        i.X.Value = x
+                        i.Y.Value = y
+        #
+        try:
+            if prop == "Label":
+                try:
+                    fp.PartName.Proxy.react = False
+                    fp.PartName.String = fp.Label
+                    fp.PartName.Proxy.react = True
+                except:
+                    pass
+        except:
+            pass
 
 
 
@@ -336,63 +375,7 @@ class viewProviderPartObject:
         #   License:    Creative Commons Attribution-Noncommercial 3.0
         #   Iconset:    Mono Icon Set
         #***************************************************************
-        return '''
-/* XPM */
-static char * C:\\Users\\mariusz\\Desktop\\logo_xpm[] = {
-"62 40 12 1",
-" 	c None",
-".	c #717171",
-"+	c #737373",
-"@	c #000000",
-"#	c #060606",
-"$	c #020202",
-"%	c #747474",
-"&	c #FCFCFC",
-"*	c #FFFFFF",
-"=	c #FDFDFD",
-"-	c #FEFEFE",
-";	c #070707",
-"                                                              ",
-"                                                              ",
-"               ...+                                           ",
-"              ....  @                                         ",
-"             ....  @@@@@                                      ",
-"            ....  @@@@@@@@                                    ",
-"           ....  @@@@@@@@@@@@                                 ",
-"          ....  @@@@@@@@@@@@@@@                               ",
-"         ....  @@@@@@@@@@@@@@@@@@@                            ",
-"        ....  @@@@@@@@@@@@@@@@@@@@@@#                         ",
-"       ....  @@@@@@@@@@@@@@@@@@@@@@@@@@                       ",
-"      ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@$                    ",
-"     ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                  ",
-"    ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               ",
-"   ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@             ",
-"  ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@          ",
-"       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        ",
-" . %   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@      ",
-" .        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  ..   ",
-"   &*       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...   ",
-"     &**       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  . ",
-"       ***       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  .. ",
-"         =***       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  ..  ",
-"            ***-      @@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  ..   ",
-"               ***   ;   @@@@@@@@@@@@@@@@@@@@@@@@ +...  ..    ",
-"                 ***-      $@@@@@@@@@@@@@@@@@@@@ +...  ..     ",
-"                    ***       @@@@@@@@@@@@@@@@@ +...  ..      ",
-"                      ****       @@@@@@@@@@@@@ +...  ..       ",
-"                         ***       @@@@@@@@@@ +...  ..        ",
-"                           ****       @@@@@@ +...  ..         ",
-"                              ***       @@@ +...  ..          ",
-"                                ****        ...  ..           ",
-"                                   ***       .  ..            ",
-"                                     ****      ..             ",
-"                                        *** .. .              ",
-"                                            ..                ",
-"                                             .                ",
-"                                                              ",
-"                                                              ",
-"                                                              "};
-'''
+        return ":/data/img/modelOK.svg"
 
 
 class viewProviderPartObject_E:
@@ -423,7 +406,7 @@ class viewProviderPartObject_E:
             return [self.Object.PartName, self.Object.PartValue]
         except AttributeError:
             return []
-
+        
     def updateData(self, fp, prop):
         ''' If a property of the handled feature has changed we have the chance to handle this here '''
         return
@@ -466,61 +449,8 @@ class viewProviderPartObject_E:
         #   License:    Creative Commons Attribution-Noncommercial 3.0
         #   Iconset:    Mono Icon Set
         #***************************************************************
-        return """
-/* XPM */
-static char * C:\\Users\\mariusz\\Downloads\\Desktop\\logo2_xpm[] = {
-"62 40 9 1",
-" 	c None",
-".	c #717171",
-"+	c #737373",
-"@	c #FF0000",
-"#	c #747474",
-"$	c #FCFCFC",
-"%	c #FFFFFF",
-"&	c #FDFDFD",
-"*	c #FEFEFE",
-"                                                              ",
-"                                                              ",
-"               ...+                                           ",
-"              ....  @                                         ",
-"             ....  @@@@@                                      ",
-"            ....  @@@@@@@@                                    ",
-"           ....  @@@@@@@@@@@@                                 ",
-"          ....  @@@@@@@@@@@@@@@                               ",
-"         ....  @@@@@@@@@@@@@@@@@@@                            ",
-"        ....  @@@@@@@@@@@@@@@@@@@@@@@                         ",
-"       ....  @@@@@@@@@@@@@@@@@@@@@@@@@@                       ",
-"      ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                    ",
-"     ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                  ",
-"    ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               ",
-"   ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@             ",
-"  ....  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@          ",
-"       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        ",
-" . #   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@      ",
-" .        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  ..   ",
-"   $%       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...   ",
-"     $%%       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  . ",
-"       %%%       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  .. ",
-"         &%%%       @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  ..  ",
-"            %%%*      @@@@@@@@@@@@@@@@@@@@@@@@@@@@ +...  ..   ",
-"               %%%   @   @@@@@@@@@@@@@@@@@@@@@@@@ +...  ..    ",
-"                 %%%*      @@@@@@@@@@@@@@@@@@@@@ +...  ..     ",
-"                    %%%       @@@@@@@@@@@@@@@@@ +...  ..      ",
-"                      %%%%       @@@@@@@@@@@@@ +...  ..       ",
-"                         %%%       @@@@@@@@@@ +...  ..        ",
-"                           %%%%       @@@@@@ +...  ..         ",
-"                              %%%       @@@ +...  ..          ",
-"                                %%%%        ...  ..           ",
-"                                   %%%       .  ..            ",
-"                                     %%%%      ..             ",
-"                                        %%% .. .              ",
-"                                            ..                ",
-"                                             .                ",
-"                                                              ",
-"                                                              ",
-"                                                              "};
-
-"""
+        return ":/data/img/modelNOK.svg"
+        
 #####################################
 #####################################
 #####################################

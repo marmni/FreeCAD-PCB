@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -519,6 +519,7 @@ class importScriptCopy(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'Import database')
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         
         self.archiveFile = None
         self.tmpDir = None
@@ -1024,7 +1025,7 @@ class prepareScriptCopy(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u"Save database copy")
-        self.setWindowIcon(QtGui.QIcon(":/data/img/databaseExport.png"))
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         self.optionSaveDatabase = QtGui.QCheckBox("Database")
         self.optionSaveModels = QtGui.QCheckBox("Models")

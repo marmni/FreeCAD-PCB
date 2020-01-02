@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -50,6 +50,7 @@ class createCentroid_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Centroid")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/centroid.svg"))
         #
         # Output directory
         self.pathToFile = QtGui.QLineEdit('')
@@ -60,7 +61,7 @@ class createCentroid_Gui(QtGui.QDialog):
         QtCore.QObject.connect(zmianaSciezki, QtCore.SIGNAL("pressed ()"), self.zmianaSciezkiF)
         # header
         icon = QtGui.QLabel('')
-        icon.setPixmap(QtGui.QPixmap(":/data/img/exportBOM.png"))
+        icon.setPixmap(QtGui.QPixmap(":/data/img/exportBOM1.png"))
         
         headerWidget = QtGui.QWidget()
         headerWidget.setStyleSheet("padding: 10px; border-bottom: 1px solid #dcdcdc; background-color:#FFF;")

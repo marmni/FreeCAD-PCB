@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -109,7 +109,8 @@ class exportPCB_Gui(QtGui.QWizard):
         QtGui.QWizard.__init__(self, parent)
 
         self.setWindowTitle(u"Export PCB")
-        self.setPixmap(QtGui.QWizard.LogoPixmap, QtGui.QPixmap(":/data/img/exportPCB.png"))
+        #self.setPixmap(QtGui.QWizard.LogoPixmap, QtGui.QPixmap(":/data/img/exportPCB.png"))
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         self.exportType = eagle()
         ###
         self.addPage(self.formatPliku())

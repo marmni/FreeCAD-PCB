@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -112,6 +112,7 @@ class setOneCategoryGui(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'Set one category for all selected models')
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         self.parentCategory = categorySelector()
         # buttons
@@ -138,6 +139,7 @@ class addCategoryGui(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'Add new category')
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         self.categoryName = QtGui.QLineEdit('')
         self.categoryName.setStyleSheet('background-color:#FFF;')
@@ -186,6 +188,7 @@ class updateCategoryGui(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u'Update category')
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         self.categoryName = QtGui.QLineEdit('')
         self.categoryName.setStyleSheet('background-color:#FFF;')

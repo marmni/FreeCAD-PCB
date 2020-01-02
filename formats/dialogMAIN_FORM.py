@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -56,6 +56,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
 
         self.setWindowTitle(u"PCB settings")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #self.setCursor(QtGui.QCursor(QtCore.Qt.WhatsThisCursor))
         #
         self.plytkaPCB = QtGui.QCheckBox(u"Board")
@@ -163,6 +164,9 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.connect(self.selectAll, QtCore.SIGNAL("clicked()"), self.selectAllCategories)
         #
         self.debugImport = QtGui.QCheckBox('Debug import')
+        
+        self.skipEmptyLayers = QtGui.QCheckBox('Skip empty layers')
+        self.skipEmptyLayers.setChecked(freecadSettings.GetBool("skipEmptyLayers", True))
         #
         self.spisWarstw = tabela()
         self.spisWarstw.setColumnCount(6)
@@ -248,9 +252,10 @@ class dialogMAIN_FORM(QtGui.QDialog):
         ##############################################
         mainWidgetLeftSide = QtGui.QWidget()
         layLeftSide = QtGui.QGridLayout(mainWidgetLeftSide)
-        layLeftSide.addWidget(self.spisWarstw, 0, 0, 1, 2)
+        layLeftSide.addWidget(self.spisWarstw, 0, 0, 1, 3)
         layLeftSide.addWidget(self.selectAll, 1, 0, 1, 1)
-        layLeftSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Expanding), 1, 1, 1, 1)
+        layLeftSide.addWidget(self.skipEmptyLayers, 1, 1, 1, 1)
+        layLeftSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Expanding), 1, 2, 1, 1)
         #
         mainWidgetRightSide = QtGui.QWidget()
         layRightSide = QtGui.QGridLayout(mainWidgetRightSide)

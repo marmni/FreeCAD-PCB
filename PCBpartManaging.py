@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -448,7 +448,8 @@ class partsManaging(mathFunctions):
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
-            step_model.Rot = newPart['rot'] # after setting X/Y
+            if not self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+                step_model.Rot = newPart['rot'] # after setting X/Y
             if newPart["side"] == "BOTTOM":
                 step_model.Side = newPart["side"]
             step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
@@ -491,7 +492,7 @@ class partsManaging(mathFunctions):
             annotation.Visibility = newPart['EL_Name']["display"]
             annotation.mode = newPart['EL_Name']["mode"]
             #
-            if adjustParts:
+            if adjustParts and step_model.Proxy.Type == "PCBpart":
                 paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Name')
                 if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
                     try:
@@ -513,7 +514,7 @@ class partsManaging(mathFunctions):
             #
             annotation.generate(False)
             step_model.PartName = annotation.Annotation
-        except:
+        except Exception as e:
             pass
         ##################################################################
         ## part value object
@@ -552,7 +553,7 @@ class partsManaging(mathFunctions):
             annotation.Visibility = newPart['EL_Value']["display"]
             annotation.mode = newPart['EL_Value']["mode"]
             #
-            if adjustParts:
+            if adjustParts and step_model.Proxy.Type == "PCBpart":
                 paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Value')
                 if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
                     try:
@@ -979,7 +980,7 @@ class partsManaging(mathFunctions):
 
                     #return [True, path, '', modelSoft, -1]; 
             #################
-            package = self.__SQL__.findPackage(package, supSoftware[databaseType]['name'])
+            package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
             
             if package:
                 modelData = self.__SQL__.getModelByID(package.modelID)

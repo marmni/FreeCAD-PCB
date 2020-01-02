@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -40,7 +40,6 @@ from PCBpartManaging import partsManaging
 from PCBdataBase import dataBase
 from command.PCBassignModel import dodajElement
 from command.PCBexplode import *
-from command.PCBwire import *
 from command.PCBexport import exportPCB_Gui
 from command.PCBexportBOM import exportBOM_Gui, createCentroid_Gui
 from command.PCBexportHoles import exportHoles_Gui, exportHolesReport_Gui
@@ -121,7 +120,7 @@ class pcbToolBarView(pcbToolBarMain):
         par = partial(self.changeDisplayMode, 'Wireframe')
         QtCore.QObject.connect(scriptCmd_viewWireframe, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewInternalView = self.createAction(u"Display mode: Internal View", u"Display mode: Internal View", ":/data/img/viewInternalView.png")
+        scriptCmd_viewInternalView = self.createAction(u"Display mode: Internal View", u"Display mode: Internal View", ":/data/img/displayInternalView.png")
         par = partial(self.changeDisplayMode, 'Internal View')
         QtCore.QObject.connect(scriptCmd_viewInternalView, QtCore.SIGNAL("triggered()"), par)
 
@@ -282,11 +281,10 @@ class pcbToolBarView(pcbToolBarMain):
             FreeCADGui.Control.showDialog(exportObjectToPovRayGui())
     
     def Flayers(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            try:
+        pcb = getPCBheight()
+        if FreeCAD.activeDocument() and pcb[0]:
+            if not FreeCADGui.Control.activeDialog():
                 FreeCADGui.Control.showDialog(layersSettings())
-            except Exception as e:
-                pass
 
     def changeDisplayMode(self, mode):
         hidePCB = False
@@ -330,7 +328,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_CreateGluePath = self.createAction(u"Create glue path", u"Create glue path", ":/data/img/gluePath.png")
         QtCore.QObject.connect(scriptCmd_CreateGluePath, QtCore.SIGNAL("triggered()"), self.createGluePath)
  
-        scriptCmd_Assign = self.createAction(u"Assign models", u"Assign models", ":/data/img/uklad.png")
+        scriptCmd_Assign = self.createAction(u"Assign models", u"Assign models", ":/data/img/assignModels.png")
         QtCore.QObject.connect(scriptCmd_Assign, QtCore.SIGNAL("triggered()"), self.assignModels)
         
         scriptCmd_AddModel = self.createAction(u"Add model", u"Add model", ":/data/img/addNewModel.png")
@@ -475,19 +473,19 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportBOM.setMenu(groupsMenu)
         
         # export drills
-        scriptCmd_ExportHoleLocations = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocations = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
         scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/centroid.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations_2, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
-        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations report", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations report", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocationsReport, QtCore.SIGNAL("triggered()"), self.exportHoleLocationsReport)
         
-        scriptCmd_ExportDrillingMap = self.createAction(u"Create drilling map", u"Create drilling map", ":/data/img/drill-icon.png")
+        scriptCmd_ExportDrillingMap = self.createAction(u"Create drilling map", u"Create drilling map", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportDrillingMap, QtCore.SIGNAL("triggered()"), self.exportDrillingMap)
         
-        scriptCmd_CreateCenteDrill = self.createAction(u"Create drill center", u"Create drill center", ":/data/img/drill-icon.png")
+        scriptCmd_CreateCenteDrill = self.createAction(u"Create drill center", u"Create drill center", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_CreateCenteDrill, QtCore.SIGNAL("triggered()"), self.createCenteDrill)
         
         groupsMenu = QtGui.QMenu(self)
@@ -508,16 +506,10 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_NextPackage = self.createAction(u"Next package", u"Next package", ":/data/img/next_16x16.png")
         QtCore.QObject.connect(scriptCmd_NextPackage, QtCore.SIGNAL("triggered()"), self.wyszukajObiektyNext)
         ##########
-        scriptCmd_addWirePointStartEnd = self.createAction(u"Add wire Start-End point", u"Add wire Start-End point", ":/data/img/convert_16x16.png")
-        QtCore.QObject.connect(scriptCmd_addWirePointStartEnd, QtCore.SIGNAL("triggered()"), self.addWirePointStartEnd)
-        
-        scriptCmd_addWirePoint = self.createAction(u"Add wire point", u"Add wire point", ":/data/img/convert_16x16.png")
-        QtCore.QObject.connect(scriptCmd_addWirePoint, QtCore.SIGNAL("triggered()"), self.addWirePoint)
-        ##########
-        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation",  ":/data/img/modelAddAnnotation.png")
+        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation",  ":/data/img/addAnnotation.svg")
         QtCore.QObject.connect(scriptCmd_addAnnotation, QtCore.SIGNAL("triggered()"), self.addAnnotation)
 
-        scriptCmd_storeNameValueAsParam = self.createAction(u"Store Name/Value as param", u"Store Name/Value as param",  ":/data/img/modelAddAnnotationToParam.svg")
+        scriptCmd_storeNameValueAsParam = self.createAction(u"Store Name/Value as param", u"Store Name/Value as param",  ":/data/img/modelAddAnnotation.svg")
         QtCore.QObject.connect(scriptCmd_storeNameValueAsParam, QtCore.SIGNAL("triggered()"), self.storeNameValueAsParam)
         ##########
         self.addAction(scriptCmd_Export)
@@ -544,9 +536,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_PreviousPackage)
         self.addWidget(self.wyszukajElementy)
         self.addAction(scriptCmd_NextPackage)
-        #self.addSeparator()
-        #self.addAction(scriptCmd_addWirePointStartEnd)
-        #self.addAction(scriptCmd_addWirePoint)
+        #
         self.addToolBar(self)
     
     def storeNameValueAsParam(self):
@@ -639,23 +629,9 @@ class pcbToolBar(pcbToolBarMain):
             
     def addAnnotation(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(createAnnotation_Gui())
-        
-        # obj = FreeCAD.ActiveDocument.addObject("Part::Part2DObjectPython","ShapeString")
-        # PCBannotation(obj)
-        # obj.String = ["ser", "kolo"]
-        # obj.Proxy.mode = 'anno'
-        # obj.Justification = "bottom-left"
-        # viewProviderPCBannotation(obj.ViewObject)
-        # Draft.formatObject(obj)
-        # obj.recompute()
-        
-    def addWirePointStartEnd(self):
-        wireStartEndPoint()
-    
-    def addWirePoint(self):
-        wirePoint()
-        
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createAnnotation_Gui())
+
     def exportHoleLocations(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             exportHoles_Gui().exec_()
@@ -737,7 +713,8 @@ class pcbToolBar(pcbToolBarMain):
         
     def createGluePath(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(createGlueGui())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createGlueGui())
             
     def createPCB_F(self):
         if FreeCAD.activeDocument():
@@ -751,7 +728,8 @@ class pcbToolBar(pcbToolBarMain):
                     form.pcbBorder.setText(FreeCADGui.Selection.getSelection()[0].Name)
                     if len(FreeCADGui.Selection.getSelection()) > 1 and FreeCADGui.Selection.getSelection()[1].isDerivedFrom("Sketcher::SketchObject"):
                         form.pcbHoles.setText(FreeCADGui.Selection.getSelection()[1].Name)
-            FreeCADGui.Control.showDialog(form)
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(form)
 
     def addAllGroups(self):
         ''' add to current document all groups '''
@@ -802,7 +780,8 @@ class pcbToolBar(pcbToolBarMain):
         doc = FreeCAD.activeDocument()
         if doc and len(doc.Objects):
             panel = explodeWizard()
-            FreeCADGui.Control.showDialog(panel)
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(panel)
             
     def wyszukajObiektyNext(self):
         ''' find next object '''
@@ -863,7 +842,8 @@ class pcbToolBar(pcbToolBarMain):
     def addModel(self):
         ''' add model from library to project '''
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(addModel())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(addModel())
 
     def assignModels(self):
         ''' assign 3d models to packages '''
@@ -875,10 +855,12 @@ class pcbToolBar(pcbToolBarMain):
     def updateModels(self):
         ''' update 3d models of packages '''
         if FreeCAD.activeDocument():
-            FreeCADGui.Control.showDialog(updateParts())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(updateParts())
     
     def downloadModels(self):
-        FreeCADGui.Control.showDialog(downloadModelW())
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(downloadModelW())
         
     def showPCBBoundingBox(self):
         boundingBox()

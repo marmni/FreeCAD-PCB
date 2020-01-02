@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -57,7 +57,7 @@ class downloadModelW(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #
         self.form = self
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/downloadModels.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         if searchPhrase:
             self.form.setWindowTitle('Download model for {0}'.format(searchPhrase))

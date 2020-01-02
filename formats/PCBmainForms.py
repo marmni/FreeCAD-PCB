@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -40,7 +40,7 @@ import time
 #
 import PCBconf
 from PCBpartManaging import partsManaging
-from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1
+from PCBfunctions import kolorWarstwy, mathFunctions
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
@@ -162,7 +162,7 @@ class mainPCB(partsManaging):
                 self.printInfo("\nImporting layer '{0}': ".format(layerName))
                 try:
                     if layerFunction in ["silk", "pads", "paths"]:
-                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked())
+                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked())
                     elif layerFunction == "measures":
                         self.generateDimensions(doc, grp, layerName, layerColor, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
                     elif layerFunction == "glue":
@@ -174,7 +174,7 @@ class mainPCB(partsManaging):
                 except Exception as e:
                     self.printInfo('{0}'.format(e), 'error')
                 else:
-                    self.printInfo('done')
+                    self.printInfo('\n\tdone')
     
     def importParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
         self.printInfo('\nImporting parts: ')
@@ -225,7 +225,7 @@ class mainPCB(partsManaging):
             glue.generate()
             #glue.recompute()
     
-    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles):
+    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers):
         layerName = "{0}_{1}".format(layerNameO, layerNumber)
         #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
         layerType = [layerName]
@@ -249,10 +249,16 @@ class mainPCB(partsManaging):
         #
         pcb = getPCBheight()
         #
+        if skipEmptyLayers and not(layerS.Proxy.spisObiektowTXT):
+            self.printInfo("\n\tLayer is empty", 'error')
+            FreeCAD.ActiveDocument.removeObject(layerS.Label)
+            return
+        #
         layerNew.generuj(layerS)
         layerNew.updatePosition_Z(layerS, pcb[1])
         viewProviderLayerSilkObject(layerS.ViewObject)
         layerS.ViewObject.ShapeColor = layerColor
+        #
         grp.addObject(layerS)
         #
         pcb[2].Proxy.addObject(pcb[2], layerS)

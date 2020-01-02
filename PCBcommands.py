@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -41,7 +41,8 @@ from command.PCBDownload import downloadModelW
 class cmdExplodeEdit:
     def Activated(self):
         panel = explodeEditWizard(FreeCADGui.Selection.getSelection()[0])
-        FreeCADGui.Control.showDialog(panel)
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(panel)
     
     def GetResources(self):
         return {'MenuText': 'Edit', 'ToolTip': 'Edit Explode', 'Pixmap'  : ":/data/img/explode.png"}
@@ -59,7 +60,7 @@ class cmdPartAssignModel:
         dial.exec_()
     
     def GetResources(self):
-        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model', 'Pixmap'  : ':/data/img/uklad.png'}
+        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model', 'Pixmap'  : ':/data/img/assignModels.png'}
 
 FreeCADGui.addCommand('cmdPartAssignModel', cmdPartAssignModel())
 ###############################################
@@ -70,7 +71,8 @@ FreeCADGui.addCommand('cmdPartAssignModel', cmdPartAssignModel())
 class cmdPartUpdateModel:
     def Activated(self):
         panel = updateParts(updateModel=FreeCADGui.Selection.getSelection()[0].Package)
-        FreeCADGui.Control.showDialog(panel)
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(panel)
         
     def GetResources(self):
         return {'MenuText': 'Update model', 'ToolTip': 'Update model', 'Pixmap'  : ":/data/img/updateModels.png"}
@@ -84,7 +86,8 @@ FreeCADGui.addCommand('cmdPartUpdateModel', cmdPartUpdateModel())
 class cmdPartMoveModel:
     def Activated(self):
         panel = moveParts(FreeCADGui.Selection.getSelection()[0].Package)
-        FreeCADGui.Control.showDialog(panel)
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(panel)
         
     def GetResources(self):
         return {'MenuText': 'Placement model', 'ToolTip': 'Placement model', 'Pixmap'  : ":/data/img/centroid.svg"}
@@ -100,7 +103,8 @@ FreeCADGui.addCommand('cmdPartMoveModel', cmdPartMoveModel())
 
 class cmdPartFindModel:
     def Activated(self):
-        FreeCADGui.Control.showDialog(downloadModelW(FreeCADGui.Selection.getSelection()[0].Package))
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(downloadModelW(FreeCADGui.Selection.getSelection()[0].Package))
         
     def GetResources(self):
         return {'MenuText': 'Find model on-line', 'ToolTip': 'Find model on-line', 'Pixmap'  : ":/data/img/downloadModels.png"}

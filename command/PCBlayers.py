@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -31,85 +31,7 @@ import FreeCAD
 from collections import OrderedDict
 #
 from PCBconf import PCBlayers, PCBconstraintAreas
-
-#***********************************************************************
-#*                             CONSOLE
-#***********************************************************************
-def listTXT():
-    PCBlayers["Parts"] = [2, [0, 0, 0], None, ['PCBpart'], "Parts"]
-    PCBlayers["Parts Name"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_name'], "Parts Name"]
-    PCBlayers["Parts Value"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_value'], "Parts Value"]
-    
-    for i, j in PCBconstraintAreas.items():
-        PCBlayers[j[0]] = [2, [0, 0, 0], None, j[1], j[4]]
-    
-    FreeCAD.Console.PrintWarning(u"****************\n")
-    FreeCAD.Console.PrintWarning(u"Available layers:\n")
-    for i, j in OrderedDict(sorted(PCBlayers.items(), key=lambda t: t[0])).items():
-        FreeCAD.Console.PrintWarning(u"Layer name:{0} ; Layer ID: {1}\n".format(i, ', '.join(j[3])))
-    FreeCAD.Console.PrintWarning(u"****************\n")
-    
-    return ''
-
-def list():
-    data = {}
-    
-    PCBlayers["Parts"] = [2, [0, 0, 0], None, ['PCBpart'], "Parts"]
-    PCBlayers["Parts Name"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_name'], "Parts Name"]
-    PCBlayers["Parts Value"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_value'], "Parts Value"]
-    
-    for i, j in PCBconstraintAreas.items():
-        PCBlayers[j[0]] = [2, [0, 0, 0], None, j[1], j[4]]
-    for i, j in OrderedDict(sorted(PCBlayers.items(), key=lambda t: t[0])).items():
-        data[i] = {'id': j[3], 'info': j[4]}
-    
-    return data
-
-def toggle(TypeId):
-    for i in FreeCAD.activeDocument().Objects:
-        if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
-            if 'PCBannotation' in i.Proxy.Type and i.Proxy.mode != 'anno':
-                if len(TypeId) > 1 and i.Proxy.Type == TypeId[:1] and i.Proxy.mode == TypeId[1]:
-                    if i.ViewObject.Visibility:
-                        i.ViewObject.Visibility = False
-                    else:
-                        i.ViewObject.Visibility = True
-            elif i.Proxy.Type == TypeId:
-                if i.ViewObject.Visibility:
-                    i.ViewObject.Visibility = False
-                else:
-                    i.ViewObject.Visibility = True
-
-def state(TypeId):
-    for i in FreeCAD.activeDocument().Objects:
-        if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
-            if 'PCBannotation' in i.Proxy.Type and i.Proxy.mode != 'anno':
-                if len(TypeId) > 1 and i.Proxy.Type == TypeId[:1] and i.Proxy.mode == TypeId[1]:
-                    return i.ViewObject.Visibility
-            elif i.Proxy.Type == TypeId:
-                return i.ViewObject.Visibility
-    
-def display(TypeId):
-    for i in FreeCAD.activeDocument().Objects:
-        if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
-            FreeCAD.Console.PrintWarning("{0} \n".format(i.Proxy.Type))
-            FreeCAD.Console.PrintWarning("{0} \n".format(TypeId))
-            FreeCAD.Console.PrintWarning("\n")
-            
-            if 'PCBannotation' in i.Proxy.Type and i.Proxy.mode != 'anno':
-                if len(TypeId) > 1 and i.Proxy.Type == TypeId[:1] and i.Proxy.mode == TypeId[1]:
-                    i.ViewObject.Visibility = True
-            elif i.Proxy.Type == TypeId:
-                i.ViewObject.Visibility = True
-
-def blank(TypeId):
-    for i in FreeCAD.activeDocument().Objects:
-        if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
-            if 'PCBannotation' in i.Proxy.Type and i.Proxy.mode != 'anno':
-                if len(TypeId) > 1 and i.Proxy.Type == TypeId[:1] and i.Proxy.mode == TypeId[1]:
-                    i.ViewObject.Visibility = False
-            elif i.Proxy.Type == TypeId:
-                i.ViewObject.Visibility = False
+from PCBboard import getPCBheight
 
 #***********************************************************************
 #*                               GUI
@@ -119,16 +41,22 @@ class przycisk(QtGui.QPushButton):
         QtGui.QPushButton.__init__(self, parent)
 
         self.setFlat(True)
+        self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.setStyleSheet('''
                 QPushButton
                 {
                     border: 0px;
-                    margin-top: 2px;
-                    width: 15px;
-                    height: 15px;
+                    margin-top: 1px;
+                    width: 20px;
+                    height: 20px;
+                    padding:1px;
+                }
+                QPushButton:hover:!pressed
+                {
+                    border: 1px solid #808080; 
+                    background-color: #e6e6e6;
                 }
             ''')
-        #self.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
 
 
 class layersSettings(QtGui.QWidget):
@@ -139,55 +67,83 @@ class layersSettings(QtGui.QWidget):
         self.form.setWindowTitle(u"Layers settings")
         self.form.setWindowIcon(QtGui.QIcon(":/data/img/layers_TI.svg"))
         #
-        nr = 0
-        
-        lay = QtGui.QGridLayout()
-        PCBlayers["Parts"] = [2, [0, 0, 0], None, 'PCBpart', "Parts"]
-        PCBlayers["Parts Name"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_name'], "Parts Name"]
-        PCBlayers["Parts Value"] = [2, [0, 0, 0], None, ['PCBannotation', 'anno_value'], "Parts Value"]
-        
+        self.layerslist = {}
         #
-        for i, j in PCBconstraintAreas.items():
-            PCBlayers[j[0]] = [2, [0, 0, 0], None, j[1], j[4]]
-        for i, j in OrderedDict(sorted(PCBlayers.items(), key=lambda t: t[0])).items():
-            infoPrz = przycisk()
-            infoPrz.setToolTip(u"Info")
-            infoPrz.setIcon(QtGui.QIcon(":/data/img/info_16x16.png"))
-            par = partial(self.showInfo, j[4])
-            self.connect(infoPrz, QtCore.SIGNAL("clicked ()"), par)
-            
-            showAll = przycisk()
-            showAll.setToolTip(u"Show All")
-            showAll.setIcon(QtGui.QIcon(":/data/img/visible.svg"))
-            par = partial(self.showAll, j[3])
-            self.connect(showAll, QtCore.SIGNAL("clicked ()"), par)
-                
-            hideAll = przycisk()
-            hideAll.setToolTip(u"Hide All")
-            hideAll.setIcon(QtGui.QIcon(":/data/img/invisible.svg"))
-            par = partial(self.hideAll, j[3])
-            self.connect(hideAll, QtCore.SIGNAL("clicked ()"), par)
-            #
-            lay.addWidget(QtGui.QLabel(i), nr, 0, 1, 1)
-            lay.addWidget(showAll, nr, 1, 1, 1)
-            lay.addWidget(hideAll, nr, 2, 1, 1)
-            lay.addWidget(infoPrz, nr, 3, 1, 1)
-            #
-            nr += 1
-        #
-        lay.setColumnStretch(0, 10)
-        self.setLayout(lay)
+        self.mainLay = QtGui.QGridLayout()
+        pcb = getPCBheight()
+        try:
+            if FreeCAD.activeDocument() and pcb[0]:
+                for i in pcb[2].Group:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type"):
+                        if isinstance(i.Proxy.Type, str):
+                            if i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                                if i.Proxy.Type == "PCBpart":
+                                    if not "Parts" in self.layerslist.keys():
+                                        self.layerslist["Parts"] = []
+                                    
+                                    self.layerslist["Parts"].append(i)
+                                #
+                                if not "Parts Name" in self.layerslist.keys():
+                                    self.layerslist["Parts Name"] = []
+                                
+                                if i.PartName:
+                                    self.layerslist["Parts Name"].append(i.PartName)
+                                #
+                                if not "Parts Value" in self.layerslist.keys():
+                                    self.layerslist["Parts Value"] = []
+                                
+                                if i.PartValue:
+                                    self.layerslist["Parts Value"].append(i.PartValue)
+                            elif i.Proxy.Type == "ShapeString" and i.Proxy.mode == "anno":
+                                if not "Annotations" in self.layerslist.keys():
+                                    self.layerslist["Annotations"] = []
+                                
+                                self.layerslist["Annotations"].append(i)
+                        elif isinstance(i.Proxy.Type, list):
+                            if "layer" in i.Proxy.Type:
+                                if not "All layers" in self.layerslist.keys():
+                                    self.layerslist["All layers"] = []
+                                
+                                self.layerslist["All layers"].append(i)
+                                #
+                                if not i.Proxy.Type[-1] in self.layerslist.keys():
+                                    self.layerslist[i.Label] = []
+                                
+                                self.layerslist[i.Label].append(i)
+                ####
+                nr = 0
+                for i in self.layerslist.keys():
+                    self.addRow(i, nr)
+                    nr += 1
+        except Exception as e:
+            print(e)
+        
+        self.mainLay.setColumnStretch(0, 10)
+        self.setLayout(self.mainLay)
     
-    def showInfo(self, info):
-        dial = QtGui.QMessageBox(self)
-        dial.setText(info)
-        dial.setWindowTitle("Info")
-        dial.setIcon(QtGui.QMessageBox.Information)
-        dial.addButton('Ok', QtGui.QMessageBox.RejectRole)
-        dial.exec_()
-        
+    def addRow(self, value, nr):
+        showAll = przycisk()
+        showAll.setToolTip(u"Show All")
+        showAll.setIcon(QtGui.QIcon(":/data/img/visible.svg"))
+        par = partial(self.showAll, value)
+        self.connect(showAll, QtCore.SIGNAL("clicked ()"), par)
+        #
+        hideAll = przycisk()
+        hideAll.setToolTip(u"Hide All")
+        hideAll.setIcon(QtGui.QIcon(":/data/img/invisible.svg"))
+        par = partial(self.hideAll, value)
+        self.connect(hideAll, QtCore.SIGNAL("clicked ()"), par)
+        #
+        self.mainLay.addWidget(QtGui.QLabel(value), nr, 0, 1, 1)
+        self.mainLay.addWidget(showAll, nr, 1, 1, 1)
+        self.mainLay.addWidget(hideAll, nr, 2, 1, 1)
+    
     def showAll(self, objType):
-        display(objType)
-        
+        if objType in self.layerslist.keys():
+            for i in self.layerslist[objType]:
+                i.ViewObject.Visibility = True
+
     def hideAll(self, objType):
-        blank(objType)
+        if objType in self.layerslist.keys():
+            for i in self.layerslist[objType]:
+                i.ViewObject.Visibility = False

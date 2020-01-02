@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -51,6 +51,7 @@ class exportHoles_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Export hole locations")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/centroid.svg"))
         #
         # Output file format
         self.formatList = QtGui.QComboBox()
@@ -241,7 +242,7 @@ class exportHolesReport_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Export hole locations report")
-        
+        self.setWindowIcon(QtGui.QIcon(":/data/img/drilling.svg"))
         # Output directory
         self.pathToFile = QtGui.QLineEdit('')
         self.pathToFile.setReadOnly(True)

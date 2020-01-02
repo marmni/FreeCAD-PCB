@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -26,8 +26,10 @@
 #****************************************************************************
 import os.path
 import shutil
+import copy
 import configparser
 import json
+import FreeCAD
 from PySide import QtCore, QtGui
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Boolean, Float
@@ -37,9 +39,6 @@ from sqlalchemy.engine import reflection
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, backref
 import PCBcheckFreeCADVersion
-
-
-import FreeCAD
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
 Base = declarative_base()
@@ -324,11 +323,30 @@ class dataBase:
                 dial.exec_()
                 #
                 self.cfg2db(databasePath)
-            
+            #
+            self.packagesChangeSoftware("IDF v3", "IDF")
+            #
             FreeCAD.Console.PrintWarning("Read database\n")
         except Exception as e:
             return False
         return True
+    
+    def packagesChangeSoftware(self, dataFrom, dataTo):
+        try:
+            dataFrom = self.clearString(dataFrom)
+            dataTo = self.clearString(dataTo)
+            
+            query = self.session.query(Packages).filter(Packages.software == dataFrom)
+            if query.count():
+                data =[]
+                for i in query:
+                    data.append(self.convertToTable(i))
+                
+                for i in data:
+                    i["software"] = dataTo
+                    self.updatePackage(i["id"], i)
+        except Exception as e:
+            print(e)
     
     def clearString(self, value, errors="replace"):
         ''' @Jeremy Banks http://stackoverflow.com/questions/6514274/how-do-you-escape-strings-for-sqlite-table-column-names-in-python '''
@@ -405,6 +423,18 @@ class dataBase:
             return False
             
         return query[0]
+    
+    def getPackagesBySoftware(self, param):
+        try:
+            query = self.session.query(Packages).filter(Packages.software == str(param))
+            
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return []
         
     def getPackagesByModelID(self, param):
         try:
@@ -491,6 +521,34 @@ class dataBase:
         except Exception as e:
             FreeCAD.Console.PrintWarning("ERROR (GAS): {0} (get all sockets).\n".format(self.errorsDescription(e)))
             return []
+    
+    def packagesConvertFromTo(self, fromParam, toParam, defSoftware):
+        fromParam = self.clearString(fromParam)
+        toParam = self.clearString(toParam)
+        #
+        if fromParam == "" or toParam == "":
+            FreeCAD.Console.PrintWarning("One or more mandatory fields are empty!\n")
+            return
+        elif fromParam == toParam:
+            FreeCAD.Console.PrintWarning("Error: both values are equal!\n")
+            return
+        elif not fromParam in defSoftware or not toParam in defSoftware:
+            FreeCAD.Console.PrintWarning("Error: One or more mandatory fields are incorrect!\n")
+            return
+        #
+        data = []
+        for i in self.getPackagesBySoftware(fromParam):
+            packageData = self.convertToTable(i)
+            
+            query = self.session.query(Packages).filter(Packages.software == toParam, Packages.name == packageData["name"], Packages.modelID == packageData["modelID"])
+            if query.count() == 0:
+                data.append(packageData)
+        
+        for i in data:
+            i["software"] = toParam
+            self.addPackage(i, i["modelID"])
+        #
+        FreeCAD.Console.PrintWarning("Done!\n")
     
     def getAllModels(self):
         return self.session.query(Models)

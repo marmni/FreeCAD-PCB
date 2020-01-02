@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -30,6 +30,7 @@ import os
 import FreeCAD, FreeCADGui, Part
 import glob
 import sys
+import copy
 #
 from PCBdataBase import dataBase
 from PCBconf import defSoftware, partPaths
@@ -44,7 +45,7 @@ __currentPath__ = os.path.dirname(os.path.abspath(__file__))
 class addModelDialog(QtGui.QDialog):
     def __init__(self, mod, parent=None):
         QtGui.QDialog.__init__(self, parent)
-        self.setWindowIcon(QtGui.QIcon(":/data/img/uklad.png"))
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
 
         if mod == 0:
             self.setWindowTitle(u"Add new model")
@@ -169,10 +170,54 @@ class pathChooser(QtGui.QTreeView):
         return super(pathChooser, self).selectionChanged(item1, item2)
 
 
+class packagesCopyConvertD(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QDialog.__init__(self, parent)
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
+        self.setWindowTitle(u"Copy and convert packages")
+        #
+        self.fromC = QtGui.QComboBox()
+        self.fromC.addItems(defSoftware)
+        self.fromC.setCurrentIndex(-1)
+        self.connect(self.fromC, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.updateTolist)
+        #
+        self.toC = QtGui.QComboBox()
+        #
+        buttons = QtGui.QDialogButtonBox()
+        buttons.setOrientation(QtCore.Qt.Horizontal)
+        buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
+        buttons.addButton("Convert", QtGui.QDialogButtonBox.AcceptRole)
+        self.connect(buttons, QtCore.SIGNAL("accepted()"), self, QtCore.SLOT("accept()"))
+        self.connect(buttons, QtCore.SIGNAL("rejected()"), self, QtCore.SLOT("reject()"))
+        #
+        mainLay = QtGui.QGridLayout(self)
+        mainLay.addWidget(QtGui.QLabel('From:    '), 0, 0, 1, 1)
+        mainLay.addWidget(self.fromC, 0, 1, 1, 1)
+        mainLay.addWidget(QtGui.QLabel('To:    '), 0, 2, 1, 1)
+        mainLay.addWidget(self.toC, 0, 3, 1, 1)
+        mainLay.addItem(QtGui.QSpacerItem(1, 15), 1, 0, 1, 4)
+        mainLay.addWidget(buttons, 2, 0, 1, 4)
+        mainLay.setRowStretch(3, 10)
+        mainLay.setColumnStretch(1, 10)
+        mainLay.setColumnStretch(3, 10)
+        #
+        self.updateTolist("")
+        
+    def updateTolist(self, value):
+        self.toC.clear()
+        try:
+            newList = copy.copy(defSoftware)
+            newList.remove(value)
+            self.toC.addItems(newList)
+        except Exception as e:
+            self.toC.addItems(defSoftware) 
+        self.toC.setCurrentIndex(-1)
+
+
 class addNewPath(QtGui.QDialog):
     def __init__(self, lista, parent=None):
         QtGui.QDialog.__init__(self, parent)
-        self.setWindowIcon(QtGui.QIcon(":/data/img/uklad.png"))
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         self.setWindowTitle(u"Paths")
         #
         self.pathChooser = pathChooser(self)
@@ -764,12 +809,20 @@ class flatButton(QtGui.QPushButton):
         self.setFlat(True)
         self.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
 
+
+class flatButtonLarge(flatButton):
+    def __init__(self, icon, tooltip, parent=None):
+        flatButton.__init__(self, icon, tooltip, parent)
+        #
+        self.setIconSize(QtCore.QSize(32, 32))
+
+
 class dodajElement(QtGui.QDialog, partsManaging):
     def __init__(self, parent=None):
         partsManaging.__init__(self)
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(u"Assign models")
-        self.setWindowIcon(QtGui.QIcon(":/data/img/uklad.png"))
+        self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         self.modelPreview = None
         
         self.elementID = None
@@ -1500,16 +1553,16 @@ class dodajElement(QtGui.QDialog, partsManaging):
         #########################
         self.modelSettings = modelSettingsTable()
         
-        modelSettingsAdd = flatButton(":/data/img/add_16x16.png", u"Add")
+        modelSettingsAdd = flatButton(":/data/img/categoryAdd.png", u"Add new package")
         self.connect(modelSettingsAdd, QtCore.SIGNAL("clicked ()"), self.modelSettings.addNewModel)
         
-        modelSettingsDelete = flatButton(":/data/img/delete_16x16.png", u"Delete")
+        modelSettingsDelete = flatButton(":/data/img/categoryDelete.png", u"Delete selected package")
         self.connect(modelSettingsDelete, QtCore.SIGNAL("clicked ()"), self.modelSettings.deleteModel)
         
-        modelSettingsEdit = flatButton(":/data/img/edit_16x16.png", u"Edit")
+        modelSettingsEdit = flatButton(":/data/img/categoryEdit.png", u"Edit selected package")
         self.connect(modelSettingsEdit, QtCore.SIGNAL("clicked ()"), self.modelSettings.editModel)
         
-        modelSettingsCopy = flatButton(":/data/img/copy.png", u"Copy")
+        modelSettingsCopy = flatButton(":/data/img/copy.png", u"Copy selected package")
         self.connect(modelSettingsCopy, QtCore.SIGNAL("clicked ()"), self.modelSettings.copyModel)
 
         ########################
@@ -1623,7 +1676,17 @@ class dodajElement(QtGui.QDialog, partsManaging):
         mainLayRightSide.setContentsMargins(10, 10, 10, 10)
         
         return mainWidgetRightSide
-    
+        
+    def packagesCopyConvertF(self):
+        dial = packagesCopyConvertD(self)
+        if dial.exec_():
+            if dial.toC.currentIndex() == -1 or dial.fromC.currentIndex() == -1:
+                FreeCAD.Console.PrintWarning("One or more mandatory fields are empty!\n")
+            elif dial.toC.currentText() == dial.fromC.currentText():
+                FreeCAD.Console.PrintWarning("Error: both values are equal!\n")
+            else:
+                self.sql.packagesConvertFromTo(dial.fromC.currentText(), dial.toC.currentText(), defSoftware)
+            
     ##########################
     # left menu - options
     ##########################
@@ -1631,15 +1694,17 @@ class dodajElement(QtGui.QDialog, partsManaging):
         ########################
         # database
         ########################
-        modelsListSaveCopy = flatButton(":/data/img/databaseExport.svg", u"Save database copy")
+        modelsListSaveCopy = flatButtonLarge(":/data/img/databaseExport.svg", u"Save database copy")
         self.connect(modelsListSaveCopy, QtCore.SIGNAL("clicked ()"), self.prepareCopy)
         
-        modelsListImportDatabase = flatButton(":/data/img/databaseImport.svg", u"Import database")
+        modelsListImportDatabase = flatButtonLarge(":/data/img/databaseImport.svg", u"Import database")
         self.connect(modelsListImportDatabase, QtCore.SIGNAL("clicked ()"), self.importDatabase)
         
-        modelsListReload = flatButton(":/data/img/databaseReload.svg", u"Reload database")
+        modelsListReload = flatButtonLarge(":/data/img/databaseReload.svg", u"Reload database")
         self.connect(modelsListReload, QtCore.SIGNAL("clicked ()"), self.reloadList)
         
+        packagesCopyConvert = flatButtonLarge(":/data/img/databaseConvert.svg", u"Copy and convert packages")
+        self.connect(packagesCopyConvert, QtCore.SIGNAL("clicked ()"), self.packagesCopyConvertF)
         ########################
         # models list
         ########################
@@ -1655,42 +1720,30 @@ class dodajElement(QtGui.QDialog, partsManaging):
         modelsListDeselectAll = flatButton(":/data/img/checkbox_unchecked_16x16.png", u"Deselect all models")
         self.connect(modelsListDeselectAll, QtCore.SIGNAL("clicked ()"), self.deselectAllModels)
         
-        self.removeModel = flatButton(":/data/img/databaseDeleteModel.svg", u"Delete all selected models from database")
+        self.removeModel = flatButtonLarge(":/data/img/databaseDeleteModel.svg", u"Delete all selected models from database")
         self.removeModel.setDisabled(True)
         self.connect(self.removeModel, QtCore.SIGNAL("clicked ()"), self.deleteModel)
         
-        self.setOneCategoryForModels = flatButton(":/data/img/boundingBoxAll.svg", u"Set one category for all selected models")
+        self.setOneCategoryForModels = flatButtonLarge(":/data/img/modelsSetOneCategory.svg", u"Set one category for all selected models")
         self.setOneCategoryForModels.setDisabled(True)
         self.connect(self.setOneCategoryForModels, QtCore.SIGNAL("clicked ()"), self.setOneCategoryForModelsF)
         
-        self.deleteColFiles = flatButton(":/data/img/deleteColFile.svg", u"Delete *.col files for selected models")
+        self.deleteColFiles = flatButtonLarge(":/data/img/deleteColFile.svg", u"Delete *.col files for selected models")
         self.deleteColFiles.setDisabled(True)
         self.connect(self.deleteColFiles, QtCore.SIGNAL("clicked ()"), self.deleteColFilesF)
         
         ########################
         # categories
         ########################
-        self.editCategory = QtGui.QPushButton("")
-        self.editCategory.setIcon(QtGui.QIcon(":/data/img/edit_16x16.png"))
-        self.editCategory.setToolTip(u"Edit category")
-        self.editCategory.setFlat(True)
+        self.editCategory = flatButtonLarge(":/data/img/categoryEdit.png", u"Edit category")
         self.editCategory.setDisabled(True)
-        self.editCategory.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
         self.connect(self.editCategory, QtCore.SIGNAL("clicked ()"), self.editCategoryF)
         
-        addCategoryButton = QtGui.QPushButton("")
-        addCategoryButton.setIcon(QtGui.QIcon(":/data/img/add_16x16.png"))
-        addCategoryButton.setToolTip(u"Add new category")
-        addCategoryButton.setFlat(True)
-        addCategoryButton.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
+        addCategoryButton = flatButtonLarge(":/data/img/categoryAdd.png", u"Add new category")
         self.connect(addCategoryButton, QtCore.SIGNAL("clicked ()"), self.addCategory)
         
-        self.removeCategory = QtGui.QPushButton("")
-        self.removeCategory.setIcon(QtGui.QIcon(":/data/img/delete_16x16.png"))
-        self.removeCategory.setToolTip(u"Remove category")
-        self.removeCategory.setFlat(True)
+        self.removeCategory = flatButtonLarge(":/data/img/categoryDelete.png", u"Remove category")
         self.removeCategory.setDisabled(True)
-        self.removeCategory.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
         self.connect(self.removeCategory, QtCore.SIGNAL("clicked ()"), self.deleteCategory)
         ########################
         ########################
@@ -1701,6 +1754,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         mainLayLeftSide.addWidget(modelsListDeselectAll)
         mainLayLeftSide.addWidget(separator())
         mainLayLeftSide.addWidget(modelsListReload)
+        mainLayLeftSide.addWidget(packagesCopyConvert)
         mainLayLeftSide.addWidget(modelsListSaveCopy)
         mainLayLeftSide.addWidget(modelsListImportDatabase)
         mainLayLeftSide.addWidget(separator())

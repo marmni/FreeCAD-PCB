@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -36,7 +36,7 @@ from math import pi
 import unicodedata
 #
 from PCBconf import *
-from PCBfunctions import kolorWarstwy, getFromSettings_Color
+from PCBfunctions import kolorWarstwy, getFromSettings_Color_1
 from PCBboard import getPCBheight
 from command.PCBgroups import createGroup_Annotations
 
@@ -153,7 +153,7 @@ class createAnnotation_Gui(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle("Add annotation")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/modelAddAnnotation.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/addAnnotation.svg"))
         #
         self.text = QtGui.QTextEdit('')
         self.text.setFixedHeight(100)
@@ -847,7 +847,7 @@ class viewProviderPCBannotation:
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
         '''
-        return ":/data/img/modelAddAnnotation.png"
+        return ":/data/img/addAnnotation.svg"
 
     def __getstate__(self):
         ''' When saving the document this object gets stored using Python's cPickle module.
