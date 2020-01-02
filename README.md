@@ -16,7 +16,7 @@ Install this workbench via the [FreeCAD Addon Manager](https://github.com/FreeCA
 
 
 ## Feedback
-
+https://github.com/marmni/FreeCAD-PCB
 
 ## Licence
 This program is free software; you can redistribute it and/or modify
