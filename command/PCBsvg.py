@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -43,6 +43,22 @@ class SVG_Object:
             data = '#000000'
         
         return data
+
+
+class SVG_Arc(SVG_Object):
+    def __init__(self):
+        self.p1 = [0.0, 0.0, 0.0]
+        self.p2 = [0.0, 0.0, 0.0]
+        self.color = [0, 0, 0]
+        self.r = 1
+        self.width = 0.1
+        self.direction = 1
+        self.side = 0
+        
+    def __str__(self):
+        return '''
+            <path style="fill:none;stroke:{color};stroke-width:{self.width}px;" d="M {self.p1[0]}, {self.p1[1]} A {self.r}, {self.r} 0 {self.side} {self.direction} {self.p2[0]}, {self.p2[1]}"/>
+        '''.format(self=self, color=self.setColor())
 
 
 class SVG_Line(SVG_Object):

@@ -1,0 +1,141 @@
+/*************************************************************************/
+/* Board Assembly */
+/*************************************************************************/
+IDF_Header (
+Version ("4.0”),
+Creation_Date_Time ("1998/06/05.10:00:00”),
+Owner_Name ("Tom Makoski”),
+Owner_Phone ("513-528-5059”),
+Owner_EMail (" Tom.Makoski@Intermedius.com ”),
+Source_App_Type ("Hand_Generated”),
+Source_App_Vendor ("N/A”),
+Source_App_Name ("N/A”),
+Source_App_Version ("N/A”),
+IDF_Tx_Name ("N/A”),
+IDF_Tx_Version ("N/A”),
+Entity_Count (
+Elec_Part_Defs (0),
+Elec_Part_Insts (5),
+Mech_Part_Defs (0),
+Mech_Part_Insts (1),
+Board_Part_Defs (0),
+Board_Part_Insts (1),
+Board_Assy_Defs (1),
+Board_Assy_Insts (0),
+Panel_Part_Defs (0),
+Panel_Part_Insts (0),
+Panel_Assy_Defs (0),
+Panel_Assy_Insts (0)
+Board_Assy (
+"Board_Assembly”,
+"Board_Part_Instance”,
+"Electrical_Part_Instance”,
+"Mechanical_Part_Instance”,
+"Sublayout”,
+),
+Default_Units ("Inch”),
+Min_Res (0.0005),
+Notes (
+"This file represents a board assembly. ”,
+"It only contains part instances and a sublayout. ”,
+"The corresponding part definitions can be found in the ”,
+"Component Parts and Board Part sample files. It is not ”,
+"unusual for an IDF file to contain component instances, without ”,
+"the corresponding part definitions. However, it is very ”,
+"unusual to have a board part instance without the ”,
+"corresponding board part definition. This is only done ",
+"to make the sample files more readable.”
+)
+); /* End IDF_Header Section */
+/*************************************************************************/
+/* Assemblies Section */
+/*************************************************************************/
+Assemblies (
+/********************************************/
+/* Sample Boa rd Assembly Definition */
+Board_Assembly (
+Entity_ID (#3001),
+Assy_Name ("Sample_Board_Assembly”),
+Part_Number ("PN-357”),
+Units ("Global”),
+Type ("Traditional”),
+Board_Inst (
+Board_Part_Instance ( /* Board Part Instance */
+Entity_ID (#3002),
+Part_Name ("Sample_Board”),
+Refdes ("Unassigned”),
+XY_Loc (0.0, 0.0),
+Rotation (0.0)
+); /* End Board_Part_Instance */
+),
+Comp_Insts (
+Electrical_Part_Instance ( /* U1 - Component Instance */
+Entity_ID (#3003),
+Part_Name ("DIP_8”),
+Part_Number ("PN-2245-D”),
+Refdes ("U1”),
+XY_Loc (0.1, 0.6),
+Side ("Top”),
+Rotation (270.0),
+Footprint (#2088)
+); /* End Electrical_Part_Instance */
+Electrical_Part_Instance ( /* C1 Component Instance */
+Entity_ID (#3004),
+Part_Name ("Cap”),
+Part_Number ("PN-5257-C”),
+Refdes ("C1”),
+XY_Loc (0.3, 0.0),
+Side ("Top”),
+Rotation (90.0),
+Footprint (#2108)
+); /* End Electrical_Part_Instance */
+Electrical_Part_Instance ( /* C2 Component Instance */
+Entity_ID (#3005),
+Part_Name ("Cap”),
+Part_Number ("PN-5257-C”),
+Refdes ("C2”),
+XY_Loc (0.45, 0.0),
+Side ("Top”),
+Rotation (90.0),
+Footprint (#2113)
+); /* End Electrical_Part_Instance */
+Electrical_Part_Instance ( /* C3 Component Instance */
+Entity_ID (#3006),
+Part_Name ("Cap”),
+Part_Number ("PN-5257-C”),
+Refdes ("C3”),
+XY_Loc (0.75, 0.3),
+Side ("Bottom”),
+Rotation (0.0),
+Footprint (#2124)
+); /* End Electrical_Part_Instance */
+Electrical_Part_Instance ( /* J1 Component Instance */
+Entity_ID (#3007),
+Part_Name ("Conn”),
+In_BOM ("False”),
+Refdes ("J1”),
+XY_Loc (0.9, 0.4),
+Side ("Top”),
+Rotation (0.0),
+Footprint (#2118)
+); /* End Electrical_Part_Instance */
+Mechanical_Part_Instance ( /* M1 Component Instance */
+Entity_ID (#3008),
+Part_Name ("Nameplate”),
+Part_Number ("PN-5614-M”),
+Refdes ("M1”),
+XY_Loc (0.6, -0.5),
+Side ("Bottom”),
+Rotation (0.0)
+/* No footprint for M1 */
+); /* End Mechanical_Part_Instance */
+),
+Sublayouts ( /* Sublayouts */
+Sublayout (
+Entity-ID (#3009),
+Comp_Insts (#3004, #3005),
+Footprint (#2129)
+); /* End Sublayout */
+)
+); /* End Board_Assembly */
+); /* End Assemblies Section */

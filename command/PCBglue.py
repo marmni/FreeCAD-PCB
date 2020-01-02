@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -29,11 +29,12 @@ if FreeCAD.GuiUp:
     from PySide import QtGui
 import Part
 from math import degrees
+import importlib
 #
-from PCBobjects import objectWire
+from PCBobjects import layerSilkObject
 from PCBfunctions import kolorWarstwy, mathFunctions
 from command.PCBcreateBoard import pickSketch
-from PCBconf import PCBlayers
+import PCBconf
 from PCBboard import getPCBheight, cutToBoardShape
 from command.PCBgroups import createGroup_Glue
 
@@ -43,6 +44,8 @@ from command.PCBgroups import createGroup_Glue
 #***********************************************************************
 class createGlueGui(QtGui.QWidget):
     def __init__(self, parent=None):
+        importlib.reload(PCBconf)
+        
         QtGui.QWidget.__init__(self, parent)
         
         self.form = self
@@ -82,7 +85,7 @@ class createGlueGui(QtGui.QWidget):
         self.side.addItems(['TOP', 'BOTTOM'])
         #
         self.pcbColor = kolorWarstwy()
-        self.pcbColor.setColor(PCBlayers['tGlue'][1])
+        self.pcbColor.setColor(PCBconf.PCBlayers['tGlue'][1])
         self.pcbColor.setToolTip(u"Click to change color")
         #
         lay = QtGui.QGridLayout(self)
@@ -116,7 +119,10 @@ class createGlueGui(QtGui.QWidget):
             glue.flat = eval(self.flat.currentText())
             glue.color = self.pcbColor.getColor()
             glue.transparent = self.transparent.value()
-            glue.side = self.side.currentText()
+            if self.side.currentText() == "TOP":
+                glue.side = 1
+            else:
+                glue.side = 0
             glue.generate()
             
             return True
@@ -130,7 +136,7 @@ class createGlue:
         self.width = 0.2
         self.height = 1
         self.flat = False
-        self.side = 'TOP'
+        self.side = 1
         #self.color = 
         self.transparent = 0
     
@@ -140,13 +146,14 @@ class createGlue:
         elif not self.base.isDerivedFrom("Sketcher::SketchObject"):
             FreeCAD.Console.PrintWarning("Wrong object!\n")
         #
+        pcb = getPCBheight()
         grp = createGroup_Glue()
-        
-        if self.side == 'TOP':
-            typeL = PCBlayers["tGlue"][3]
-        else:
-            typeL  = PCBlayers["bGlue"][3]
         #
+        if self.side == 1:  # top
+            typeL = PCBconf.PCBlayers["tGlue"][3]
+        else:
+            typeL  = PCBconf.PCBlayers["bGlue"][3]
+        
         a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Glue_{0}".format(0))
         PCBgluePath(a, typeL)
         a.Base = self.base
@@ -156,105 +163,153 @@ class createGlue:
             a.Width = self.width
         a.Height = self.height
         a.Flat = self.flat
+        a.Proxy.Side = self.side
+        a.Proxy.updatePosition_Z(a, pcb[1])
         
         viewProviderPCBgluePath(a.ViewObject)
+        #
         grp.addObject(a)
         FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = self.color
         FreeCADGui.activeDocument().getObject(a.Name).Transparency = self.transparent
-        #
+        # #
         self.base.ViewObject.Visibility = False
+        # #
+        pcb[2].Proxy.addObject(pcb[2], a)
 
 
 #***********************************************************************
 #*                             OBJECT
 #***********************************************************************
-class PCBgluePath(objectWire):
+class PCBgluePath(layerSilkObject):
     def __init__(self, obj, typeName):
         self.Type = typeName
-        obj.Proxy = self
-        self.Object = obj
-        self.cutToBoard = True
         
         obj.addProperty("App::PropertyDistance", "Width", "Base", "Width").Width = 0.1
         obj.addProperty("App::PropertyDistance", "Height", "Base", "Height").Height = 0.2
         obj.addProperty("App::PropertyBool", "Flat", "Base", "Flat").Flat = False
         obj.addProperty("App::PropertyLink", "Base", "Base", "Base")
-
+        obj.addProperty("App::PropertyLength", "Length", "Info", "Length", 1)
+        obj.addProperty("App::PropertyFloat", "Volume", "Info", "Volume", 1)
+        
+        obj.Proxy = self
+        self.Object = obj
+        self.cutToBoard = True
+        self.side = 1  # 0-bottom   1-top   2-both
+    
     def __getstate__(self):
-        return [self.Type, self.cutToBoard]
+        return [self.Type, self.cutToBoard, self.side]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
             self.cutToBoard = state[1]
+            self.side = state[2]
 
-    def updatePosition_Z(self, fp, dummy=None):
-        self.execute(fp)
-        
-    def generuj(self, fp):
-        self.execute(fp)
-
-    def execute(self, obj):
+    def updatePosition_Z(self, fp, thickness):
         if 'tGlue' in self.Type:
-            z = getPCBheight()[1] + 0.04
-            h = obj.Height.Value
-            
-            if h <= 0:
-                h = 0.01
+            fp.Base.Placement.Base.z = thickness + 0.04
+            fp.Placement.Base.z = thickness + 0.04
         else:  # bottomSide
-            z = -0.04
-            h = -obj.Height.Value
+            fp.Base.Placement.Base.z = -0.04
+            fp.Placement.Base.z = -0.04
             
-            if h >= 0:
-                h = -0.01
-        #
-        obiekty = []
-        #
-        for i in obj.Base.Geometry:
-            if i.__class__.__name__ == 'GeomLineSegment':
-                x1 = i.StartPoint.x
-                y1 = i.StartPoint.y
-                x2 = i.EndPoint.x
-                y2 = i.EndPoint.y
-                #
-                obiekty.append(self.createLine(x1, y1, x2, y2, obj.Width.Value))
-            elif i.__class__.__name__ == 'GeomCircle':
-                x = i.Center.x
-                y = i.Center.y
-                r = i.Radius
-                #
-                obiekty.append(self.createCircle(x, y, r, obj.Width.Value))
-            elif i.__class__.__name__ == 'GeomArcOfCircle':
-                curve = degrees(i.LastParameter - i.FirstParameter)
-                xs = i.Center.x
-                ys = i.Center.y
-                r = i.Radius
+        fp.recompute()
+        fp.Base.recompute()
+        fp.purgeTouched()
+        fp.Base.purgeTouched()
+    
+    def countSeamLength(self, obj):
+        obj.Length.Value = 0
+        try:
+            for i in obj.Base.Geometry:
+                if i.Construction:
+                    continue
                 
-                math = mathFunctions()
-                p1 = [math.cosinus(degrees(i.FirstParameter)) * r, math.sinus(degrees(i.FirstParameter)) * r]
-                p1 = [p1[0] + xs, p1[1] + ys]
-                p2 = math.obrocPunkt2(p1, [xs, ys], curve)
-                #
-                obiekty.append(self.createArc(p1, p2, curve, obj.Width.Value))
-        #
-        #path = obiekty[0]
-        #for i in range(1, len(obiekty)):
-            #path = path.fuse(obiekty[i])
-        #path = path.removeSplitter()
-        path = Part.makeCompound(obiekty)
-        # cut to board shape
-        if self.cutToBoard:
-            path = cutToBoardShape(path)
-        ###################################################
-        if obj.Flat == False:
-            path = path.extrude(FreeCAD.Base.Vector(0, 0, h))
-        path.Placement.Base.z = z
-        obj.Shape = path
-
+                obj.Length.Value += i.length()
+        except Exception as e:
+            pass
+            #FreeCAD.Console.PrintWarning("{0}\n".format(e))
+    
+    def execute(self, obj):
+        try:
+            if 'tGlue' in self.Type:
+                h = obj.Height.Value
+                
+                if h <= 0:
+                    h = 0.01
+            else:  # bottomSide
+                h = -obj.Height.Value
+                
+                if h >= 0:
+                    h = -0.01
+            ##
+            self.spisObiektowTXT = []
+            for i in obj.Base.Geometry:
+                if i.Construction:
+                    continue
+                
+                if i.__class__.__name__ == 'LineSegment':
+                    
+                    x1 = i.StartPoint.x
+                    y1 = i.StartPoint.y
+                    x2 = i.EndPoint.x
+                    y2 = i.EndPoint.y
+                    #
+                    self.addLineWidth(x1, y1, x2, y2, obj.Width.Value)
+                    self.setFace(not obj.Flat, h*1000)
+                elif i.__class__.__name__ == 'Circle':
+                    x = i.Center.x
+                    y = i.Center.y
+                    r = i.Radius
+                    #
+                    self.addCircle(x, y, r, 0)
+                    self.setFace(not obj.Flat, h*1000)
+                elif i.__class__.__name__ == 'ArcOfCircle':
+                    curve = degrees(i.LastParameter - i.FirstParameter)
+                    
+                    points = i.discretize(Distance=i.length()/2)
+                    if i.Circle.Axis.z < 0:
+                        p1 = [points[2].x, points[2].y]
+                        p2 = [points[0].x, points[0].y]
+                    else:
+                        p1 = [points[0].x, points[0].y]
+                        p2 = [points[2].x, points[2].y]
+                    p3 = [points[1].x, points[1].y]  # mid point
+                    
+                    self.addArcWidth(p1, p2, curve, obj.Width.Value, p3)
+                    self.setFace(not obj.Flat, h*1000)
+            #
+            if len(self.spisObiektowTXT) > 0:
+                path = Part.makeCompound(self.spisObiektowTXT)
+                # if obj.Flat == False:
+                    # path = path.extrude(FreeCAD.Base.Vector(0, 0, h))
+                obj.Shape = path
+            else:
+                obj.Shape = Part.Shape()
+            
+            obj.recompute()
+            obj.Base.recompute()
+            obj.purgeTouched()
+            obj.Base.purgeTouched()
+            
+            obj.Placement.Base.z = obj.Base.Placement.Base.z
+            obj.Volume = obj.Shape.Volume
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
+        
     def onChanged(self, fp, prop):
+        try:
+            fp.setEditorMode("Length", 1)
+            fp.setEditorMode("Volume", 1)
+        except:
+            pass
+        
         try:
             if prop in ["Width", "Height", "Flat"]:
                 self.execute(fp)
+            
+            if prop in ["Base", "Shape"]:
+                self.countSeamLength(fp)
         except:
             #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass

@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -26,38 +26,32 @@
 #****************************************************************************
 
 import FreeCAD, FreeCADGui
+from Draft import _DraftObject
 if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
+import sys, os
+import Part
 from pivy.coin import *
 from math import pi
 import unicodedata
 #
 from PCBconf import *
-from PCBfunctions import kolorWarstwy
+from PCBfunctions import kolorWarstwy, getFromSettings_Color_1
 from PCBboard import getPCBheight
 from command.PCBgroups import createGroup_Annotations
 
 #***********************************************************************
 #***********************************************************************
-alignParam = ["bottom-left", "bottom-center", "bottom-right", "center-left", "center", "center-right", "top-left", "top-center", "top-right"]
+alignParam = ["bottom-left", "bottom-center", "bottom-right", "center-left", "center" , "center-right", "top-left", "top-center", "top-right"]
 objectSides = ["TOP", "BOTTOM"]
-fonts = ["Hursheys", "Arial", "Modern", "RadioLand", "OCR A Extended"]
-#mirror = ['None', 'Global Y axis', 'Local Y axis', 'Center']
-mirror = ['None', 'Global Y axis', 'Local Y axis']
-
-font = QtGui.QFontDatabase()
-font.addApplicationFont(":/data/fonts/Hursheys.ttf")
-font.addApplicationFont(":/data/fonts/Alexandria.ttf")
-font.addApplicationFont(":/data/fonts/Eligible.ttf")
-font.addApplicationFont(":/data/fonts/RadioLand.ttf")
-font.addApplicationFont(":/data/fonts/ocraextended.ttf")
+fonts = ["Vector", "Fixed", "Proportional"]
+mirror = ['None', 'Global Y axis', 'Local Y axis', 'Center']
+#mirror = ['None', 'Global Y axis', 'Local Y axis']
 
 fontFile = {
-    "Hursheys": ":/data/fonts/Hursheys.ttf",
-    "Alexandria" : ":/data/fonts/Alexandria.ttf",
-    "Eligible" : ":/data/fonts/Eligible.ttf",
-    "RadioLand" : ":/data/fonts/RadioLand.ttf",
-    "OCR A Extended" : ":/data/fonts/ocraextended.ttf",
+    "Vector": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\Hyperspace.ttf"),
+    "Fixed": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\CutiveMono-Regular.ttf"),
+    "Proportional": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\LiberationMono-Regular.ttf")
 }
 
 
@@ -69,17 +63,20 @@ class createAnnotation:
         self.X = 0
         self.Y = 0
         self.Z = 0
+        self.tracking = 0
+        self.lineDistance = 50
         self.Side = objectSides[0]
         self.Rot = 0
         self.Text = ''
         self.Align = alignParam[0]
         self.Size = 1.27
         self.Spin = True
-        self.Mirror = mirror[0]
+        
         self.Color = (1., 1., 1.)
         self.Visibility = True
         self.mode = 'anno'
         #self.fontName = fonts[0]
+        self.Font = "Fixed"
         #
         self.defaultName = 'PCBannotation_0000'
         self.defaultLabel = self.defaultName
@@ -89,50 +86,57 @@ class createAnnotation:
     def setName(self, value):
         self.defaultLabel = self.defaultName = value
         
-        if isinstance(self.defaultName, unicode):
+        if isinstance(self.defaultName, str):
             self.defaultName = unicodedata.normalize('NFKD', self.defaultName).encode('ascii', 'ignore')
         
-    def generate(self):
-        text = self.Text
-        if not type(text).__name__ == 'list':
-            text = text.split('\n')
-            #text = [text]
-        
-        self.setName(self.defaultName)
-        #
-        doc = FreeCAD.activeDocument()
-        self.Annotation = doc.addObject("Part::FeaturePython", self.defaultName)
-        self.Annotation.Label = self.defaultLabel
-        if self.Type == 1:
-            PCBannotation_Object(self.Annotation)
-        else:
-            PCBannotation(self.Annotation)
-        self.Annotation.X = self.X
-        self.Annotation.Y = self.Y
-        self.Annotation.Z = self.Z
-        self.Annotation.Side = self.Side
-        self.Annotation.Rot = self.Rot
-        self.Annotation.Proxy.mode = self.mode
-        viewProviderPCBannotation(self.Annotation.ViewObject)
-        if self.mode == 'anno':
-            self.Annotation.ViewObject.Text = text
-        else:
-            self.Annotation.ViewObject.Text = text[0]
-        self.Annotation.ViewObject.Align = self.Align
-        self.Annotation.ViewObject.Size = self.Size
-        self.Annotation.ViewObject.Spin = self.Spin
-        self.Annotation.ViewObject.Mirror = self.Mirror
-        try:
-            self.Annotation.ViewObject.Color = self.Color
-        except:
-            self.Annotation.ViewObject.Color = (1.0, 1.0, 1.0)
-        self.Annotation.ViewObject.Visibility = self.Visibility
-        
-        #self.Annotation.ViewObject.Font = self.fontName
-    
-    def addToAnnotations(self):
-        grp = createGroup_Annotations()
-        grp.addObject(self.Annotation)
+    def generate(self, addToGroup=True):
+        pcb = getPCBheight()
+
+        if pcb[0]:
+            text = self.Text
+            if self.mode == 'anno':
+                if not type(text) == list:
+                    text = text.split('\n')
+            else:
+                if type(text) == list:
+                    text = '_'.join(text)
+            #
+            self.setName(self.defaultName)
+            #
+            self.Annotation = FreeCAD.ActiveDocument.addObject("Part::Part2DObjectPython", 'PCBannotation_0000')
+            self.Annotation.Label = 'PCBannotation_0000'
+            PCBannotation(self.Annotation, self.mode)
+            self.Annotation.Placement.Base = FreeCAD.Vector(0, 0, 0)
+            #self.Annotation.Proxy.mode = self.mode
+            self.Annotation.Justification = self.Align
+            self.Annotation.X = self.X
+            self.Annotation.Y = self.Y
+            self.Annotation.Z = self.Z
+            self.Annotation.Side = self.Side.upper()
+            self.Annotation.Rot = self.Rot
+            self.Annotation.Size = self.Size
+            self.Annotation.Spin = self.Spin
+            self.Annotation.LineDistance = self.lineDistance
+            self.Annotation.Tracking = self.tracking
+            self.Annotation.Font = self.Font
+            self.Annotation.Proxy.block = False
+            self.Annotation.String = text
+            viewProviderPCBannotation(self.Annotation.ViewObject)
+            
+            try:
+                self.Annotation.ViewObject.ShapeColor = self.Color
+            except:
+                self.Annotation.ViewObject.ShapeColor = (1.0, 1.0, 1.0)
+            self.Annotation.ViewObject.Visibility = self.Visibility
+            
+            self.Annotation.Proxy.updatePosition_Z(self.Annotation, pcb[1])
+            #Draft.formatObject(obj)
+            #obj.recompute()
+            #
+            if addToGroup:
+                grp = createGroup_Annotations()
+                grp.addObject(self.Annotation)
+            pcb[2].Proxy.addObject(pcb[2], self.Annotation)
 
 
 #***********************************************************************
@@ -149,25 +153,36 @@ class createAnnotation_Gui(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle("Add annotation")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/annotation.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/addAnnotation.svg"))
         #
-        self.text = QtGui.QLineEdit('')
+        self.text = QtGui.QTextEdit('')
+        self.text.setFixedHeight(100)
         
         self.align = QtGui.QComboBox()
         self.align.addItems(alignParam)
         
-        self.mirror = QtGui.QComboBox()
-        self.mirror.addItems(mirror)
-        
         self.spin = QtGui.QComboBox()
         self.spin.addItems(['True', 'False'])
+        self.spin.setCurrentIndex(1)
         
         self.fontSize = QtGui.QDoubleSpinBox()
         self.fontSize.setValue(1.27)
         self.fontSize.setSuffix(' mm')
         
         self.fontName = QtGui.QComboBox()
-        self.fontName.setDisabled(True)
+        self.fontName.addItems(fonts)
+        self.fontName.setCurrentIndex(self.fontName.findText("Fixed"))
+        
+        self.tracking = QtGui.QDoubleSpinBox()
+        self.tracking.setSingleStep(0.5)
+        self.tracking.setRange(-1000, 1000)
+        self.tracking.setSuffix(' mm')
+        
+        self.lineDistance = QtGui.QSpinBox()
+        self.lineDistance.setValue(50)
+        self.lineDistance.setSingleStep(1)
+        self.lineDistance.setRange(-1000, 1000)
+        self.lineDistance.setSuffix(' %')
         
         self.val_x = QtGui.QDoubleSpinBox()
         self.val_x.setSingleStep(0.5)
@@ -178,6 +193,11 @@ class createAnnotation_Gui(QtGui.QWidget):
         self.val_y.setSingleStep(0.5)
         self.val_y.setRange(-1000, 1000)
         self.val_y.setSuffix(' mm')
+        
+        self.val_z = QtGui.QDoubleSpinBox()
+        self.val_z.setSingleStep(0.5)
+        self.val_z.setRange(-1000, 1000)
+        self.val_z.setSuffix(' mm')
         
         self.rotation = QtGui.QDoubleSpinBox()
         self.rotation.setSingleStep(1)
@@ -192,41 +212,47 @@ class createAnnotation_Gui(QtGui.QWidget):
         self.continueCheckBox = QtGui.QCheckBox(u'Continue')
         
         self.fontColor = kolorWarstwy()
-        self.fontColor.setColor((0, 0, 0))
+        self.fontColor.setColor(getFromSettings_Color_1('AnnotationsColor', 4294967295))
         self.fontColor.setToolTip(u"Click to change color")
         #
         lay = QtGui.QGridLayout()
         lay.addWidget(QtGui.QLabel(u'Text:'), 0, 0, 1, 1)
         lay.addWidget(self.text, 0, 1, 1, 2)
         
-        lay.addWidget(QtGui.QLabel(u'Font name:'), 1, 0, 1, 1)
+        lay.addWidget(QtGui.QLabel(u'Font:'), 1, 0, 1, 1)
         lay.addWidget(self.fontName, 1, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Font size:'), 2, 0, 1, 1)
-        lay.addWidget(self.fontSize, 2, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Font color:'), 3, 0, 1, 1)
-        lay.addWidget(self.fontColor, 3, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'FontFile:'), 2, 0, 1, 1)
         
-        lay.addWidget(QtGui.QLabel(u'Align:'), 4, 0, 1, 1)
-        lay.addWidget(self.align, 4, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Mirror:'), 5, 0, 1, 1)
-        lay.addWidget(self.mirror, 5, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Spin:'), 6, 0, 1, 1)
-        lay.addWidget(self.spin, 6, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Font size:'), 3, 0, 1, 1)
+        lay.addWidget(self.fontSize, 3, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Tracking:'), 4, 0, 1, 1)
+        lay.addWidget(self.tracking, 4, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Line Distance:'), 5, 0, 1, 1)
+        lay.addWidget(self.lineDistance, 5, 1, 1, 2)
         
-        lay.addWidget(QtGui.QLabel(u'X:'), 7, 0, 1, 1)
-        lay.addWidget(self.val_x, 7, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Y:'), 8, 0, 1, 1)
-        lay.addWidget(self.val_y, 8, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Rotation:'), 9, 0, 1, 1)
-        lay.addWidget(self.rotation, 9, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Side:'), 10, 0, 1, 1)
-        lay.addWidget(self.side, 10, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Font color:'), 6, 0, 1, 1)
+        lay.addWidget(self.fontColor, 6, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Align:'), 7, 0, 1, 1)
+        lay.addWidget(self.align, 7, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Side:'), 8, 0, 1, 1)
+        lay.addWidget(self.side, 8, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Spin:'), 9, 0, 1, 1)
+        lay.addWidget(self.spin, 9, 1, 1, 2)
         
-        lay.addItem(QtGui.QSpacerItem(1, 10), 11, 0, 1, 3)
-        lay.addWidget(self.continueCheckBox, 12, 0, 1, 3)
-        lay.addItem(QtGui.QSpacerItem(1, 10), 13, 0, 1, 3)
-        lay.addWidget(self.error, 14, 0, 1, 3)
-        lay.setRowStretch(15, 10)
+        lay.addWidget(QtGui.QLabel(u'X:'), 10, 0, 1, 1)
+        lay.addWidget(self.val_x, 10, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Y:'), 11, 0, 1, 1)
+        lay.addWidget(self.val_y, 11, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Z:'), 12, 0, 1, 1)
+        lay.addWidget(self.val_z, 12, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Rotation:'), 13, 0, 1, 1)
+        lay.addWidget(self.rotation, 13, 1, 1, 2)
+        
+        lay.addItem(QtGui.QSpacerItem(1, 10), 14, 0, 1, 3)
+        lay.addWidget(self.continueCheckBox, 15, 0, 1, 3)
+        lay.addItem(QtGui.QSpacerItem(1, 10), 16, 0, 1, 3)
+        lay.addWidget(self.error, 17, 0, 1, 3)
+        lay.setRowStretch(18, 10)
         self.setLayout(lay)
         #
         self.connect(self.val_x, QtCore.SIGNAL('valueChanged (double)'), self.addArrow)
@@ -312,32 +338,38 @@ class createAnnotation_Gui(QtGui.QWidget):
         FreeCADGui.ActiveDocument.ActiveView.getSceneGraph().addChild(self.root)
 
     def accept(self):
-        #################################################################
-        #        polaczyc z innymi podobnymi czesciami kodu !!!!!       #
-        #################################################################
-        if unicodedata.normalize('NFKD', self.text.text()).encode('ascii', 'ignore').strip() == "":
-            self.error.setText("<span style='color:red;font-weight:bold;'>Mandatory field is empty!</span>")
-            return False
-        #
-        annotation = createAnnotation()
-        annotation.X = self.val_x.value()
-        annotation.Y = self.val_y.value()
-        annotation.Side = str(self.side.currentText())
-        annotation.Rot = self.rotation.value()
-        annotation.Text = [self.text.text()]
-        annotation.Align = str(self.align.currentText())
-        annotation.Size = self.fontSize.value()
-        annotation.Spin = bool(self.spin.currentText())
-        annotation.Mirror = str(self.mirror.currentText())
-        annotation.Color = self.fontColor.getColor()
-        annotation.generate()
-        annotation.addToAnnotations()
-        #
-        if self.continueCheckBox.isChecked():
-            self.text.setText('')
-        else:
+        try:
+            #################################################################
+            #        polaczyc z innymi podobnymi czesciami kodu !!!!!       #
+            #################################################################
+            if unicodedata.normalize('NFKD', self.text.toPlainText()).encode('ascii', 'ignore').strip() == "":
+                self.error.setText("<span style='color:red;font-weight:bold;'>Mandatory field is empty!</span>")
+                return False
+            #
+            annotation = createAnnotation()
+            annotation.X = self.val_x.value()
+            annotation.Y = self.val_y.value()
+            annotation.Z = self.val_z.value()
+            annotation.Side = str(self.side.currentText())
+            annotation.Rot = self.rotation.value()
+            annotation.Text = self.text.toPlainText()
+            annotation.Align = str(self.align.currentText())
+            annotation.Size = self.fontSize.value()
+            annotation.Spin = bool(self.spin.currentText())
+            annotation.tracking = self.tracking.value()
+            annotation.lineDistance = self.lineDistance.value()
+            annotation.Color = self.fontColor.getColor()
+            annotation.Font = str(self.fontName.currentText())
+            annotation.generate()
+            #annotation.addToAnnotations()
+            #
+            if self.continueCheckBox.isChecked():
+                self.text.setText('')
+            else:
+                self.removeRoot()
+                return True
+        except:
             self.removeRoot()
-            return True
 
     def removeRoot(self):
         if self.root:
@@ -351,10 +383,37 @@ class createAnnotation_Gui(QtGui.QWidget):
 #***********************************************************************
 #*                             OBJECT
 #***********************************************************************
-class PCBannotation:
-    def __init__(self, obj):
-        self.Type = PCBlayers["Annotations"][3]
-        obj.Proxy = self
+
+
+
+#***********************************************************************
+#*             BASED ON _ShapeString() FROM DRAFT MODULE
+#***********************************************************************
+class PCBannotation(_DraftObject):
+    """The ShapeString object"""
+    def __init__(self, obj, mode='anno'):
+        self.Type = PCBlayers["Annotations"][0]
+        self.mode = mode  # anno/param
+        self.przX = 0
+        self.przY = 0
+        self.block = True
+        self.react = True
+        
+        _DraftObject.__init__(self,obj,"ShapeString")
+
+        if obj.Proxy.mode == 'anno':
+            obj.addProperty("App::PropertyStringList", "String", "Draft", "String").String = [""]
+        else:
+            obj.addProperty("App::PropertyString", "String", "Draft", "String").String = ""
+        
+        obj.addProperty("App::PropertyFile","FontFile","Draft","Font file name").FontFile = fontFile["Fixed"]
+        obj.addProperty("App::PropertyLength","Size","Draft","Height of text").Size=10
+        obj.addProperty("App::PropertyLength","Tracking","Draft","Inter-character spacing").Tracking=0
+        obj.addProperty("App::PropertyPercent","LineDistance","Draft","LineDistance").LineDistance=50
+        obj.addProperty("App::PropertyEnumeration", "Justification", "Draft", "Justification")
+        obj.addProperty("App::PropertyBool", "Spin", "Draft", "Spin").Spin = True
+        #obj.addProperty("App::PropertyFont", "Font1", "Draft", "Font1")
+        obj.addProperty("App::PropertyEnumeration", "Font", "Draft", "Font").Font = 1
         
         obj.addProperty("App::PropertyDistance", "X", "Placement", "X").X = 0
         obj.addProperty("App::PropertyDistance", "Y", "Placement", "Y").Y = 0
@@ -362,122 +421,359 @@ class PCBannotation:
         obj.addProperty("App::PropertyAngle", "Rot", "Placement", "Rot").Rot = 0
         obj.addProperty("App::PropertyEnumeration", "Side", "Placement", "Side").Side = 0
         
+        obj.setEditorMode("MapMode", 2)
+        obj.setEditorMode("Label", 2)
         obj.setEditorMode("Placement", 2)
-        obj.setEditorMode("Z", 2)
+        
+        obj.Justification = alignParam
+        obj.Justification = 2
         obj.Side = objectSides
-        
-        self.mode = 'anno'  # anno/anno_name/anno_value
-        
-    def reverseSide(self, fp):
-        if objectSides[0] == fp.Side:
-            fp.Side = objectSides[1]
-        else:
-            fp.Side = objectSides[0]
-            
-        if fp.ViewObject.Mirror == mirror[0]:
-            fp.ViewObject.Mirror = mirror[1]
-        else:
-            fp.ViewObject.Mirror = mirror[0]
-        
-        self.changeSide(fp)
-        
-    def changeSide(self, fp):
-        ''' ROT Y '''
-        self.rotateZ(fp)
-        self.updatePosition_Z(fp)
-
-    def updatePosition_Z(self, fp, dummy=None):
-        thickness = getPCBheight()[1]
-        
-        if fp.Side == objectSides[0]:  # TOP
-            fp.Placement.Base.z = thickness + 0.001 + fp.Z.Value
-        else:
-            fp.Placement.Base.z = -0.001 - fp.Z.Value
-        
-    def changePos(self, fp):
-        ''' change placement - X, Y '''
-        fp.Placement.Base.x = fp.X.Value
-        fp.Placement.Base.y = fp.Y.Value
-        
-    def rotateZ(self, fp):
-        ''' ROT Z '''
-        rotZ = fp.Rot.Value
-        rotY = 0
-
-        try:
-            if fp.ViewObject.Mirror == 'Global Y axis':
-                rotY = 180
-                rotZ = fp.Rot.Value * -1
-                
-            elif fp.ViewObject.Mirror == 'Local Y axis':
-                rotZ = fp.Rot.Value
-        except:
-            # FreeCAD.Console.PrintWarning(str(e) + " -\n")
-            pass
-
-        fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ, rotY, 0))
-        
-        try:
-            if not fp.ViewObject.Spin:
-                fp.ViewObject.Proxy.execute(fp.ViewObject)
-        except:
-            # FreeCAD.Console.PrintWarning(str(e) + " -\n")
-            pass
+        obj.Font = fonts
+        ##
+        obj.Proxy = self
     
-    def onChanged(self, fp, prop):
-        try:
-            fp.setEditorMode("Placement", 2)
-            fp.setEditorMode("Z", 2)
-        except:
-            pass
-        
-        try:
-            if prop == "Side":
-                self.changeSide(fp)
-            elif prop in ["Z"]:
-                self.changeSide(fp)
-            elif prop in ["X", "Y"]:
-                self.changePos(fp)
-            elif prop == "Rot":
-                self.rotateZ(fp)
-        except:
-            pass
-
-    def execute(self, fp):
-        pass
-
     def __getstate__(self):
-        return [self.Type, self.mode]
+        return [self.Type, self.block, self.react, self.mode]
 
     def __setstate__(self, state):
         if state:
             self.Type = state[0]
-            self.mode = state[1]
-
-
-class PCBannotation_Object(PCBannotation):
-    def __init__(self, obj):
-        PCBannotation.__init__(self, obj)
+            self.block  = state[1]
+            self.react = state[2]
+            self.mode = state[3]
+    
+    def textAlign(self):
+        FreeCAD.Console.PrintWarning("{0}\n".format(self.alignParam))
+    
+    def updatePosition_Z(self, fp, thickness):
+        if fp.Side == objectSides[0]:  # top side
+            fp.Placement.Base.z = thickness + 0.035 + fp.Z.Value
+        else:  # bottom side
+            fp.Placement.Base.z = 0 - 0.035 - fp.Z.Value
+    
+    def execute(self, obj):
+        pass
         
-        obj.setEditorMode("Z", 0)
+    def generate(self, obj):
+        if self.block:
+            return
+        # test a simple letter to know if we have a sticky font or not
+        if obj.String and obj.FontFile:
+            sticky = False
+            testWire = Part.makeWireString("L",obj.FontFile,obj.Size,obj.Tracking)[0][0]
+            if testWire.isClosed:
+                try:
+                    testFace = Part.Face(testWire)
+                except Part.OCCError:
+                    sticky = True
+                else:
+                    if not testFace.isValid():
+                        sticky = True
+            else:
+                sticky = True
+        ###################
+        if obj.String and obj.FontFile:
+            if obj.Placement:
+                plm = obj.Placement
+            
+            if type(obj.String) == list: # multilines
+                poz_Y = 0
+                shapes = []
+                
+                for i in range(len(obj.String), 0, -1):
+                    line = obj.String[i-1]
+                    
+                    if line != "":
+                        CharList = Part.makeWireString(line,obj.FontFile,obj.Size,obj.Tracking)
+                        if len(CharList) == 0:
+                            FreeCAD.Console.PrintWarning(translate("draft","ShapeString: string has no wires")+"\n")
+                            return
+                        SSChars = []
+                    
+                        for char in CharList:
+                            if sticky:
+                                for CWire in char:
+                                    for k in CWire:
+                                        k.Placement.Base.y = poz_Y
+                                    
+                                    SSChars.append(CWire)
+                            else:
+                                CharFaces = []
+                                for CWire in char:
+                                    CWire.Placement.Base.y = poz_Y
+                                    
+                                    f = Part.Face(CWire)
+                                    if f:
+                                        CharFaces.append(f)
+                                # whitespace (ex: ' ') has no faces. This breaks OpenSCAD2Dgeom...
+                                if CharFaces:
+                                    # s = OpenSCAD2Dgeom.Overlappingfaces(CharFaces).makeshape()
+                                    # s = self.makeGlyph(CharFaces)
+                                    s = self.makeFaces(char)
+                                    SSChars.append(s)
+                        
+                        shapes.append(Part.Compound(SSChars))
+                    poz_Y += obj.Size.Value + (obj.LineDistance * obj.Size.Value) / 100.
+                shape = Part.Compound(shapes)
+            else:
+                CharList = Part.makeWireString(obj.String,obj.FontFile,obj.Size,obj.Tracking)
+                if len(CharList) == 0:
+                    FreeCAD.Console.PrintWarning(translate("draft","ShapeString: string has no wires")+"\n")
+                    return
+                SSChars = []
+            
+                for char in CharList:
+                    if sticky:
+                        for CWire in char:
+                            SSChars.append(CWire)
+                    else:
+                        CharFaces = []
+                        for CWire in char:
+                            f = Part.Face(CWire)
+                            if f:
+                                CharFaces.append(f)
+                        # whitespace (ex: ' ') has no faces. This breaks OpenSCAD2Dgeom...
+                        if CharFaces:
+                            # s = OpenSCAD2Dgeom.Overlappingfaces(CharFaces).makeshape()
+                            # s = self.makeGlyph(CharFaces)
+                            s = self.makeFaces(char)
+                            SSChars.append(s)
+                            
+                shape = Part.Compound(SSChars)
+            ###################
+            obj.Shape = shape
+            if plm:
+                obj.Placement = plm
+        obj.positionBySupport()
+        self.changeJustification(obj)
+        
+    def makeFaces(self, wireChar):
+        import Part
+        compFaces=[]
+        allEdges = []
+        wirelist=sorted(wireChar,key=(lambda shape: shape.BoundBox.DiagonalLength),reverse=True)
+        fixedwire = []
+        for w in wirelist:
+            compEdges = Part.Compound(w.Edges)
+            compEdges = compEdges.connectEdgesToWires()
+            fixedwire.append(compEdges.Wires[0])
+        wirelist = fixedwire
+        sep_wirelist = []
+        while len(wirelist) > 0:
+            wire2Face = [wirelist[0]]
+            face = Part.Face(wirelist[0])
+            for w in wirelist[1:]:
+                p = w.Vertexes[0].Point
+                u,v = face.Surface.parameter(p)
+                if face.isPartOfDomain(u,v):
+                    f = Part.Face(w)
+                    if face.Orientation == f.Orientation:
+                        if f.Surface.Axis * face.Surface.Axis < 0:
+                            w.reverse()
+                    else:
+                        if f.Surface.Axis * face.Surface.Axis > 0:
+                            w.reverse()
+                    wire2Face.append(w)
+                else:
+                    sep_wirelist.append(w)
+            wirelist = sep_wirelist
+            sep_wirelist = []
+            face = Part.Face(wire2Face)
+            face.validate()
+            try:
+                # some fonts fail here
+                if face.Surface.Axis.z < 0.0:
+                    face.reverse()
+            except:
+                pass
+            compFaces.append(face)
+        ret = Part.Compound(compFaces)
+        return ret
     
     def onChanged(self, fp, prop):
+        fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
+        fp.setEditorMode("MapMode", 2)
+        #
+        if hasattr(fp.Proxy, "mode") and self.mode == "param" and self.react:
+            if prop == "String":
+                for i in fp.InList:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                        if i.PartName == fp:
+                            i.Label = fp.String
+        ######################
         try:
-            fp.setEditorMode("Placement", 2)
-            fp.setEditorMode("Z", 0)
-        except:
+            if prop == "Font":  # pre. def. fonts
+                fp.FontFile = fontFile[fp.Font]
+            
+            if self.block:
+                return
+            
+            #FreeCAD.Console.PrintWarning(u"{0}\n".format(prop))
+            if prop == "Justification" or prop == "X" or prop == "Y" or prop == "Rot" or prop == "Spin":
+                self.changeJustification(fp)
+            elif prop == "Z" or prop == "Side":
+                #thickness = getPCBheight()
+                self.changeJustification(fp)
+                # if thickness[0]:
+                    # self.updatePosition_Z(fp, thickness[1])
+                # else:
+                    # self.updatePosition_Z(fp, 0)
+            elif prop == "String" or prop == "FontFile" or prop == "Tracking" or prop == "LineDistance" or prop == "Size":  # pre. def. fonts
+                if prop == "String" and fp.String == "":
+                    fp.String = " "
+                
+                self.generate(fp)
+        except Exception as e:
             pass
         
+    def changeJustification(self, fp):
         try:
-            if prop == "Side":
-                self.changeSide(fp)
-            elif prop in ["Z"]:
-                self.changeSide(fp)
-            elif prop in ["X", "Y"]:
-                self.changePos(fp)
-            elif prop == "Rot":
-                self.rotateZ(fp)
-        except:
+            fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(FreeCAD.Vector(0,0,1),0))
+            
+            if fp.Spin == False and 90 < abs(fp.Rot.Value) < 271: # SPIN IS OFF
+                if fp.Justification == "bottom-left":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = fp.Shape.BoundBox.YLength
+                elif fp.Justification == "bottom-right":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = 0
+                    self.przY = fp.Shape.BoundBox.YLength
+                elif fp.Justification == "bottom-center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = fp.Shape.BoundBox.YLength
+                
+                
+                elif fp.Justification == "center-left":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                elif fp.Justification == "center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                elif fp.Justification == "center-right":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = 0
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                
+                
+                elif fp.Justification == "top-right":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = 0
+                    self.przY = 0
+                elif fp.Justification == "top-left":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = 0
+                elif fp.Justification == "top-center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = 0
+                
+            else:
+                if fp.Justification == "bottom-left":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = 0
+                    self.przY = 0
+                elif fp.Justification == "bottom-center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = 0
+                elif fp.Justification == "bottom-right":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = 0
+                    
+                    
+                elif fp.Justification == "center-left":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = 0
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                elif fp.Justification == "center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                elif fp.Justification == "center-right":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength / 2.
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = fp.Shape.BoundBox.YLength / 2.
+                
+                
+                elif fp.Justification == "top-left":
+                    fp.Placement.Base.x = fp.X.Value
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = 0
+                    self.przY = fp.Shape.BoundBox.YLength
+                elif fp.Justification == "top-center":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength / 2.
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = fp.Shape.BoundBox.XLength / 2.
+                    self.przY = fp.Shape.BoundBox.YLength
+                elif fp.Justification == "top-right":
+                    fp.Placement.Base.x = fp.X.Value - fp.Shape.BoundBox.XLength
+                    fp.Placement.Base.y = fp.Y.Value - fp.Shape.BoundBox.YLength
+                    
+                    self.przX = fp.Shape.BoundBox.XLength
+                    self.przY = fp.Shape.BoundBox.YLength
+            
+            if fp.Side == "TOP":
+                rotY = 0
+                rotZ = fp.Rot.Value
+            else:
+                rotY = 180
+                rotZ = -fp.Rot.Value
+            
+            if fp.Spin == False and 90 < abs(fp.Rot.Value) < 271:
+                fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ - 180, rotY ,0), FreeCAD.Vector(self.przX, self.przY, fp.Z.Value))
+            else:
+                fp.Placement = FreeCAD.Placement(fp.Placement.Base, FreeCAD.Rotation(rotZ, rotY, 0), FreeCAD.Vector(self.przX, self.przY, fp.Z.Value))
+            
+            if str(fp.Placement.Base.z) == "nan":
+                fp.Placement.Base.z = 0
+            #
+            thickness = getPCBheight()
+            if thickness[0]:
+                self.updatePosition_Z(fp, thickness[1])
+            else:
+                self.updatePosition_Z(fp, 0)
+            
+        except Exception as e:
+            #FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
             pass
 
 
@@ -485,26 +781,7 @@ class viewProviderPCBannotation:
     def __init__(self, obj):
         ''' Set this object to the proxy object of the actual view provider '''
         obj.Proxy = self
-        
-        if obj.Object.Proxy.mode == 'anno':
-            obj.addProperty("App::PropertyStringList", "Text", "Base", "Text").Text = ""
-        else:
-            obj.addProperty("App::PropertyString", "Text", "Base", "Text").Text = ""
-        #
-        obj.addProperty("App::PropertyEnumeration", "Align", "Display", "Align").Align = 4
-        obj.addProperty("App::PropertyBool", "Spin", "Display", "Spin").Spin = True
-        obj.addProperty("App::PropertyEnumeration", "Mirror", "Display", "Mirror").Mirror = 0
-        # font
-        obj.addProperty("App::PropertyDistance", "Size", "Font", "Size").Size = 1.27
-        obj.addProperty("App::PropertyColor", "Color", "Font", "Color").Color = (1., 1., 1.)
-        obj.addProperty("App::PropertyEnumeration", "Font", "Font", "Font").Font = 1
-        
-        obj.Mirror = mirror
-        obj.Align = alignParam
-        obj.Font = fonts
-        
-        obj.setEditorMode("Font", 1)
-        
+
     def attach(self, obj):
         ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
         self.Object = obj.Object
@@ -524,12 +801,13 @@ class viewProviderPCBannotation:
 
     def setDisplayMode(self, mode):
         ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optinal.
+        Since they have the same names nothing needs to be done. This method is optional.
         '''
         return mode
 
     def onChanged(self, vp, prop):
         ''' Print the name of the property that has changed '''
+        #FreeCAD.Console.PrintWarning(u"{0}\n".format(prop))
         ####################
         # TEMPORARY SOLUTION
         ####################
@@ -545,250 +823,31 @@ class viewProviderPCBannotation:
         vp.setEditorMode("Deviation", 2)
         vp.setEditorMode("Lighting", 2)
         vp.setEditorMode("BoundingBox", 2)
-        vp.setEditorMode("ShapeColor", 2)
+        #vp.setEditorMode("ShapeColor", 2)
         #vp.setEditorMode("Visibility", 2)
         vp.setEditorMode("Transparency", 2)
         vp.setEditorMode("DisplayMode", 2)
         vp.setEditorMode("Selectable", 2)
-        if hasattr(vp, "AngularDeflection"):
-            vp.setEditorMode("AngularDeflection", 2)
-        if hasattr(vp, "Font"):
-            vp.setEditorMode("Font", 1)
+        vp.setEditorMode("SelectionStyle", 2)
+        vp.setEditorMode("GridSize", 2)
+        vp.setEditorMode("GridSnap", 2)
+        vp.setEditorMode("GridStyle", 2)
+        vp.setEditorMode("ShowGrid", 2)
+        vp.setEditorMode("TightGrid", 2)
+        vp.setEditorMode("AngularDeflection", 2)
         
-        #self.Object = vp.Object
-        vp.Object.Proxy.rotateZ(vp.Object)
-        
-        if prop in ['Display', 'Text', 'Size', 'Align', 'Color', 'Font', 'Spin', 'Visibility', 'Mirror']:
-            self.execute(vp)
-        
-        ################################################################
-        # change object name
-        if prop == 'Text' and vp.Object.Proxy.mode == 'anno_name':
-            try:
-                if vp.Object.InList[0].PartValue:
-                    vp.Object.InList[0].PartValue.Label = vp.Text + '_Value'
-
-                vp.Object.Label = vp.Text + '_Name'
-                vp.Object.InList[0].Label = vp.Text
-            except:
-                pass
-        ################################################################
-        
-    def setText(self, obj):
-        if not obj.Visibility:
-            text = ['']
-        else:
-            text = obj.Text
-        
-        #if obj.Display == 'Value':
-            #text = obj.Text
-        #elif obj.Display == 'Name':
-            ## text = str(obj.Object.Label)
-            #text = obj.Text
-        #elif obj.Display == 'Both':
-            ## text = "{0} = {1}".format(str(obj.Object.Label), obj.Text)
-            #text = obj.Text
-        
-        if obj.Object.Proxy.mode == 'anno':
-            for nr in range(len(text)):
-                #if not isinstance(text[nr], unicode):
-                    #text[nr] = unicode(text[nr], 'utf-8')
-                if isinstance(text[nr], unicode):
-                    text[nr] = unicodedata.normalize('NFKD', text[nr]).encode('ascii', 'ignore')
-        else:
-            text = [unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')]
-        
-        txt = SoMFString()
-        txt.setValues([i for i in text if i.strip() != ''])
-        txt.finishEditing()
-        
-        myText3 = SoText3()
-        myText3.string = txt
-        myText3.justification = SoText3.LEFT
-        myText3.parts = SoText3.ALL
-        
-        return myText3
-        
-    def setFont(self, obj):
-        if obj.Size.Value <= 0:
-            fontSize = 0.1
-        else:
-            fontSize = obj.Size.Value
-            
-        #fontName = SoSFName()
-        
-        myFont = SoFont()
-        #myFont.setFontPaths(":/data/fonts/Royalty Savior.ttf")
-        myFont.name.setValue(obj.Font)
-        myFont.size = fontSize
-        #
-        myLinearProfile = SoLinearProfile()
-        index = (0, 1, 2, 3)
-        myLinearProfile.index.setValues(0, 4, index)
-        
-        return [myFont, myLinearProfile]
+        if prop == "ShapeColor":
+            vp.LineColor = vp.ShapeColor
+            vp.PointColor = vp.ShapeColor
         
     def execute(self, obj):
-        # FreeCAD.Console.PrintError(str(obj.Spin) + "\n")
-        try:
-            obj.RootNode.removeChild(self.node)
-        except:
-            pass
-        #
-        try:
-            font = self.setFont(obj)
-            text = self.setText(obj)
-            #            
-            self.node = SoGroup()
-            tmp_node = SoGroup()
-            ############
-            ############
-            tmp_node.addChild(font[0])
-            tmp_node.addChild(font[1])
-            tmp_node.addChild(text)
-            
-            c = SoGetBoundingBoxAction(SbViewportRegion())
-            c.apply(tmp_node)
-            boundingBox = c.getBoundingBox()
-            ############
-            ############
-            if obj.Mirror == 'Local Y axis':
-                myTransform1 = SoTransform()
-                myTransform1.translation = (0, 0, 0)
-                
-                wect = SbVec3f()
-                wect.setValue(0, 1, 0.)
-                rot = SoSFRotation()
-                rot.setValue(wect, 3.14)
-                
-                myTransform1.rotation = rot
-                self.node.addChild(myTransform1)
-            #elif obj.Mirror == 'Center':
-                #x = boundingBox.getCenter().getValue()[0]
-                #y = boundingBox.getCenter().getValue()[1]
-                
-                #myTransform4 = SoTransform()
-                #myTransform4.translation = (x, y, 0)
-                #wect = SbVec3f()
-                #wect.setValue(0, 1, 0.)
-                #rot = SoSFRotation()
-                #rot.setValue(wect, 3.14)
-                
-                #myTransform4.rotation = rot
-                #self.node.addChild(myTransform4)
-                
-                
-                #myTransform5 = SoTransform()
-                #myTransform5.translation = (x * -1, y * -1, 0)
-                #self.node.addChild(myTransform5)
-
-            #####
-            if not obj.Spin and obj.Object.Rot.Value > 90 and obj.Object.Rot.Value <= 270:
-                myTransform1 = SoTransform()
-                myTransform1.translation = (0, 0, 0)
-                
-                wect = SbVec3f()
-                wect.setValue(0, 0, 1.)
-                rot = SoSFRotation()
-                rot.setValue(wect, 3.14)
-                
-                myTransform1.rotation = rot
-                self.node.addChild(myTransform1)
-            ############
-            ############
-            # align
-            # "bottom-left"    "bottom-center"    "bottom-right"
-            # "center-left"    "center"           "center-right"
-            # "top-left"       "top-center"       "top-right"
-            if not obj.Spin and obj.Object.Rot.Value > 90 and obj.Object.Rot.Value <= 270:
-                if obj.Align == 'center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'center-left':
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'center-right':
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'bottom-left':
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-                elif obj.Align == 'bottom-center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-                elif obj.Align == 'top-left':
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-                elif obj.Align == 'top-center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-                elif obj.Align == 'top-right':
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-                else:  # Align = bottom-right
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-            else:
-                if obj.Align == 'center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'center-left':
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'center-right':
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getCenter().getValue()[1] * -1
-                elif obj.Align == 'bottom-left':
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-                elif obj.Align == 'bottom-center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-                elif obj.Align == 'top-left':
-                    x = boundingBox.getMin().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-                elif obj.Align == 'top-center':
-                    x = boundingBox.getCenter().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-                elif obj.Align == 'top-right':
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getMax().getValue()[1] * -1
-                else:  # Align = bottom-right
-                    x = boundingBox.getMax().getValue()[0] * -1
-                    y = boundingBox.getMin().getValue()[1] * -1
-            
-            myTransform = SoTransform()
-            myTransform.translation = (x, y, 0)
-            self.node.addChild(myTransform)
-            ############
-            # font
-            fontColor = SoMaterial()
-            fontColor.ambientColor = (0.0, 0.0, 0.0)
-            fontColor.diffuseColor = (0.0, 0.0, 0.0) 
-            fontColor.specularColor = (0.0, 0.0, 0.0)
-            fontColor.reflectiveColor = (1.0, 1.0, 1.0)
-            fontColor.emissiveColor = (obj.Color[0], obj.Color[1], obj.Color[2])
-            fontColor.shininess = 1.0
-            fontColor.transparency = 0.0
-            self.node.addChild(fontColor)
-            self.node.addChild(font[0])
-            self.node.addChild(font[1])
-            ############
-            # text
-            self.node.addChild(text)
-            ############
-            #return self.node
-            obj.RootNode.addChild(self.node)
-            #FreeCADGui.ActiveDocument.ActiveView.getSceneGraph().addChild(self.node)
-        except:
-            pass
-            #FreeCAD.Console.PrintWarning(str(e) + "\n")
+        pass
         
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.
         '''
-        return ":/data/img/annotation_TI.svg"
+        return ":/data/img/addAnnotation.svg"
 
     def __getstate__(self):
         ''' When saving the document this object gets stored using Python's cPickle module.

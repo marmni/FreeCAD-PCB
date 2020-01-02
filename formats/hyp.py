@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -26,7 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import re
 from math import radians
 import __future__
@@ -42,7 +42,7 @@ class dialogMAIN(dialogMAIN_FORM):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "hyp"
         #
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r', '')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\r', '')
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ##
@@ -71,7 +71,7 @@ class HYP_PCB(mainPCB):
 
     def setProject(self, filename):
         '''Load project from file'''
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r\n', '\n')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\r\n', '\n')
         self.layers = re.findall(r'\(SIGNAL T=.+? P=.+? L=(.+?)\)', self.projektBRD)
 
     def generate(self, doc, groupBRD, filename):
@@ -159,8 +159,6 @@ class HYP_PCB(mainPCB):
         return angle
     
     def getParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
-        self.__SQL__.reloadList()
-        #
         PCB_ER = []
         #
         for i in re.findall(r'\(.+? REF=(|.+?) .+?=(|.+?) L=(.+?)(| PKG=.+?)\)  R(.+?) X=(.+?) Y=(.+?) :  Lib: (.+?) : (.+?) ', self.projektBRD):
@@ -186,7 +184,7 @@ class HYP_PCB(mainPCB):
             #
             if wyn[0] == 'Error':  # lista brakujacych elementow
                 partNameTXT = partNameTXT_label = self.generateNewLabel(name)
-                if isinstance(partNameTXT, unicode):
+                if isinstance(partNameTXT, str):
                     partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
                 
                 PCB_ER.append([partNameTXT, package, value, library])

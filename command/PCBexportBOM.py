@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -30,7 +30,7 @@ import os
 import codecs
 from PySide import QtCore, QtGui
 import datetime
-
+from PCBboard import getPCBheight
 
 exportList = {
     "csv": {'name': 'Comma Separated Values (CSV)', 'extension': 'csv', 'class': 'csv()'},
@@ -50,6 +50,7 @@ class createCentroid_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Centroid")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/centroid.svg"))
         #
         # Output directory
         self.pathToFile = QtGui.QLineEdit('')
@@ -60,7 +61,7 @@ class createCentroid_Gui(QtGui.QDialog):
         QtCore.QObject.connect(zmianaSciezki, QtCore.SIGNAL("pressed ()"), self.zmianaSciezkiF)
         # header
         icon = QtGui.QLabel('')
-        icon.setPixmap(QtGui.QPixmap(":/data/img/exportBOM.png"))
+        icon.setPixmap(QtGui.QPixmap(":/data/img/exportBOM1.png"))
         
         headerWidget = QtGui.QWidget()
         headerWidget.setStyleSheet("padding: 10px; border-bottom: 1px solid #dcdcdc; background-color:#FFF;")
@@ -81,6 +82,7 @@ class createCentroid_Gui(QtGui.QDialog):
         packageFooter.setContentsMargins(10, 0, 10, 10)
         # report
         self.reportPrev = QtGui.QTextEdit()
+        self.reportPrev.setReadOnly(True)
     
         ########
         centerLay = QtGui.QGridLayout()
@@ -99,25 +101,7 @@ class createCentroid_Gui(QtGui.QDialog):
         self.showReport()
         
     def showReport(self):
-        txt = '''Report Origin = (0.0, 0.0)
-Units used = "mm"
-"RefDes","Layer","LocationX","LocationY","Rotation"
-
-'''
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                    x = doc.getObject(i.Name).X.Value
-                    y = doc.getObject(i.Name).Y.Value
-                    side = doc.getObject(i.Name).Side
-                    rot = doc.getObject(i.Name).Rot.Value
-                    
-                    rot = rot % 360
-                    
-                    txt += '"{0}","{1}","{2}","{3}","{4}"\n'.format(i.PartName.ViewObject.Text, side, x, y, rot)
-        
-        self.reportPrev.setPlainText(txt)
+        self.reportPrev.setPlainText(generateCentroidReport())
 
     def accept(self):
         try:
@@ -127,7 +111,7 @@ Units used = "mm"
             export.export()
             
             super(createCentroid_Gui, self).accept()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def zmianaSciezkiF(self):
@@ -277,10 +261,10 @@ class exportBOM_Gui(QtGui.QDialog):
                 export.units = 'inch' 
 
             export.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
-        #super(exportBOM_Gui, self).accept()
+        super(exportBOM_Gui, self).accept()
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -293,6 +277,27 @@ class exportBOM_Gui(QtGui.QDialog):
 #***********************************************************************
 #*                             CONSOLE
 #***********************************************************************
+
+def lJ(value):
+    return str(value).ljust(18)
+
+def generateCentroidReport():
+    txt = '''Report Origin = (0.0, 0.0)
+Units used = "mm"
+
+'''
+    txt += '{0}{1}{2}{3}{4}\n'.format(lJ("RefDes"), lJ("Layer"), lJ("X"), lJ("Y"), lJ("Rotation"))
+    pcb = getPCBheight()
+    if pcb[0]:
+        for i in pcb[2].Group:
+            if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                try:
+                    partName = i.PartName.String
+                except:
+                    partName = ""
+                txt += '{0}{1}{2}{3}{4}\n'.format(lJ(partName), lJ(i.Side), lJ(i.X), lJ(i.Y), lJ(i.Rot % 360))
+    return txt
+
 class createCentroid(QtGui.QDialog):
     def __init__(self):
         self.fileFormat = 'txt'
@@ -300,31 +305,19 @@ class createCentroid(QtGui.QDialog):
         self.fileName = 'untitled'  # def. value
 
     def export(self):
-        fileName = os.path.join(self.filePath, self.fileName + "_centroid")
-        if not fileName.endswith('txt'):
-            fileName = fileName + '.txt'
+        try:
+            fileName = os.path.join(self.filePath, self.fileName + "_centroid")
+            if not fileName.endswith('txt'):
+                fileName = fileName + '.txt'
+            
+            self.files = codecs.open(fileName, "w", "utf-8")
+            self.files.write(generateCentroidReport())
+            self.files.close()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
         
-        self.files = codecs.open(fileName, "w", "utf-8")
-        #
-        self.files.write('Report Origin = (0.0, 0.0)\n')
-        self.files.write('Units used = "mm"\n')
-        self.files.write('"RefDes","Layer","LocationX","LocationY","Rotation"\n')
-        self.files.write('\n')
-        
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                    x = doc.getObject(i.Name).X.Value
-                    y = doc.getObject(i.Name).Y.Value
-                    side = doc.getObject(i.Name).Side
-                    rot = doc.getObject(i.Name).Rot.Value
-                    
-                    rot = rot % 360
-                    
-                    self.files.write('"{0}","{1}","{2}","{3}","{4}"\n'.format(i.PartName.ViewObject.Text, side, x, y, rot))
-        #
-        self.files.close()
 
 
 class exportBOM:
@@ -344,6 +337,11 @@ class exportBOM:
             return value
         else:
             return value
+    
+    def prepareZ(self, value):
+        value = self.setUnit(value)
+        
+        return value
     
     def prepareX(self, value):
         value = self.setUnit(value)
@@ -375,29 +373,36 @@ class exportBOM:
                 exportClass.zeroPoint_X = self.zeroPoint_X
                 exportClass.zeroPoint_Y = self.zeroPoint_Y
             exportClass.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
+        
     def getParts(self):
         ''' get param from all packages from current document '''
         parts = {}
-        
-        doc = FreeCAD.activeDocument()
-        if len(doc.Objects):
-            for i in doc.Objects:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:  # objects
-                #if hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
-                    #for i in elem.OutList:
-                        #if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+        #
+        pcb = getPCBheight()
+        if pcb[0]:
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    partValue = ""
+                    if i.PartValue:
+                        partValue = i.PartValue.String
+                    partName = ""
+                    if i.PartName:
+                        partName = i.PartName.String
+                    
                     if not i.Package in parts.keys():
                         parts[i.Package] = {}
-                    if not '_'.join(i.PartValue.ViewObject.Text) in parts[i.Package].keys():
-                        parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)] = {}
-                        
-                    x = self.prepareX(doc.getObject(i.Name).X.Value)
-                    y = self.prepareY(doc.getObject(i.Name).Y.Value)
+                    if not partValue in parts[i.Package].keys():
+                        parts[i.Package][partValue] = {}
                     
-                    parts[i.Package]['_'.join(i.PartValue.ViewObject.Text)]['_'.join(i.PartName.ViewObject.Text)] = {'side': i.Side, 'x': x, 'y': y, 'z': doc.getObject(i.Name).Placement.Base.z, 'rot': doc.getObject(i.Name).Rot.Value}
+                    x = self.prepareX(i.X.Value)
+                    y = self.prepareY(i.Y.Value)
+                    
+                    parts[i.Package][partValue][partName] = {'side': i.Side, 'x': x, 'y': y, 'z': self.prepareZ(i.Socket.Value), 'rot': i.Rot.Value}
+        #
         return parts
 
 
@@ -463,7 +468,7 @@ class html(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to html file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.html'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('html'):
@@ -503,7 +508,7 @@ class txt(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to txt file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.txt'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('txt'):
@@ -581,7 +586,7 @@ class txt(exportFileMain):
                             self.files.write(str(self.parts[i][j][k]['side']).ljust(kolumny[7] + 10))
                             self.files.write(str(len(self.parts[i][j].keys())))
                             self.files.write("\n")
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
 
 
@@ -607,7 +612,7 @@ class csv(exportFileMain):
     
     def export(self):
         '''export(filePath): save BOM to csv file
-            filePath -> strig
+            filePath -> string
             filePath = path/fileName.csv'''
         fileName = os.path.join(self.filePath, self.fileName)
         if not fileName.endswith('csv'):

@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -28,189 +28,147 @@
 import FreeCAD
 import Part
 import OpenSCAD2Dgeom
+import time
+from math import degrees, atan2
+import builtins
+from PCBfunctions import sketcherGetGeometry
 
 
-def getBoardOutline():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    outline = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "PCBboard":
-            try:
-                for k in range(len(j.Border.Geometry)):
-                    if j.Border.Geometry[k].Construction:
-                        continue
-                    
-                    if type(j.Border.Geometry[k]).__name__ == 'GeomLineSegment':
-                        outline.append([
-                            'line',
-                            j.Border.Geometry[k].StartPoint.x,
-                            j.Border.Geometry[k].StartPoint.y,
-                            j.Border.Geometry[k].EndPoint.x,
-                            j.Border.Geometry[k].EndPoint.y
-                        ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'GeomCircle':
-                        outline.append([
-                            'circle',
-                            j.Border.Geometry[k].Radius,
-                            j.Border.Geometry[k].Center.x, 
-                            j.Border.Geometry[k].Center.y
-                        ])
-                    elif type(j.Border.Geometry[k]).__name__ == 'GeomArcOfCircle':
-                        outline.append([
-                            'arc',
-                            j.Border.Geometry[k].Radius, 
-                            j.Border.Geometry[k].Center.x, 
-                            j.Border.Geometry[k].Center.y, 
-                            j.Border.Geometry[k].FirstParameter, 
-                            j.Border.Geometry[k].LastParameter, 
-                            j.Border.Geometry[k]
-                        ])
-                break
-            except Exception, e:
-                FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
-    
-    return outline
-    
+# def getBoardShapes():
+    # if not FreeCAD.activeDocument():
+        # return False
+    # #
+    # outList = {}
+    # pcb = getPCBheight()
+    # if pcb[0]:  # board is available
+        # try:
+            # num_1 = 0
+            # num_2 = 1
+            # data = pcb[2].Border.Geometry
+            # first = False
+            
+            # while len(data):
+                # for i in range(0, len(data)):
+                    # if type(data[i]).__name__ == 'ArcOfCircle':
+                        # angle = float("%.4f" % (abs(degrees(data[i].FirstParameter - data[i].LastParameter))))
+                        # if data[i].Axis.z < 0:
+                            # angle = abs(angle) * -1
+                        
+                        # x3 = float("%.4f" % ( data[i].StartPoint.x))
+                        # y3 = float("%.4f" % ( data[i].StartPoint.y))
+                        # x4 = float("%.4f" % ( data[i].EndPoint.x))
+                        # y4 = float("%.4f" % ( data[i].EndPoint.y))
+                        
+                        # if not first:
+                            # num_1 = 0
+                            # if not num_2 in outList.keys():
+                                # outList[num_2] = {}
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                            # data.pop(i)
+                            # first = True
+                            
+                            # x2 = x4
+                            # y2 = y4
+                            
+                            # break
+                        # #
+                        # if [x3, y3] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, angle, 'Arc']
+                            # x2 = x4
+                            # y2 = y4
+                            # data.pop(i)
+                            # break
+                        # elif [x4, y4] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x3, y3, angle, 'Arc']
+                            # x2 = x3
+                            # y2 = y3
+                            # data.pop(i)
+                            # break
+                    # elif type(data[i]).__name__ == 'LineSegment':
+                        # x3 = float("%.4f" % ( data[i].StartPoint.x))
+                        # y3 = float("%.4f" % ( data[i].StartPoint.y))
+                        # x4 = float("%.4f" % ( data[i].EndPoint.x))
+                        # y4 = float("%.4f" % ( data[i].EndPoint.y))
+                        
+                        # if not first:
+                            # num_1 = 0
+                            # if not num_2 in outList.keys():
+                                # outList[num_2] = {}
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, 'Line']
+                            # data.pop(i)
+                            # first = True
+                            
+                            # x2 = x4
+                            # y2 = y4
+                            
+                            # break
+                        # #
+                        # if [x3, y3] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x4, y4, 'Line']
+                            # x2 = x4
+                            # y2 = y4
+                            # data.pop(i)
+                            # break
+                        # elif [x4, y4] == [x2, y2]:
+                            # num_1 += 1
+                            # outList[num_2][num_1] = [x3, y3, 'Line']
+                            # x2 = x3
+                            # y2 = y3
+                            # data.pop(i)
+                            # break
+                    # ######
+                    # if i == len(data) - 1:
+                        # if type(data[0]).__name__ == 'Circle':
+                            # xs = float("%.4f" % (data[0].Center.x))
+                            # ys = float("%.4f" % (data[0].Center.y))
+                            # r = float("%.4f" % (data[0].Radius))
+                            
+                            # num_2 += 1
+                            # outList[num_2] = {}
+                            # outList[num_2][0] = [xs, ys, r, 'Circle']
+                            # data.pop(i)
+                        # #########
+                        # first = False
+                        # num_2 += 1
+                        # break
+        
+        # except Exception as e:
+            # FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    # #
+    # return outList
+
 def getHoles():
-    if not FreeCAD.activeDocument():
-        return False
-    #
     holes = {}
-    
-    try:
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
-                x = i.Center[0]
-                y = i.Center[1]
-                r = i.Radius
-                
-                if not r in holes.keys():
-                    holes[r] = []
-                
-                holes[r].append([x, y])
-    except:
-        return False
+    #
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        board = sketcherGetGeometry(pcb[2].Holes)
+        if board[0]:
+            for i in board[1]:
+                if i['type'] == 'circle':
+                    if not i["r"] in holes.keys():
+                        holes[i["r"]] = []
+                    
+                    holes[i["r"]].append([i["x"], i["y"]])
     #
     return holes
 
-def getGlue():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    outline = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and ('tGlue' in j.Proxy.Type or 'bGlue' in j.Proxy.Type):
-            try:
-                for k in range(len(j.Base.Geometry)):
-                    if j.Base.Geometry[k].Construction:
-                        continue
-                    
-                    if type(j.Base.Geometry[k]).__name__ == 'GeomLineSegment':
-                        outline.append([
-                            'line',
-                            j.Base.Geometry[k].StartPoint.x,
-                            j.Base.Geometry[k].StartPoint.y,
-                            j.Base.Geometry[k].EndPoint.x,
-                            j.Base.Geometry[k].EndPoint.y,
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'GeomCircle':
-                        outline.append([
-                            'circle',
-                            j.Base.Geometry[k].Radius,
-                            j.Base.Geometry[k].Center.x, 
-                            j.Base.Geometry[k].Center.y,
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-                    elif type(j.Base.Geometry[k]).__name__ == 'GeomArcOfCircle':
-                        outline.append([
-                            'arc',
-                            j.Base.Geometry[k].Radius, 
-                            j.Base.Geometry[k].Center.x, 
-                            j.Base.Geometry[k].Center.y, 
-                            j.Base.Geometry[k].FirstParameter, 
-                            j.Base.Geometry[k].LastParameter, 
-                            j.Base.Geometry[k],
-                            j.Proxy.Type,
-                            j.Width.Value
-                        ])
-            except Exception, e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return outline
-    
-def getDimensions():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    data = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type == "Dimension":
-            try:
-                [xS, yS, zS] = [j.Start.x, j.Start.y, j.Start.z]
-                [xE, yE, zE] = [j.End.x, j.End.y, j.End.z]
-                [xM, yM, zM] = [j.Dimline.x, j.Dimline.y, j.Dimline.z]
-                
-                if [xS, yS] != [xE, yE] and zS == zE:
-                    data.append([
-                        [xS, yS, zS], 
-                        [xE, yE, zE], 
-                        [xM, yM, zM], 
-                        j.Distance
-                    ])
-            except Exception, e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return data
-    
-def getAnnotations():
-    if not FreeCAD.activeDocument():
-        return False
-    #
-    doc = FreeCAD.activeDocument()
-    data = []
-    
-    for j in doc.Objects:
-        if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and 'PCBannotation' in j.Proxy.Type:
-            try:
-                annotation = ''
-                for i in j.ViewObject.Text:
-                    annotation += u'{0}\n'.format(i)
-
-                data.append([
-                    j.X.Value, j.Y.Value, 
-                    j.ViewObject.Size.Value, 
-                    j.Side, 
-                    annotation.strip(), 
-                    j.ViewObject.Align, 
-                    j.Rot.Value, 
-                    j.ViewObject.Mirror, 
-                    j.ViewObject.Spin
-                ])
-            except Exception, e:
-                FreeCAD.Console.PrintWarning(str(e) + "\n")
-                
-    return data
-    
 def getPCBheight():
     if not FreeCAD.activeDocument():
         return [False, 0]
     #
     try:
-        pcb = FreeCAD.ActiveDocument.Board.Thickness.Value
-        return [True, pcb]
+        pcbH = FreeCAD.ActiveDocument.Board.Thickness
+        return [True, pcbH, FreeCAD.ActiveDocument.Board]
     except:
-        return [False, False]
+        return [False, False, None]
     
 def getPCBsize():
     if not FreeCAD.activeDocument():
@@ -230,91 +188,145 @@ def getPCBsize():
 
 def cutToBoardShape(pads):
     if not FreeCAD.activeDocument():
-        return False
+        return pads
     #
-    # cut to board shape
-    board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-    #board = FreeCAD.ActiveDocument.Board.Border.Shape
-    #board = Part.Face(board)
-    board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
-    board.Placement.Base.z = -1
-    #Part.show(board)
-    pads = board.common(pads)
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        # cut to board shape
+        board = OpenSCAD2Dgeom.edgestofaces(pcb[2].Border.Shape.Edges)
+        #board = FreeCAD.ActiveDocument.Board.Border.Shape
+        #board = Part.Face(board)
+        board = board.extrude(FreeCAD.Base.Vector(0, 0, pcb[2].Thickness + 2))
+        board.Placement.Base.z = -1
+        #Part.show(board)
+        pads = board.common(pads)
+        return pads
+    #
     return pads
 
+def addObject(self, obj):
+    self.Group += [obj]
 
 class PCBboardObject:
     def __init__(self, obj):
         self.Type = 'PCBboard'
         obj.setEditorMode("Placement", 2)
+        obj.setEditorMode("Label", 2)
         #  board
-        obj.addProperty("App::PropertyDistance", "Thickness", "PCB", "Thickness").Thickness = 1.6
+        obj.addProperty("App::PropertyFloatConstraint", "Thickness", "PCB", "Thickness").Thickness = (1.6, 0.5, 10, 0.5)
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
         #  holes
         obj.addProperty("App::PropertyBool", "Display", "Holes", "Display").Display = True
         obj.addProperty("App::PropertyLink", "Holes", "Holes", "Holes")
         #  base
         obj.addProperty("App::PropertyBool", "AutoUpdate", "Base", "Auto Update").AutoUpdate = True
+        obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
+        #obj.addExtension("Part::AttachExtensionPython", obj)
         #
+        self.holesComp = None
         obj.Proxy = self
+        #obj.addObject = addObject
+    
+    def __getstate__(self):
+        return self.Type
 
+    def __setstate__(self, state):
+        if state:
+            self.Type = state
+            self.holesComp = None
+    
+    def addObject(self, fp, obj):
+        fp.Group += [obj]
+        
     def onChanged(self, fp, prop):
         fp.setEditorMode("Placement", 2)
+        fp.setEditorMode("Label", 2)
         #
+        if prop == "Shape":
+            self.getHoles(fp)
+            self.updateObjectaHoles(fp)
+        
         if fp.AutoUpdate == True:
-            if prop == "Thickness" or prop == "Border" or prop == "Holes" or prop == "Display":
-                self.execute(fp)
-            elif prop == "AutoUpdate":
+            # if prop == "Thickness" or prop == "Border" or prop == "Holes" or prop == "Display" or prop == "Cut":
+                # self.execute(fp)
+            # elif prop == "AutoUpdate":
+                # self.execute(fp)
+            # if prop == "Shape" or prop == "Holes" or prop == "AutoUpdate" or prop == "Cut" and fp.Display:
+                # self.updateObjectaHoles(fp)
+            if prop == "Thickness" or prop == "AutoUpdate":
+                self.updatePosition_Z(fp)
+        else:
+            if prop == "Thickness":
                 self.execute(fp)
             
-            if prop == "Shape" or prop == "Display" or prop == "Holes" and fp.Display:
-                self.updateObjectaHoles(fp)
-            if prop == "Thickness":
-                self.updatePosition_Z(fp)
-                
     def updateObjectaHoles(self, fp):
-        for i in FreeCAD.ActiveDocument.Objects:
+        for i in fp.Group:
             try:
                 i.Proxy.updateHoles(i)
-            except:
+            except Exception as e:
                 pass
-    
+        
     def updatePosition_Z(self, fp):
-        for i in FreeCAD.ActiveDocument.Objects:
+        if fp.Thickness < 0.5:
+            fp.Thickness = 0.5
+        
+        for i in fp.Group:
             try:
-                i.Proxy.updatePosition_Z(i, fp.Thickness.Value - self.oldHeight)
+                i.Proxy.updatePosition_Z(i, fp.Thickness)
+                i.purgeTouched()
             except:
                 pass
-                #FreeCAD.Console.PrintWarning(str(e) + "\n")
     
+    def getHoles(self, fp):
+        try:
+            holes = []
+            for i in fp.Holes.Shape.Wires:
+                holes.append(Part.Face(i))
+            if len(holes):
+                holes = Part.makeCompound(holes)
+                self.holesComp = holes
+        except:
+            self.holesComp = None
+
     def execute(self, fp):
         try:
             if fp.Border == None or fp.Holes == None:
                 return
+            # elif not fp.AutoUpdate:
+                # return
             
-            if fp.Thickness.Value <= 0:
-                fp.Thickness.Value = 0.1
-                return
+            if fp.Thickness < 0.5:
+                fp.Thickness = 0.5
             
             try:
                 self.oldHeight = fp.Shape.BoundBox.ZMax
             except:
                 self.oldHeight = 0
-            # holes
-            borderOutline = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Wires)
+
+            face = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Wires)
+            ############################################################
+            # BASED ON  realthunder PROPOSAL/SOLUTION
+            ############################################################
+            try:
+                holes = None
+                # for i in fp.Holes.Shape.Wires:
+                    # holes.append(Part.Face(i))
+                if fp.Display == True:
+                    self.getHoles(fp)
+                    if self.holesComp != None:
+                        face = face.cut(self.holesComp)
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            ############################################################
+            fp.Shape = face.extrude(FreeCAD.Base.Vector(0, 0, fp.Thickness))
             
-            holes = []
-            for i in fp.Holes.Shape.Wires:
-                holes.append(Part.Face(i))
-            
-            if len(holes):
-                face = borderOutline.cut(Part.makeCompound(holes))
-            else:
-                face = borderOutline
-            #
-            fp.Shape = face.extrude(FreeCAD.Base.Vector(0, 0, fp.Thickness.Value))
+            try:
+                fp.purgeTouched()
+            except:
+                pass
         except:
             pass
+        
         ##############
         #try:
             #if fp.AutoUpdate == True:
@@ -326,20 +338,13 @@ class PCBboardObject:
                 #fp.Shape = d
         #except:
             #pass
-        
-    def __getstate__(self):
-        return self.Type
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state
 
 
 class viewProviderPCBboardObject:
     def __init__(self, obj):
         ''' Set this object to the proxy object of the actual view provider '''
         obj.Proxy = self
-
+    
     def getDisplayModes(self, vobj):
         return ["Shaded"]
 
@@ -365,7 +370,7 @@ class viewProviderPCBboardObject:
         vp.setEditorMode("BoundingBox", 2)
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
-
+    
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
         and if not defined a default icon is shown.

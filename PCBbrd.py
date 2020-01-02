@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -27,7 +27,7 @@
 
 import FreeCAD
 import os
-import __builtin__
+import builtins
 import re
 from xml.dom import minidom
 from PySide import QtCore, QtGui
@@ -37,19 +37,10 @@ import time
 import PCBrc
 from PCBconf import *
 from PCBtoolBar import pcbToolBarView
-from formats.eagle import EaglePCB
-from formats.freepcb import FreePCB
-from formats.geda import gEDA_PCB
-from formats.fidocadj import FidoCadJ_PCB
-from formats.razen import Razen_PCB
-from formats.kicad_v3 import KiCadv3_PCB
-from formats.kicad_v4 import KiCadv4_PCB
-from formats.idf_v2 import IDFv2_PCB
-from formats.idf_v3 import IDFv3_PCB
-from formats.idf_v4 import IDFv4_PCB
-from formats.diptrace import DipTrace_PCB
-from formats.hyp import HYP_PCB
+
+from formats.PCBmainForms import mainPCB
 from command.PCBgroups import createGroup_PCB
+import PCBcheckFreeCADVersion
 
 
 def insert(filename, other):
@@ -62,18 +53,22 @@ def insert(filename, other):
 
 def open(filename):
     ''' '''
-    kursor = QtGui.QCursor()
-    kursor.setShape(QtCore.Qt.ArrowCursor)
-    QtGui.QApplication.setOverrideCursor(kursor)
-    
-    wersjaFormatu = wersjaFormatuF(filename)
-    if wersjaFormatu[0]:
-        FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
-        importBRD(filename, wersjaFormatu[0])
-    else:
-        FreeCAD.Console.PrintError("Incompatible file format.\n")
+    result = PCBcheckFreeCADVersion.checkCompatibility()
+    if result[0]:
+        PCBcheckFreeCADVersion.setDefaultValues()
         
-    QtGui.QApplication.restoreOverrideCursor()
+        kursor = QtGui.QCursor()
+        kursor.setShape(QtCore.Qt.ArrowCursor)
+        QtGui.QApplication.setOverrideCursor(kursor)
+        
+        wersjaFormatu = wersjaFormatuF(filename)
+        if wersjaFormatu[0]:
+            FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
+            importBRD(filename, wersjaFormatu[0])
+        else:
+            FreeCAD.Console.PrintError("Incompatible file format.\n")
+            
+        QtGui.QApplication.restoreOverrideCursor()
 
 
 def wersjaFormatuF(filename):
@@ -88,8 +83,11 @@ def wersjaFormatuF(filename):
         except:
             return [False]
     elif rozsz == ".HYP":
+        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+        return [False]
+        
         try:
-            projektBRD = __builtin__.open(filename, "r").read()
+            projektBRD = builtins.open(filename, "r").read()
             version = re.findall(r'\{VERSION=(.+?)\}', projektBRD)[0]
             
             if version == '2.10':
@@ -102,7 +100,7 @@ def wersjaFormatuF(filename):
         
     elif rozsz in [".idf", ".brd", ".brd", ".emn", ".bdf", ".idb"]:
         try:  # idf v2
-            projektBRD = __builtin__.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
+            projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
             ver = re.findall(r'board_file\s+(.+?)\s+', projektBRD)[0]
             return ["idf_v2", "IDF v2"]
         except:
@@ -110,6 +108,9 @@ def wersjaFormatuF(filename):
                 ver = re.findall(r'BOARD_FILE\s+(.+?)\s+', projektBRD)[0]
                 return ["idf_v3", "IDF v3"]
             except:
+                FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+                return [False]
+                
                 try:  # idf v4
                     ver = re.findall(r'IDF_Header \(\nVersion \("4.0"\)', projektBRD)[0]
                     if len(re.findall(r'"Board_Part"', re.findall(r'Board_Part \((.*?)\),', projektBRD, re.DOTALL)[0], re.DOTALL)) == 0:
@@ -120,57 +121,66 @@ def wersjaFormatuF(filename):
                     return [False]
     elif rozsz == ".kicad_pcb":
         try:  # kicad
-            projektBRD = __builtin__.open(filename, "r").read()
+            projektBRD = builtins.open(filename, "r").read()
             version = re.findall('^\(kicad_pcb \(version (.+?)\)', projektBRD)[0]
             
             if version == '3':
                 return ["kicad_v3", "KiCad (version 3)"]
             elif version == '4':
                 return ["kicad_v4", "KiCad (version 4)"]
-            elif int(version[:4]) >= 2016:  # nightly build v4
-                return ["kicad_v4", "KiCad (version 4 NB)"]
+            elif int(version[:4]) >= 2016:
+                return ["kicad_v4", "KiCad (version {0})".format(version)]
             else:
                 FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
                 return [False]
         except:
             return [False]
     elif rozsz == ".fcd":
+        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+        return [False]
+        
         try:  # fidocadj
-            projektBRD = __builtin__.open(filename, "r").read()
+            projektBRD = builtins.open(filename, "r").read()
             version = re.search('^\[FIDOCAD\]', projektBRD).group()
             return ["fidocadj", "FidoCadJ"]
         except:
             return [False]
     elif rozsz == ".asc":
+        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+        return [False]
+        
         try:  # DipTrace
-            projektBRD = __builtin__.open(filename, "r").read()
+            projektBRD = builtins.open(filename, "r").read()
             version = re.search('^\(Source "DipTrace-PCB"\)', projektBRD).group()
             return ["diptrace", "DipTrace"]
         except:
             return [False] 
     elif rozsz == ".rzp":
+        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+        return [False]
+        
         try:  # razen
             import json
-            projektBRD = __builtin__.open(filename, "r")
+            projektBRD = builtins.open(filename, "r")
             projektBRD = json.load(projektBRD)
             #docname = os.path.dirname(filename)
             wersja = projektBRD["version"]
             #projektPCB = projektBRD["layout"]
-            #projektBRD = __builtin__.open(os.path.join(docname, projektPCB), "r")
+            #projektBRD = builtins.open(os.path.join(docname, projektPCB), "r")
 
             return ["razen", "Razen {0}".format(wersja)]
         except:
             return [False]
     elif rozsz == ".fpc":  # freepcb
         try:
-            projektBRD = __builtin__.open(filename, "r").read()
+            projektBRD = builtins.open(filename, "r").read()
             wersjaProgramu = re.search('version: (.*)\r\n', projektBRD).groups()[0]
             return ["freepcb", "FreePCB {0}".format(wersjaProgramu)]
             #FreeCAD.Console.PrintError("FreePCB importer is disabled in v3.2!\n")
             #return [False]
         except:
             try:
-                projektBRD = __builtin__.open(filename, "r").read()
+                projektBRD = builtins.open(filename, "r").read()
                 wersjaProgramu = re.search('autosave_interval:', projektBRD).groups()
                 return ["freepcb", "FreePCB"]
                 #FreeCAD.Console.PrintError("FreePCB importer is disabled in v3.2!\n")
@@ -178,7 +188,7 @@ def wersjaFormatuF(filename):
             except:
                 return [False]
     elif rozsz == ".pcb":  # geda
-        projektBRD = __builtin__.open(filename, "r").read()
+        projektBRD = builtins.open(filename, "r").read()
         try:
             wersjaProgramu = re.search(r"# release: pcb (.*)", projektBRD).groups()[0]
         except AttributeError:
@@ -189,6 +199,18 @@ def wersjaFormatuF(filename):
                     wersjaProgramu = re.search(r"# release: pcb.exe (.*)", projektBRD).groups()[0]
                 except:
                     return [False]
+        ##########################
+        # min. required file version 
+        fileVersion = 0
+        try:
+            fileVersion = re.findall(r'FileVersion\[(.+?)\]', projektBRD)[0]
+        except:
+            pass
+            
+        if int(fileVersion) < 20170218:
+            FreeCAD.Console.PrintError("File version is too old - min. required version is 20170218. Save file in newer gEDA version. ")
+            return [False]
+        ##########################
         return ["geda", "gEDA {0}".format(wersjaProgramu)]
     else:
         return [False]
@@ -203,33 +225,12 @@ def importBRD(filename, wersjaFormatu):
         #pass
     mw = FreeCADGui.getMainWindow()
     mw.findChild(QtGui.QDockWidget, "Report view").layout().itemAt(0).widget().clear()
-
-    if wersjaFormatu == "eagle":
-        plytkaPCB = EaglePCB(filename)
-    elif wersjaFormatu == "freepcb":
-        plytkaPCB = FreePCB()
-    elif wersjaFormatu == "geda":
-        plytkaPCB = gEDA_PCB(filename)
-    elif wersjaFormatu == "fidocadj":
-        plytkaPCB = FidoCadJ_PCB(filename)
-    elif wersjaFormatu == "razen":
-        plytkaPCB = Razen_PCB()
-    elif wersjaFormatu == "kicad_v3":
-        plytkaPCB = KiCadv3_PCB(filename)
-    elif wersjaFormatu == "kicad_v4":
-        plytkaPCB = KiCadv4_PCB(filename)
-    elif wersjaFormatu == "idf_v2":
-        plytkaPCB = IDFv2_PCB(filename)
-    elif wersjaFormatu == "idf_v3":
-        plytkaPCB = IDFv3_PCB(filename)
-    elif wersjaFormatu == "idf_v4":
-        plytkaPCB = IDFv4_PCB(filename)
-    elif wersjaFormatu == "diptrace":
-        plytkaPCB = DipTrace_PCB(filename)
-    elif wersjaFormatu == "hyp_v2":
-        plytkaPCB = HYP_PCB(filename)
     
-    dial = plytkaPCB.dialogMAIN
+    
+    plytkaPCB = mainPCB(wersjaFormatu, filename)
+    plytkaPCB.setProject(filename)
+    dial = plytkaPCB.wersjaFormatu.dialogMAIN
+    
     if dial.exec_():
         docname = os.path.splitext(os.path.basename(filename))[0]
         doc = FreeCAD.newDocument(docname)
@@ -238,13 +239,14 @@ def importBRD(filename, wersjaFormatu):
         start = time.time()
         
         plytkaPCB.setProject(filename)
-        plytka = plytkaPCB.generate(doc, groupBRD, filename)
+        #plytka = plytkaPCB.generate(doc, groupBRD, filename)
+        plytka = plytkaPCB.generate(doc, groupBRD)
         
-        FreeCAD.Console.PrintWarning('Total time: %i[s]\n' % (time.time() - start))
+        FreeCAD.Console.PrintWarning('\nTotal time: %i[s]\n' % (time.time() - start))
         ######
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
         
         view = pcbToolBarView()
-        view.changeDisplayMode('Shaded')
+        #view.changeDisplayMode('Shaded')
         return plytka

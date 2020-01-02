@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -104,43 +104,45 @@ class moveParts(partsManaging):
     ''' move 3d models of packages '''
     def __init__(self, updateModel, parent=None):
         self.form = moveWizardWidget()
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/centroid.svg"))
         self.form.setWindowTitle('Placement model')
         self.updateModel = updateModel
         
         self.setDatabase()
         
         self.elemPackage = []
-        doc = FreeCAD.activeDocument()
-        for i in doc.Objects:
-            if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
-                self.elemPackage.append([i, i.Placement, i.Proxy.offsetX, i.Proxy.offsetY])
-    
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == "PCBpart" and not i.KeepPosition and i.Package == updateModel:
+                    self.elemPackage.append([i, i.Placement, i.Proxy.oldX, i.Proxy.oldY, i.Proxy.oldROT, i.Proxy.offsetZ])
+        
     def loadData(self):
         ''' load all packages types to list '''
-        data = eval(self.packageData["soft"])[self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)]
+        packageID = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        packageData = self.__SQL__.getPackageByID(packageID)
+        packageData = self.__SQL__.convertToTable(packageData)
         #
-        self.form.positionX.setValue(float(data[2]))
-        self.form.positionY.setValue(float(data[3]))
-        self.form.positionZ.setValue(float(data[4]))
-        self.form.rotationRX.setValue(float(data[5]))
-        self.form.rotationRY.setValue(float(data[6]))
-        self.form.rotationRZ.setValue(float(data[7]))
+        self.form.positionX.setValue(float(packageData['x']))
+        self.form.positionY.setValue(float(packageData['y']))
+        self.form.positionZ.setValue(float(packageData['z']))
+        self.form.rotationRX.setValue(float(packageData['rx']))
+        self.form.rotationRY.setValue(float(packageData['ry']))
+        self.form.rotationRZ.setValue(float(packageData['rz']))
         
-        self.offsetX = float(data[2])
-        self.offsetY = float(data[3])
+        self.offsetX = float(packageData['x'])
+        self.offsetY = float(packageData['y'])
         
     def readLibs(self):
-        ''' read all available libs from conf file '''
-        self.sectionName = self.__SQL__.findPackage(self.updateModel, '*')
-        self.packageData = self.__SQL__.getValues(self.sectionName[1])
+        ''' read all available libs from selected model '''
+        modelData = self.__SQL__.findPackage(self.updateModel, software='*', returnAll=True)
         #
         self.form.listaBibliotek.clear()
-        data = eval(self.packageData["soft"])
-        for i in range(len(data)):
-            dbName = data[i][0].strip()
-
-            self.form.listaBibliotek.addItem(u"{1} ({0})".format(data[i][0].strip(), data[i][1].strip()))
-            self.form.listaBibliotek.setItemData(self.form.listaBibliotek.count() - 1, i, QtCore.Qt.UserRole)
+        for i in modelData:
+            data = self.__SQL__.convertToTable(i)
+            self.form.listaBibliotek.addItem(u"{1} ({0})".format(data['name'], data['software']))
+            self.form.listaBibliotek.setItemData(self.form.listaBibliotek.count() - 1, data['id'], QtCore.Qt.UserRole)
+        #
         self.form.listaBibliotek.setCurrentIndex(0)
 
     def open(self):
@@ -159,66 +161,25 @@ class moveParts(partsManaging):
         self.form.connect(self.form.listaBibliotek, QtCore.SIGNAL('currentIndexChanged (int)'), self.loadData)
         
     def changePos(self, val):
-        #################################################################
-        #        polaczyc z innymi podobnymi czesciami kodu !!!!!       #
-        #################################################################
         gruboscPlytki = getPCBheight()[1]
         
         for i in self.elemPackage:
-            # rotate object according to (RX, RY, RZ) set by user
-            sX = i[0].Shape.BoundBox.Center.x * (-1) + i[0].Placement.Base.x
-            sY = i[0].Shape.BoundBox.Center.y * (-1) + i[0].Placement.Base.y
-            sZ = i[0].Shape.BoundBox.Center.z * (-1) + i[0].Placement.Base.z + gruboscPlytki / 2.
-            
-            rotateY = self.form.rotationRY.value()
-            rotateX = self.form.rotationRX.value()
-            rotateZ = self.form.rotationRZ.value()
-            pla = FreeCAD.Placement(i[0].Placement.Base, FreeCAD.Rotation(rotateX, rotateY, rotateZ), FreeCAD.Base.Vector(sX, sY, sZ))
-            i[0].Placement = pla
-            
-            ## placement object to 0, 0, PCB_size / 2. (X, Y, Z)
-            sX = i[0].Shape.BoundBox.Center.x * (-1) + i[0].Placement.Base.x
-            sY = i[0].Shape.BoundBox.Center.y * (-1) + i[0].Placement.Base.y
-            sZ = i[0].Shape.BoundBox.Center.z * (-1) + i[0].Placement.Base.z + gruboscPlytki / 2.
-
-            i[0].Placement.Base.x = sX + self.form.positionX.value() - i[0].Proxy.offsetX
-            i[0].Placement.Base.y = sY + self.form.positionY.value() - i[0].Proxy.offsetY
-            i[0].Placement.Base.z = sZ
-            
-            # move object to correct Z
-            i[0].Placement.Base.z = i[0].Placement.Base.z + (gruboscPlytki - i[0].Shape.BoundBox.Center.z) + self.form.positionZ.value() 
-            
+            step_model = i[0]
             #
-            if i[0].Side == "BOTTOM":
-                # ROT Y - MIRROR
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, gruboscPlytki / 2.), (0.0, 1.0, 0.0), 180)
-                i[0].Placement = shape.Placement
-                
-                # ROT Z - VALUE FROM EAGLE
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), -i[0].Rot)
-                i[0].Placement = shape.Placement
-            else:
-                # ROT Z - VALUE FROM EAGLE
-                shape = i[0].Shape.copy()
-                shape.Placement = i[0].Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), i[0].Rot)
-                i[0].Placement = shape.Placement
-            
-            # placement object to X, Y set in eagle
-            i[0].Placement.Base.x = i[0].Placement.Base.x + i[0].X.Value
-            i[0].Placement.Base.y = i[0].Placement.Base.y + i[0].Y.Value
-            
-        FreeCAD.ActiveDocument.recompute()
+            self.partPlacement(step_model, self.form.positionX.value(), self.form.positionY.value(), self.form.positionZ.value(), self.form.rotationRX.value(), self.form.rotationRY.value(), self.form.rotationRZ.value(), step_model.X.Value, step_model.Y.Value)
+            if step_model.Side == "BOTTOM":
+                step_model.Proxy.changeSide(step_model)
+            step_model.Proxy.oldROT = 0
+            step_model.Rot = step_model.Rot.Value # rot around Z
+            step_model.Proxy.updatePosition_Z(step_model, gruboscPlytki, True)
             
     def resetObj(self):
         for i in self.elemPackage:
             i[0].Placement = i[1]
-            i[0].Proxy.offsetX = i[2] 
-            i[0].Proxy.offsetY = i[3]
+            i[0].Proxy.oldX = i[2] 
+            i[0].Proxy.oldY = i[3]
+            i[0].Proxy.oldROT = i[4]
+            i[0].Proxy.offsetZ = i[5]
         
     def reject(self):
         self.resetObj()
@@ -241,18 +202,22 @@ class moveParts(partsManaging):
 
     def accept(self):
         ''' update 3d models of packages '''
-        data = eval(self.packageData["soft"])
-        dataToUpdate = data[self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)]
-        dataToUpdate[2] = self.form.positionX.value()
-        dataToUpdate[3] = self.form.positionY.value()
-        dataToUpdate[4] = self.form.positionZ.value()
-        dataToUpdate[5] = self.form.rotationRX.value()
-        dataToUpdate[6] = self.form.rotationRY.value()
-        dataToUpdate[7] = self.form.rotationRZ.value()
-        data[self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)] = dataToUpdate
-
-        self.__SQL__.updateValue(self.sectionName[1], "soft", str(data))
-        self.__SQL__.write()
-        FreeCAD.ActiveDocument.recompute()
-
+        # for i in self.elemPackage:
+            # i[0].Proxy.offsetX = self.form.positionX.value()
+            # i[0].Proxy.offsetY = self.form.positionY.value()
+            # i[0].Proxy.offsetZ = self.form.positionZ.value()
+            # i[0].recompute()
+        
+        packageID = self.form.listaBibliotek.itemData(self.form.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        packageData = self.__SQL__.getPackageByID(packageID)
+        packageData = self.__SQL__.convertToTable(packageData)
+        
+        packageData['x'] = self.form.positionX.value()
+        packageData['y'] = self.form.positionY.value()
+        packageData['z'] = self.form.positionZ.value()
+        packageData['rx'] = self.form.rotationRX.value()
+        packageData['ry'] = self.form.rotationRY.value()
+        packageData['rz'] = self.form.rotationRZ.value()
+        
+        self.__SQL__.updatePackage(packageID, packageData)
         return True

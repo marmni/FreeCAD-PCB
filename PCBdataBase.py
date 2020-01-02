@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -24,985 +24,1290 @@
 #*   USA                                                                    *
 #*                                                                          *
 #****************************************************************************
-
-# import sqlite3                <--- NOT WORKING, WHY?
-import ConfigParser
-import random
-import os
+import os.path
+import shutil
+import copy
+import configparser
+import json
 import FreeCAD
-from PySide import QtGui, QtCore
-import __builtin__
-from xml.dom import minidom
-import __builtin__
-import re
-#
-from PCBfunctions import getFromSettings_databasePath
-from PCBconf import defSoftware
-from PCBcategories import readCategories, addCategory, getCategoryIdByName
+from PySide import QtCore, QtGui
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Boolean, Float
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import reflection
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship, backref
+import PCBcheckFreeCADVersion
+
+__currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
+Base = declarative_base()
 
 
-class dataBase:
+class modelsParam(Base):
+    __tablename__ = "modelsParam"
+    
+    id = Column(Integer, primary_key=True)
+    modelID = Column(Integer)
+    name = Column(String)
+    active = Column(Boolean)
+    display = Column(Boolean)
+    x = Column(Float)
+    y = Column(Float)
+    z = Column(Float)
+    rz = Column(Float)
+    size = Column(Float)
+    color = Column(String)
+    align = Column(String)
+    spin = Column(Boolean)
+    
+    def __init__(self, modelID, name, color, align, active=True, display=True, x=0.0, y=0.0, z=0.0, rz=0.0, size=1.27, spin=False):
+        self.modelID = modelID
+        self.name = name
+        self.active = active
+        self.display = display
+        self.x = x
+        self.y = y
+        self.z = z
+        self.rz = rz
+        self.size = size
+        self.color = color
+        self.align = align
+        self.spin = spin
+        
+    def __repr__(self):
+        return "<modelsParam('%s')>" % (name)
+
+
+class Categories(Base):
+    __tablename__ = "categories"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    parentID = Column(Integer)
+    description = Column(String)
+    
+    def __init__(self, name, parentID, description):
+        self.name = name
+        self.parentID = parentID
+        self.description = description
+    
+    def __repr__(self):
+        return "<Categories('%s','%s')>" % (self.name, self.description)
+        
+
+class Models(Base):
+    __tablename__ = "models"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String)
+    categoryID = Column(Integer)
+    datasheet = Column(String)
+    path3DModels = Column(String, nullable=False)
+    isSocket = Column(Boolean)
+    isSocketHeight = Column(Float)
+    socketID = Column(Integer)
+    socketIDSocket = Column(Boolean)
+
+    def __init__(self, name, path3DModels, description='', categoryID=0, datasheet='', isSocket=False, isSocketHeight=0.0, socketID=0, socketIDSocket=False):
+        self.name = name
+        self.description = description
+        self.categoryID = categoryID
+        self.datasheet = datasheet
+        self.path3DModels = path3DModels
+        self.isSocket = isSocket
+        self.isSocketHeight = isSocketHeight
+        self.socketID = socketID
+        self.socketIDSocket = socketIDSocket
+    
+    def __repr__(self):
+        return "<Models('%s','%s')>" % (self.name, self.description)
+
+
+class Packages(Base):
+    __tablename__ = "packages"
+    
+    id = Column(Integer, primary_key=True)
+    modelID = Column(Integer)
+    name = Column(String, nullable=False)
+    software = Column(String, nullable=False)
+    x = Column(Float)
+    y = Column(Float)
+    z = Column(Float)
+    rx = Column(Float)
+    ry = Column(Float)
+    rz = Column(Float)
+    
+    def __init__(self, modelID, name, software, x=0.0, y=0.0, z=0.0, rx=0.0, ry=0.0, rz=0.0):
+        self.modelID = modelID
+        self.name = name
+        self.software = software
+        self.x = x
+        self.y = y
+        self.z = z
+        self.rx = rx
+        self.ry = ry
+        self.rz = rz
+    
+    def __repr__(self):
+        return "<Packages('%s')>" % (self.name)
+
+
+class dataBase_CFG():
     def __init__(self, parent=None):
-        self.config = ConfigParser.RawConfigParser()
+        self.config = configparser.RawConfigParser()
         self.fileName = None
     
-    def convertDatabaseEntries(self):
-        dial = convertSoftwareItems(self)
-        if dial.exec_():
-            soft = dial.toSoftware.currentText()
-            
-            for i in range(dial.categoriesTable.rowCount()):
-                if dial.categoriesTable.cellWidget(i, 0).isChecked():
-                    try:
-                        sectionID = dial.categoriesTable.item(i, 1).text()
-                        name = dial.categoriesTable.item(i, 3).text()
-                        try:
-                            x = float(dial.categoriesTable.item(i, 5).text())
-                        except ValueError:
-                            x = 0.0
-                        try:
-                            y = float(dial.categoriesTable.item(i, 6).text())
-                        except ValueError:
-                            y = 0.0
-                        try:
-                            z = float(dial.categoriesTable.item(i, 7).text())
-                        except ValueError:
-                            z = 0.0  
-                        try:
-                            rx = float(dial.categoriesTable.item(i, 8).text())
-                        except ValueError:
-                            rx = 0.0
-                        try:
-                            ry = float(dial.categoriesTable.item(i, 9).text())
-                        except ValueError:
-                            ry = 0.0
-                        try:
-                            rz = float(dial.categoriesTable.item(i, 10).text())
-                        except ValueError:
-                            rz = 0.0
-                        #
-                        softsList = eval(self.getValues(sectionID)['soft'])
-                        
-                        if not [name, soft, x, y, z, rx, ry, rz] in softsList:
-                            connections = [[name, soft, x, y, z, rx, ry, rz]]
-                         
-                            dane = {'soft': connections + softsList}
-                            self.updatePackage(sectionID, dane)
-                    except:
-                        continue
-            #
-            return True
-        
     def read(self, fileName):
         if fileName != "":
-            #self.config = ConfigParser.RawConfigParser()
+            #self.config = configparser.RawConfigParser()
             sciezka = os.path.dirname(fileName)
             if os.access(sciezka, os.R_OK) and os.access(sciezka, os.F_OK):
                 self.fileName = fileName
                 self.config.read(fileName)
                 return True
             FreeCAD.Console.PrintWarning("Access Denied. The file '{0}' may not exist, or there could be permission problem.\n".format(fileName))
-            
-    def create(self, fileName):
-        plik = __builtin__.open(fileName, "w")
-        plik.close()
-        self.fileName = fileName
-        #self.config = ConfigParser.RawConfigParser()
-        self.config.read(fileName)
+    
+    def packages(self):
+        return self.config.sections()
         
-    def write(self):
-        if os.access(os.path.dirname(self.fileName), os.W_OK):
-            with open(self.fileName, 'wb') as configfile:
-                self.config.write(configfile)
-            return True
-        FreeCAD.Console.PrintWarning("Access Denied. The file '{0}' may not exist, or there could be permission problem.\n".format(self.fileName))
-
-    def has_section(self, name):
-        return self.config.has_section(str(name))
-        
-    def findPackage(self, package, soft):
-        for i in self.packages():
-            for j in eval(self.getValues(i)["soft"]):
-                if soft == '*':
-                    if package.lower()+"'" in str(j).lower():
-                        return [True, i, j, int(self.getValues(i)['category'])]
-                else:
-                    if str(soft) in j and package.lower()+"'" in str(j).lower():
-                        return [True, i, j, int(self.getValues(i)['category'])]
-        return [False]
-        
-    def has_value(self, valueName, txt):
-        for i in self.packages():
-            if self.config.get(i, valueName) == txt:
-                return [True, i]
-        return [False]
-            
     def getValues(self, sectionName):
         dane = {}
         for i in self.config.items(sectionName):
             dane[i[0]] = i[1]
         return dane
-        
-    def reloadList(self):
-        self.read(self.fileName)
-            
-    def delPackage(self, name):
-        self.config.remove_section(name)
-        self.write()
     
-    def updateValue(self, sectionName, txt, value):
-        self.config.set(sectionName, txt, value)
-        
-    def updatePackage(self, sectionName, dane):
-        for i, j in dane.items():
-            self.config.set(sectionName, i, j)
-        #self.config.set(sectionName, 'name', dane["name"])
-        #self.config.set(sectionName, 'path', dane["path"])
-        #self.config.set(sectionName, 'x', dane["x"])
-        #self.config.set(sectionName, 'y', dane["y"])
-        #self.config.set(sectionName, 'z', dane["z"])
-        #self.config.set(sectionName, 'rx', dane["rx"])
-        #self.config.set(sectionName, 'ry', dane["ry"])
-        #self.config.set(sectionName, 'rz', dane["rz"])
-        #self.config.set(sectionName, 'add_socket', dane["add_socket"])
-        #self.config.set(sectionName, 'add_socket_id', dane["add_socket_id"])
-        #self.config.set(sectionName, 'socket', dane["socket"])
-        #self.config.set(sectionName, 'socket_height', dane["socket_height"])
-        #self.config.set(sectionName, 'description', dane["description"])
-        #self.config.set(sectionName, 'datasheet', dane["datasheet"])
-        self.write()
-        
-    def wygenerujID(self, ll, lc):
-        ''' generate random section name '''
-        numerID = ""
-    
-        for i in range(ll):
-            numerID += random.choice('abcdefghij')
-        numerID += "_"
-        for i in range(lc):
-            numerID += str(random.randrange(0, 99, 1))
-        
-        if not self.has_section(numerID):
-            return numerID
+    def readCategories(self):
+        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '').strip() != '':
+            return {int(i):j for i, j in json.loads(FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '')).items()}
         else:
-            return self.wygenerujID(ll, lc)
-            
-    def addPackage(self, dane):
-        sectionName = self.wygenerujID(5, 5)
-        
-        self.config.add_section(sectionName)
-        for i, j in dane.items():
-            self.config.set(sectionName, i, j)
-        #self.config.set(sectionName, 'name', dane["name"])
-        #self.config.set(sectionName, 'path', dane["path"])
-        #self.config.set(sectionName, 'x', dane["x"])
-        #self.config.set(sectionName, 'y', dane["y"])
-        #self.config.set(sectionName, 'z', dane["z"])
-        #self.config.set(sectionName, 'rx', dane["rx"])
-        #self.config.set(sectionName, 'ry', dane["ry"])
-        #self.config.set(sectionName, 'rz', dane["rz"])
-        #self.config.set(sectionName, 'add_socket', dane["add_socket"])
-        #self.config.set(sectionName, 'add_socket_id', dane["add_socket_id"])
-        #self.config.set(sectionName, 'socket', dane["socket"])
-        #self.config.set(sectionName, 'socket_height', dane["socket_height"])
-        #self.config.set(sectionName, 'description', dane["description"])
-        #self.config.set(sectionName, 'datasheet', dane["datasheet"])
-        self.write()
-            
-    def packages(self):
-        return self.config.sections()
-    
-    def makeACopy(self):
-        try:
-            newFolder = QtGui.QFileDialog.getExistingDirectory(None, 'Save database copy', os.path.expanduser("~"))
-            if newFolder:
-                try:
-                    xml = minidom.Document()
-                    root = xml.createElement("pcb")
-                    xml.appendChild(root)
-                    
-                    # categories
-                    categories = xml.createElement("categories")
-                    root.appendChild(categories)
+            return {}
 
-                    for i,j in readCategories().items():
-                        category = xml.createElement("category")
-                        category.setAttribute('number', str(i))
-                        category.setAttribute('name', str(j[0]))
-                        #
-                        description = xml.createTextNode(str(j[1]))
-                        category.appendChild(description)
-                        #
-                        categories.appendChild(category)
-                    # models
-                    models = xml.createElement("models")
-                    root.appendChild(models)
-                    
-                    for i in self.packages():
-                        dane = self.getValues(i)
-                        
-                        model = xml.createElement("model")
-                        model.setAttribute('ID', str(i))
-                        model.setAttribute('name', str(dane['name']))
-                        model.setAttribute('category', str(dane['category']))
-                        model.setAttribute('datasheet', str(dane['datasheet']))
-                        model.setAttribute('isSocket', str(eval(dane['socket'])[0]))
-                        model.setAttribute('height', str(eval(dane['socket'])[1]))
-                        model.setAttribute('socket', str(eval(dane['add_socket'])[0]))
-                        model.setAttribute('socketID', str(eval(dane['add_socket'])[1]))
-                        #
-                        description = xml.createElement("description")
-                        model.appendChild(description)
-                        
-                        descriptionTXT = xml.createTextNode(str(dane['description']))
-                        description.appendChild(descriptionTXT)
-                        #
-                        paths = xml.createElement("paths")
-                        model.appendChild(paths)
-                        
-                        for j in dane['path'].split(';'):
-                            path = xml.createElement("path")
-                            
-                            description = xml.createTextNode(str(j))
-                            path.appendChild(description)
-                            #
-                            paths.appendChild(path)
-                        #
-                        connections = xml.createElement("connections")
-                        model.appendChild(connections)
-                        
-                        for j in eval(dane['soft']):
-                            item = xml.createElement("item")
-                            item.setAttribute('name', str(j[0]))
-                            item.setAttribute('soft', str(j[1]))
-                            item.setAttribute('x', str(j[2]))
-                            item.setAttribute('y', str(j[3]))
-                            item.setAttribute('z', str(j[4]))
-                            item.setAttribute('rx', str(j[5]))
-                            item.setAttribute('ry', str(j[6]))
-                            item.setAttribute('rz', str(j[7]))
-                            #
-                            connections.appendChild(item)
-                        #
-                        adjust = xml.createElement("adjust")
-                        model.appendChild(adjust)
-                        
-                        try:
-                            for i, j in eval(str(dane["adjust"])).items():
-                                item = xml.createElement("item")
-                                item.setAttribute('parameter', str(i))
-                                
-                                item.setAttribute('active', str(j[0]))
-                                item.setAttribute('visible', str(j[1]))
-                                item.setAttribute('x', str(j[2]))
-                                item.setAttribute('y', str(j[3]))
-                                item.setAttribute('z', str(j[4]))
-                                item.setAttribute('size', str(j[5]))
-                                item.setAttribute('align', str(j[7]))
-                                #
-                                color = xml.createElement("color")
-                                color.setAttribute('R', str(j[6][0]))
-                                color.setAttribute('G', str(j[6][1]))
-                                color.setAttribute('B', str(j[6][2]))
-                                ##
-                                item.appendChild(color)
-                                #
-                                adjust.appendChild(item)
-                        except:
-                            pass
-                        #
-                        models.appendChild(model)
-                    
-                    # write to file
-                    outputFile = __builtin__.open(os.path.join(newFolder, 'freecad-pcb_copy.fpcb'), 'w')
-                    xml.writexml(outputFile)
-                    outputFile.close()
-                except Exception, e:
-                    FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
-        except Exception, e:
-            FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+
+class dataBase:
+    def __init__(self):
+        self.session = None
+        self.lastInsertedID = None
+        self.lastInsertedModelID = None
     
-    def readFromXML(self):
+    def cfg2db(self, databasePath):
+        ''' convert from cfg to db format - local '''
         try:
-            dial = readDatabaseFromXML_GUI(self)
-            if dial.exec_():
-                for i in QtGui.QTreeWidgetItemIterator(dial.modelsTable):
-                    if str(i.value().data(0, QtCore.Qt.UserRole)) != 'PM':
-                        continue
-                
-                    mainItem = i.value()
-                    # items
-                    connections = []
-                    checked = 0
-                    for j in range(mainItem.childCount()):
-                        if mainItem.child(j).checkState(0) == QtCore.Qt.Checked:
-                            child = mainItem.child(j).data(0, QtCore.Qt.UserRole + 2)
-                            # <item name="1X08" rx="90.0" ry="0.0" rz="0.0" soft="Eagle" x="0.0" y="0.0" z="2.77"/>
-                            name = child.getAttribute("name")
-                            soft = child.getAttribute("soft")
-                            x = float(child.getAttribute("x"))
-                            y = float(child.getAttribute("y"))
-                            z = float(child.getAttribute("z"))
-                            rx = float(child.getAttribute("rx"))
-                            ry = float(child.getAttribute("ry"))
-                            rz = float(child.getAttribute("rz"))
-                            #
-                            connections.append([name, soft, x, y, z, rx, ry, rz])
-                            checked += 1
+            dataBaseCFG = dataBase_CFG()  # old cfg file
+            dataBaseCFG.read(databasePath)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR cfg2db 1: {0}.\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Reading old database\n")
+        try:
+            # converting categories
+            categoriesList = dataBaseCFG.readCategories()
+            if len(categoriesList.keys()):
+                for i, j in categoriesList.items():
+                    name = self.clearString(j[0])
+                    description = self.clearString(j[1])
                     
-                    if checked == 0:
-                        continue
-                    #
-                    if mainItem.data(0, QtCore.Qt.UserRole + 4) == 'new': # new entry
-                        topLevelItem = mainItem.parent()
-                        modelXML = mainItem.data(0, QtCore.Qt.UserRole + 2)
-                        #
-                        if topLevelItem.data(0, QtCore.Qt.UserRole) == -1:  # models without category
-                            modelCategory = -1
-                        elif topLevelItem.data(0, QtCore.Qt.UserRole) == 'New':  # new category
-                            rowNum = topLevelItem.data(0, QtCore.Qt.UserRole + 1)
-                        
-                            categoryName = dial.categoriesTable.item(rowNum, 2).text()
-                            categoryDescription = dial.categoriesTable.item(rowNum, 3).text()
-                            #
-                            modelCategory = getCategoryIdByName(categoryName)
-                            if modelCategory == -1:
-                                addCategory(categoryName, categoryDescription)
-                                modelCategory = getCategoryIdByName(categoryName)
-                        elif topLevelItem.data(0, QtCore.Qt.UserRole) == 'Old':  # add models to existing category
-                            rowNum = topLevelItem.data(0, QtCore.Qt.UserRole + 1)
-                            modelCategory = int(dial.categoriesTable.cellWidget(rowNum, 4).itemData(dial.categoriesTable.cellWidget(rowNum, 4).currentIndex())[0])
-                        #
-                        modelPaths = []
-                        for j in modelXML.getElementsByTagName('paths')[0].getElementsByTagName('path'):
-                            try:
-                                modelPaths.append(j.firstChild.data)
-                            except AttributeError:
-                                pass
-                        modelPaths = '; '.join(modelPaths)
-                        #
-                        try:
-                            modelDescription = modelXML.getElementsByTagName('description')[0].firstChild.data
-                        except AttributeError:
-                            modelDescription = ''
-                        #
-                        #
-                        adjust = {}
-                        for j in modelXML.getElementsByTagName('adjust')[0].getElementsByTagName('item'):
-                            parameter = str(j.getAttribute('parameter')).strip()
-                            active = j.getAttribute('active')
-                            visible = str(j.getAttribute('visible'))
-                            x = float(j.getAttribute('x'))
-                            y = float(j.getAttribute('y'))
-                            z = float(j.getAttribute('z'))
-                            size = float(j.getAttribute('size'))
-                            align = str(j.getAttribute('align')).strip()
-                            #
-                            colors = j.getElementsByTagName('color')[0]
-                            color = {float(colors.getAttribute('R')), float(colors.getAttribute('G')), float(colors.getAttribute('B'))}
-                            #
-                            adjust[parameter] = [active, visible, x, y, z, size, color, align]
-                        #
-                        self.addPackage({
-                            "name": str(modelXML.getAttribute('name').strip()),
-                            "path": modelPaths,
-                            "add_socket": str([False, False]),
-                            "socket": str([eval(modelXML.getAttribute('isSocket')), float(modelXML.getAttribute('height'))]),
-                            "description": str(modelDescription),
-                            "datasheet": str(modelXML.getAttribute('datasheet').strip()),
-                            "soft": str(connections),
-                            "category": str(modelCategory),
-                            "adjust": str(adjust)
-                        })
+                    self.addCategory(name, 0, description)
+            
+            # converting models
+            seketsList = []
+            packagesList = dataBaseCFG.packages()
+            
+            for i in packagesList:
+                data = dataBaseCFG.getValues(i)
+                
+                result = {}
+                result["name"] = self.clearString(data["name"])
+                result["datasheet"] = self.clearString(data["datasheet"])
+                result["description"] = self.clearString(data["description"])
+                result["path3DModels"] = self.clearString(data["path"])
+                result["isSocket"] = eval(self.clearString(data["socket"]))[0]
+                result["isSocketHeight"] = float(eval(self.clearString(data["socket"]))[1])
+                result["socketIDSocket"] = eval(self.clearString(data["add_socket"]))[0]
+                
+                categoryID = int(data["category"])
+                if categoryID in categoriesList.keys():
+                    if categoryID in [-1, 0]:
+                        result["categoryID"] = 0
                     else:
-                        sectionID = mainItem.data(0, QtCore.Qt.UserRole + 4)
-                        
-                        dane = {'soft': connections + eval(self.getValues(sectionID)['soft'])}
-                        self.updatePackage(sectionID, dane)
-                
-                return True
-        except Exception ,e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        
-        return False
-
-
-class readDatabaseFromXML_GUI(QtGui.QDialog):
-    def __init__(self, sql, parent=None):
-        QtGui.QDialog.__init__(self, parent)
-        self.setWindowTitle(u'Import database')
-        self.sql = sql
-        
-        # file
-        self.filePath = QtGui.QLineEdit('')
-        self.filePath.setReadOnly(True)
-        
-        filePathButton = QtGui.QPushButton('...')
-        self.connect(filePathButton, QtCore.SIGNAL("clicked()"), self.chooseFile)
-        
-        filePathFrame = QtGui.QFrame()
-        filePathFrame.setObjectName('lay_path_widget')
-        filePathFrame.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;}''')
-        filePathLayout = QtGui.QHBoxLayout(filePathFrame)
-        filePathLayout.addWidget(QtGui.QLabel(u'File:\t'))
-        filePathLayout.addWidget(self.filePath)
-        filePathLayout.addWidget(filePathButton)
-        filePathLayout.setContentsMargins(0, 0, 0, 0)
-        
-        # tabs
-        self.tabs = QtGui.QTabWidget()
-        self.tabs.setTabPosition(QtGui.QTabWidget.West)
-        self.tabs.setObjectName('tabs_widget')
-        self.tabs.addTab(self.tabCategories(), u'Categories')
-        self.tabs.addTab(self.tabModels(), u'Models')
-        self.tabs.setTabEnabled(1, False)
-        self.connect(self.tabs, QtCore.SIGNAL("currentChanged (int)"), self.activeModelsTab)
-        
-        # buttons
-        buttons = QtGui.QDialogButtonBox()
-        buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
-        buttons.addButton("Import", QtGui.QDialogButtonBox.AcceptRole)
-        self.connect(buttons, QtCore.SIGNAL("accepted()"), self, QtCore.SLOT("accept()"))
-        self.connect(buttons, QtCore.SIGNAL("rejected()"), self, QtCore.SLOT("reject()"))
-        
-        buttonsFrame = QtGui.QFrame()
-        buttonsFrame.setObjectName('lay_path_widget')
-        buttonsFrame.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;}''')
-        buttonsLayout = QtGui.QHBoxLayout(buttonsFrame)
-        buttonsLayout.addWidget(buttons)
-        buttonsLayout.setContentsMargins(0, 0, 0, 0)
-        
-        # main layout
-        lay = QtGui.QGridLayout(self)
-        lay.addWidget(filePathFrame, 0, 0, 1, 1)
-        lay.addWidget(self.tabs, 1, 0, 1, 1)
-        lay.addWidget(buttonsFrame, 2, 0, 1, 1)
-        lay.setRowStretch(1, 10)
-        lay.setContentsMargins(5, 5, 5, 5)
-    
-    def activeModelsTab(self, num):
-        if num == 1:
-            self.modelsTable.clear()
-            self.showInfo.setText('')
-            categories = self.modelsLoadCategories()
-            self.loadModels(categories)
-    
-    def loadModels(self, categories):
-        databaseFile = __builtin__.open(getFromSettings_databasePath(), 'r').read()
-        
-        for i in self.newDtabase.getElementsByTagName('models')[0].getElementsByTagName('model'):
-            modelName = i.getAttribute("name")
-            modelID = i.getAttribute("ID")
-            #
-            try:
-                modelDescription = i.getElementsByTagName('description')[0].firstChild.data
-            except AttributeError:
-                modelDescription = ''
-            #
-            modelPaths = []
-            for j in i.getElementsByTagName('paths')[0].getElementsByTagName('path'):
-                try:
-                    modelPaths.append(j.firstChild.data)
-                except AttributeError:
-                    pass
-            
-            # main model
-            mainModel = QtGui.QTreeWidgetItem([modelName, modelDescription, '\n'.join(modelPaths)])
-            mainModel.setData(0, QtCore.Qt.UserRole, 'PM')
-            mainModel.setData(0, QtCore.Qt.UserRole + 1, modelID)
-            mainModel.setData(0, QtCore.Qt.UserRole + 2, i)  # xml representation
-            
-            if len(modelPaths) == 0 or modelName == '':  # Corrupt entry - this is no error
-                self.modelsListsetRowColor(mainModel, [255, 166 , 166])
-                mainModel.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Info: Corrupt entry!</span>")  # info
-            
-            # child model
-            errors = 0
-            errorsID = -1
-            modelSoftware = i.getElementsByTagName('connections')[0].getElementsByTagName('item')
-            
-            for j in modelSoftware:
-                softwareModel = j.getAttribute("name")
-                softwareName = j.getAttribute("soft")
-                position = "X:{0} ;Y:{1} ;Z:{2} ;RX:{3} ;RY:{4} ;RZ:{5}".format(j.getAttribute("x"), j.getAttribute("y"), j.getAttribute("z"), 
-                    j.getAttribute("rx"), j.getAttribute("ry"), j.getAttribute("rz"))
-                #
-                childModel = QtGui.QTreeWidgetItem([softwareName, softwareModel, position])
-                childModel.setData(0, QtCore.Qt.UserRole, 'M')  # correct model definition
-                childModel.setData(0, QtCore.Qt.UserRole + 2, j)  # xml representatio
-                
-                if re.search(r"\[u'%s', u'%s'" % (softwareModel, softwareName), databaseFile):
-                    errors += 1
-                    childModel.setData(0, QtCore.Qt.UserRole, 'ER')
-                    
-                    if errorsID == -1:
-                        errorsID = self.sql.findPackage(softwareName, softwareModel)[1]
-                    
-                    self.modelsListsetRowColor(childModel, [255, 166 , 166])
-                    childModel.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Error: Model is already defined in database.</span>")  # info
+                        category = self.getCategoryByName(categoriesList[categoryID][0])
+                        if category[0]:
+                            result["categoryID"] = category[1].id
+                        else:
+                            result["categoryID"] = 0
                 else:
-                    childModel.setCheckState(0, QtCore.Qt.Unchecked)
+                    result["categoryID"] = 0
                 
-                if len(modelSoftware) > errors > 0:
-                    mainModel.setData(0, QtCore.Qt.UserRole + 4, errorsID)
-                elif errors == 0:
-                    mainModel.setData(0, QtCore.Qt.UserRole + 4, 'new')
+                if result["socketIDSocket"]:
+                    result["socketID"] = 0
+                    seketsList.append([result["name"], dataBaseCFG.getValues(result["socketIDSocket"])["name"]])
+                else:
+                    result["socketID"] = 0
                 
-                mainModel.addChild(childModel)
-            #######
-            if errors == len(modelSoftware):
-                categories[-2].addChild(mainModel)
+                # packages
+                result["software"] = []
+                for p in eval(data["soft"]):
+                    packageData = {}
+                    packageData['name'] = self.clearString(p[0])
+                    packageData['software'] = self.clearString(p[1])
+                    packageData['x'] = float(p[2])
+                    packageData['y'] = float(p[3])
+                    packageData['z'] = float(p[4])
+                    packageData['rx'] = float(p[5])
+                    packageData['ry'] = float(p[6])
+                    packageData['rz'] = float(p[7])
+                    packageData['blanked'] = False
+                    packageData['id'] = -1
+                    
+                    result["software"].append(packageData)
+                
+                self.addModel(result)
+                
+            for i in seketsList:
+                socket = self.getModelByName(i[1])
+                if socket[0]:
+                    self.session.query(Models).filter(Models.name == i[0]).update({"socketID" : socket[1].id})
+            
+            self.session.commit()
+            FreeCAD.Console.PrintWarning("DONE!.\n")
+            
+            # database file update - position/name
+            if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip() != '':
+                database = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip()
+                FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('databasePath', database.replace('.cfg', '.db'))
+            try:
+                shutil.move(databasePath.replace(".db", ".cfg"), databasePath.replace(".db", ".cfg") + "_old")
+            except Exception as e:
+                pass
+            
+            ## deleting old categories
+            #if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '').strip() != '':
+                #FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('partsCategories', json.dumps(""))
+            
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
+            return True
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR 3: {0}.\n".format(e))
+    
+    def checkVersion(self):
+        if not PCBcheckFreeCADVersion.checkdataBaseVersion():
+            return False
+        else:
+            return True
+    
+    def connect(self, newPath=False):
+        ''' '''
+        try:
+            from PCBfunctions import getFromSettings_databasePath
+            databasePath = getFromSettings_databasePath()
+            
+            if newPath:
+                engine = create_engine('sqlite:///{0}'.format(newPath))
             else:
-                try:
-                    categories[int(i.getAttribute("category"))].addChild(mainModel)
-                except:  # 
-                    categories[-1].addChild(mainModel)  # models without category
-            
-            
-            ##
-            #modelSoftware = {}
-            #error = False
-            
-            #for j in i.getElementsByTagName('connections')[0].getElementsByTagName('item'):
-                #softwareName = j.getAttribute("soft")
-                #softwareModel = j.getAttribute("name")
-                ##
-                #if not softwareName in modelSoftware.keys():
-                    #modelSoftware[softwareName] = []
-                ##
-                #if re.search(r"\[u'%s', u'%s'" % (softwareModel, softwareName), databaseFile):
-                    #error = True
-                ##
-                #modelSoftware[softwareName].append(softwareModel)
-                
-            #modelSoftwareTXT = ''
-            #for j, k in modelSoftware.items():
-                #modelSoftwareTXT += '{0}: {1}\n'.format(j,'; '.join(k))
-            #############
-            #############
-            #item = QtGui.QTreeWidgetItem([modelName, modelDescription, '\n'.join(modelPaths), modelSoftwareTXT.strip()])
-            ##item.setCheckState(0, QtCore.Qt.Unchecked)
-            ##item.setTextAlignment(0, QtCore.Qt.AlignTop)
-            #item.setData(0, QtCore.Qt.UserRole, 'M')
-            #item.setData(0, QtCore.Qt.UserRole + 1, modelID)
-            #item.setData(0, QtCore.Qt.UserRole + 2, i)  # xml representation
-            
-            #if error:  # omitted models
-                #self.modelsListsetRowColor(item, [255, 166 , 166])
-                #item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Error: Model is already defined in database.</span>")  # info
-                
-                #categories[-2].addChild(item)
-            #else:
-                #item.setCheckState(0, QtCore.Qt.Unchecked)
-                
-                #if len(modelPaths) == 0 or modelName == '' or modelSoftwareTXT.strip() == '':  # Corrupt entry - this is no error
-                    #self.modelsListsetRowColor(item, [255, 166 , 166])
-                    #item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'>Info: Corrupt entry!</span>")  # info
-                #elif re.search(r'name\s+=\s+%s' % modelName, databaseFile):  # object with same name already exist in database - this is no error
-                    #self.modelsListsetRowColor(item, [255, 255 , 204])
-                    #item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #000;'>Info: Object with same name already exist in database!</span>")  # info
-                #else:
-                    #self.modelsListsetRowColor(item, [193, 255, 193])
-                    ##item.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold; color: #F00;'></span>")  # info
-            
-                #try:
-                    #categories[int(i.getAttribute("category"))].addChild(item)
-                #except:  # 
-                    #categories[-1].addChild(item)  # models without category
+                engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath().replace('cfg', 'db')))  # relative path
+            ##########################
+            Base.metadata.create_all(engine)
+            Session = sessionmaker(bind=engine)
+            self.session = Session()
+            self.connection = engine.connect()
+            #
+            if databasePath.endswith(".cfg"):
+                dial = QtGui.QMessageBox()
+                dial.setText(u"Old database format detected - upgrading database format is required. This may take several seconds.")
+                dial.setWindowTitle("Caution!")
+                dial.setIcon(QtGui.QMessageBox.Question)
+                rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
+                dial.exec_()
+                #
+                self.cfg2db(databasePath)
+            #
+            self.packagesChangeSoftware("IDF v3", "IDF")
+            #
+            FreeCAD.Console.PrintWarning("Read database\n")
+        except Exception as e:
+            return False
+        return True
     
-    def modelsListsetRowColor(self, item, color):
-        item.setBackground(0, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(1, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(2, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        item.setBackground(3, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
-        #item.setBackground(4, QtGui.QBrush(QtGui.QColor(color[0], color[1], color[2])))
+    def packagesChangeSoftware(self, dataFrom, dataTo):
+        try:
+            dataFrom = self.clearString(dataFrom)
+            dataTo = self.clearString(dataTo)
+            
+            query = self.session.query(Packages).filter(Packages.software == dataFrom)
+            if query.count():
+                data =[]
+                for i in query:
+                    data.append(self.convertToTable(i))
+                
+                for i in data:
+                    i["software"] = dataTo
+                    self.updatePackage(i["id"], i)
+        except Exception as e:
+            print(e)
     
-    def modelsLoadCategories(self):
-        ''' main items '''
-        categories = {}
-        # Without category
-        mainItem = QtGui.QTreeWidgetItem([u'Models without category'])
-        mainItem.setData(0, QtCore.Qt.UserRole, -1)
-        mainItem.setData(0, QtCore.Qt.UserRole + 1, '')
-        self.modelsTable.addTopLevelItem(mainItem)
-        self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-        categories[-1] = mainItem
-        # omitted models
-        mainItem = QtGui.QTreeWidgetItem([u'Omitted models'])
-        mainItem.setData(0, QtCore.Qt.UserRole, -2)
-        mainItem.setData(0, QtCore.Qt.UserRole + 1, -2)
-        self.modelsTable.addTopLevelItem(mainItem)
-        self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-        categories[-2] = mainItem
+    def clearString(self, value, errors="replace"):
+        ''' @Jeremy Banks http://stackoverflow.com/questions/6514274/how-do-you-escape-strings-for-sqlite-table-column-names-in-python '''
+        encodable = value.encode("utf-8", errors).decode("utf-8")
+        nul_index = encodable.find("\x00")
+
+        if nul_index >= 0:
+            error = UnicodeEncodeError("NUL-terminated utf-8", encodable,
+                                       nul_index, nul_index + 1, "NUL not allowed")
+            error_handler = codecs.lookup_error(errors)
+            replacement, _ = error_handler(error)
+            encodable = encodable.replace("\x00", replacement)
+
+        #return "\"" + encodable.replace("\"", "\"\"") + "\""
+        return encodable.strip()
+    
+    def errorsDescription(self, error):
+        if "IntegrityError" in str(error):
+            return 'UNIQUE constraint failed.'
+        elif "OperationalError" in str(error):
+            return 'Database is locked.'
+        elif "MandatoryError" in str(error):
+            return "One of the mandatory fields is empty!"
+        elif "ConvertError()" in str(error):
+            return "Problems with converting database"
+        else:
+            return error.message
+    
+    def convertToTable(self, data):
+        result = {}
+        
+        for i, j in data.__dict__.items():
+            if not i.startswith("_sa_"):
+                result[i] = j
+        return result
+        
+    def findPackage(self, name, software, returnAll=False):
+        try:
+            name = self.clearString(name).strip()
+            software = self.clearString(software).strip()
+            
+            if software == "*":
+                query = self.session.query(Packages).filter(Packages.name == name)
+            else:
+                query = self.session.query(Packages).filter(Packages.software == software, Packages.name == name)
+                
+            if query.count() == 0:
+                return False
+            
+            if returnAll:
+                return query
+            else:
+                return query[0]
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (FP): {0} (findPackage).\n".format(self.errorsDescription(e)))
+            return False
+            
+    def packagesDataToDictionary(self, modelData):
+        modelData['software'] = []
+        
+        for i in self.getPackagesByModelID(modelData['id']):
+            modelData['software'].append(self.convertToTable(i))
+        
+        return modelData
+
+    def getPackageByID(self, param):
+        if param <= 0:
+            return False
+        
+        query = self.session.query(Packages).filter(Packages.id == int(param))
+        
+        if query.count() == 0:
+            FreeCAD.Console.PrintWarning("ERROR (GPB_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return False
+            
+        return query[0]
+    
+    def getPackagesBySoftware(self, param):
+        try:
+            query = self.session.query(Packages).filter(Packages.software == str(param))
+            
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return []
+        
+    def getPackagesByModelID(self, param):
+        try:
+            query = self.session.query(Packages).filter(Packages.modelID == int(param))
+            
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return []
+
+    def addPackage(self, data, modelID=0, modelName=0):
+        try:
+            if modelID != 0:
+                modelID = int(modelID)
+            elif modelName != 0:
+                modelID = self.getModelByName(self.clearString(modelName))[1].id
+            else:
+                return [False]
+            
+            name = self.clearString(data['name'])
+            software = self.clearString(data['software'])
+            x = float(data['x'])
+            y = float(data['y'])
+            z = float(data['z'])
+            rx = float(data['rx'])
+            ry = float(data['ry'])
+            rz = float(data['rz'])
+            
+            package = Packages(modelID, name, software, x, y, z, rx, ry, rz)
+            self.session.add(package)
+            self.session.commit()
+            self.lastInsertedID = package.id
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (AP): {0} (add package).\n".format(e))
+            return [False]
+        
+    def updatePackage(self, packageID, data):
+        try:
+            packageID = int(packageID)
+            name = self.clearString(data["name"])
+            software = self.clearString(data["software"])
+            
+            if name == '' or software == '' or packageID <= 0:
+                raise MandatoryError()
+            
+            self.session.query(Packages).filter(Packages.id == packageID).update({
+                    "name": name,
+                    "software": software,
+                    "x": float(data["x"]),
+                    "y": float(data["y"]),
+                    "z": float(data["z"]),
+                    "rx": float(data["rx"]),
+                    "ry": float(data["ry"]),
+                    "rz": float(data["rz"])
+             })
+             
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update package).\n".format(self.errorsDescription(e)))
+            return False
+        
+    def deletePackage(self, packageID):
+        try:
+            self.session.query(Packages).filter(Packages.id == int(packageID)).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (DP): {0} (delete package).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            return True
+            
+    def getAllSockets(self):
+        try:
+            query = self.session.query(Models).filter(Models.isSocket == 1)
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GAS): {0} (get all sockets).\n".format(self.errorsDescription(e)))
+            return []
+    
+    def packagesConvertFromTo(self, fromParam, toParam, defSoftware):
+        fromParam = self.clearString(fromParam)
+        toParam = self.clearString(toParam)
         #
-        for i in range(self.categoriesTable.rowCount()):
-            if self.categoriesTable.cellWidget(i, 0).isChecked():
-                oldCategoryID = int(self.categoriesTable.item(i, 1).text())
-                
-                if self.categoriesTable.cellWidget(i, 4).currentIndex() == 0:
-                    mainItem = QtGui.QTreeWidgetItem(['{0} (New category)'.format(self.categoriesTable.item(i, 2).text())])
-                    mainItem.setData(0, QtCore.Qt.UserRole, 'New')
-                    mainItem.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold;'>New category '{0}' will be added.</span>".format(self.categoriesTable.item(i, 2).text()))  # info
-                else:
-                    categoryData = self.categoriesTable.cellWidget(i, 4).itemData(self.categoriesTable.cellWidget(i, 4).currentIndex())
-                    
-                    mainItem = QtGui.QTreeWidgetItem(['{1} (New category {0})'.format(categoryData[1], self.categoriesTable.item(i, 2).text())])
-                    mainItem.setData(0, QtCore.Qt.UserRole, 'Old')
-                    mainItem.setData(0, QtCore.Qt.UserRole + 3, "<span style='font-weight:bold;'>All entries from old category '{1}' will be shifted to the new '{0}'.</span>".format(categoryData[1], self.categoriesTable.item(i, 2).text()))  # info
-                
-                mainItem.setData(0, QtCore.Qt.UserRole + 1, i)  # category row number
-                self.modelsTable.addTopLevelItem(mainItem)
-                self.modelsTable.setFirstItemColumnSpanned(mainItem, True)
-                
-                categories[oldCategoryID] = mainItem
+        if fromParam == "" or toParam == "":
+            FreeCAD.Console.PrintWarning("One or more mandatory fields are empty!\n")
+            return
+        elif fromParam == toParam:
+            FreeCAD.Console.PrintWarning("Error: both values are equal!\n")
+            return
+        elif not fromParam in defSoftware or not toParam in defSoftware:
+            FreeCAD.Console.PrintWarning("Error: One or more mandatory fields are incorrect!\n")
+            return
         #
-        return categories
+        data = []
+        for i in self.getPackagesBySoftware(fromParam):
+            packageData = self.convertToTable(i)
+            
+            query = self.session.query(Packages).filter(Packages.software == toParam, Packages.name == packageData["name"], Packages.modelID == packageData["modelID"])
+            if query.count() == 0:
+                data.append(packageData)
+        
+        for i in data:
+            i["software"] = toParam
+            self.addPackage(i, i["modelID"])
+        #
+        FreeCAD.Console.PrintWarning("Done!\n")
     
-    def tabCategories(self):
-        tab = QtGui.QWidget()
-        
-        # buttons
-        selectAll = QtGui.QPushButton()
-        selectAll.setFlat(True)
-        selectAll.setToolTip('Select all')
-        selectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_checked_16x16.png"))
-        selectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(selectAll, QtCore.SIGNAL("clicked()"), self.selectAllCategories)
-        
-        unselectAll = QtGui.QPushButton()
-        unselectAll.setFlat(True)
-        unselectAll.setToolTip('Deselect all')
-        unselectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
-        unselectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(unselectAll, QtCore.SIGNAL("clicked()"), self.unselectAllCategories)
-        
-        # table
-        self.categoriesTable = QtGui.QTableWidget()
-        self.categoriesTable.setStyleSheet('''border:0px solid red;''')
-        self.categoriesTable.setColumnCount(5)
-        self.categoriesTable.setGridStyle(QtCore.Qt.DashDotLine)
-        self.categoriesTable.setHorizontalHeaderLabels([' Active ', 'ID', 'Name', 'Description', 'Action'])
-        self.categoriesTable.verticalHeader().hide()
-        self.categoriesTable.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        self.categoriesTable.horizontalHeader().setStretchLastSection(True)
-        self.categoriesTable.hideColumn(1)
-        
-        # main lay
-        layTableButtons = QtGui.QHBoxLayout()
-        layTableButtons.addWidget(selectAll)
-        layTableButtons.addWidget(unselectAll)
-        layTableButtons.addStretch(10)
-        
-        lay = QtGui.QGridLayout(tab)
-        lay.addLayout(layTableButtons, 0, 0, 1, 1)
-        lay.addWidget(self.categoriesTable, 1, 0, 1, 1)
-        lay.setRowStretch(1, 10)
-        lay.setColumnStretch(0, 10)
-        lay.setContentsMargins(5, 5, 5, 5)
-        
-        return tab
+    def getAllModels(self):
+        return self.session.query(Models)
+
+    def getAllModelsByCategory(self, categoryID):
+        return self.session.query(Models).filter(Models.categoryID == categoryID)
     
-    def showInfoF(self, item, num):
-        self.showInfo.setText(item.data(0, QtCore.Qt.UserRole + 3))
-        
-    def tabModels(self):
-        tab = QtGui.QWidget()
-        
-        # table
-        self.modelsTable = QtGui.QTreeWidget()
-        #self.modelsTable.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
-        self.modelsTable.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.modelsTable.setHeaderLabels([u'Name', u'Description', u'Paths', u'Softwares'])
-        self.modelsTable.setStyleSheet('''
-            QTreeWidget {border:0px solid #FFF;}
-        ''')
-        self.connect(self.modelsTable, QtCore.SIGNAL("itemPressed (QTreeWidgetItem*,int)"), self.showInfoF)
-        # buttons
-        selectAll = QtGui.QPushButton()
-        selectAll.setFlat(True)
-        selectAll.setToolTip('Select all')
-        selectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_checked_16x16.png"))
-        selectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(selectAll, QtCore.SIGNAL("clicked()"), self.selectAllModels)
-        
-        unselectAll = QtGui.QPushButton()
-        unselectAll.setFlat(True)
-        unselectAll.setToolTip('Deselect all')
-        unselectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
-        unselectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(unselectAll, QtCore.SIGNAL("clicked()"), self.unselectAllModels)
-        
-        collapseAll = QtGui.QPushButton()
-        collapseAll.setFlat(True)
-        collapseAll.setToolTip('Collapse all')
-        collapseAll.setIcon(QtGui.QIcon(":/data/img/collapse.png"))
-        collapseAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(collapseAll, QtCore.SIGNAL("clicked()"), self.modelsTable.collapseAll)
-        
-        expandAll = QtGui.QPushButton()
-        expandAll.setFlat(True)
-        expandAll.setToolTip('Expand all')
-        expandAll.setIcon(QtGui.QIcon(":/data/img/expand.png"))
-        expandAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(expandAll, QtCore.SIGNAL("clicked()"), self.modelsTable.expandAll)
-        # info
-        self.showInfo = QtGui.QLabel('')
-        self.showInfo.setStyleSheet('border:1px solid rgb(237, 237, 237); padding:5px 2px;')
-        
-        # main lay
-        layTableButtons = QtGui.QHBoxLayout()
-        layTableButtons.addWidget(selectAll)
-        layTableButtons.addWidget(unselectAll)
-        layTableButtons.addWidget(collapseAll)
-        layTableButtons.addWidget(expandAll)
-        layTableButtons.addStretch(10)
-        
-        lay = QtGui.QGridLayout(tab)
-        lay.addLayout(layTableButtons, 0, 0, 1, 1)
-        lay.addWidget(self.modelsTable, 1, 0, 1, 1)
-        lay.addWidget(self.showInfo, 2, 0, 1, 1)
-        lay.setRowStretch(1, 10)
-        lay.setColumnStretch(0, 10)
-        lay.setContentsMargins(5, 5, 5, 5)
-        
-        return tab
+    def getModelByID(self, param):
+        try:
+            query = self.session.query(Models).filter(Models.id == int(param))
+            if query.count() == 0:
+                return [False]
+            
+            return [True, query[0]]
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GMBID): {0} (get model).\n".format(self.errorsDescription(e)))
+            return [False]
+
+    def getModelByName(self, param):
+        try:
+            query = self.session.query(Models).filter(Models.name == self.clearString(param))
+            if query.count() == 0:
+                return [False]
+            
+            return [True, query[0]]
+            
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GMBN): {0} (get model).\n".format(self.errorsDescription(e)))
+            return [False]
     
-    def loadCategories(self):
-        for i in range(self.categoriesTable.rowCount(), 0, -1):
-            self.categoriesTable.removeRow(i - 1)
-        ##
-        self.tabs.setTabEnabled(1, True)
-        
-        for i in self.newDtabase.getElementsByTagName('categories')[0].getElementsByTagName('category'):
-            rowNumber = self.categoriesTable.rowCount()
-            self.categoriesTable.insertRow(rowNumber)
-            ######
-            widgetActive = QtGui.QCheckBox('')
-            widgetActive.setStyleSheet('margin-left:18px;')
-            self.categoriesTable.setCellWidget(rowNumber, 0, widgetActive)
-            #
-            itemID = QtGui.QTableWidgetItem(i.getAttribute("number"))
-            self.categoriesTable.setItem(rowNumber, 1, itemID)
-            #
-            itemName = QtGui.QTableWidgetItem(i.getAttribute("name"))
-            self.categoriesTable.setItem(rowNumber, 2, itemName)
-            #
+    def deleteModel(self, modelID):
+        try:
+            modelID = int(modelID)
+            
+            self.session.query(Models).filter(Models.socketID == modelID).update({"socketID" : 0, "socketIDSocket" : False})
+            self.session.query(Packages).filter(Packages.modelID == modelID).delete()
+            self.session.query(Models).filter(Models.id == modelID).delete()
+            self.session.query(modelsParam).filter(modelsParam.modelID == modelID).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (DM): {0} (delete model).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Model was deleted.\n")
+            return True
+    
+    def addModel(self, data):
+        try:
+            name = self.clearString(data["name"])
+            description = self.clearString(data["description"])
+            categoryID = int(data["categoryID"])
+            datasheet = self.clearString(data["datasheet"])
+            path3DModels = self.clearString(data["path3DModels"])
+            isSocket = data["isSocket"]
+            isSocketHeight = float(data["isSocketHeight"])
+
             try:
-                cDescription = i.firstChild.data
+                socketID = int(data["socketID"])
             except:
-                cDescription = ''
+                socketID = 0
+                
+            socketIDSocket = data["socketIDSocket"]
             
-            itemDescription = QtGui.QTableWidgetItem(cDescription)
-            self.categoriesTable.setItem(rowNumber, 3, itemDescription)
-            # new category
-            widgetAction = QtGui.QComboBox()
-            widgetAction.addItem('New category', [-1, ''])  # new category
+            if name == '' or path3DModels == '':
+                raise MandatoryError()
+
+            model = Models(name, path3DModels, description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
+            self.session.add(model)
+            self.session.commit()
+            self.lastInsertedID = model.id
+            self.lastInsertedModelID = model.id
             #
-            nr = 1
-            for j, k in readCategories().items():
-                widgetAction.addItem('Move all objects to existing category: {0}'.format(k[0]), [j, k[0]])
-                if k[0] == i.getAttribute("name"):
-                    widgetAction.setCurrentIndex(nr)
-                nr += 1
-            self.categoriesTable.setCellWidget(rowNumber, 4, widgetAction)
-            
-    def selectAllCategories(self):
-        if self.categoriesTable.rowCount() > 0:
-            for i in range(self.categoriesTable.rowCount()):
-                self.categoriesTable.cellWidget(i, 0).setCheckState(QtCore.Qt.Checked)
-            
-    def unselectAllCategories(self):
-        if self.categoriesTable.rowCount() > 0:
-            for i in range(self.categoriesTable.rowCount()):
-                self.categoriesTable.cellWidget(i, 0).setCheckState(QtCore.Qt.Unchecked)
-            
-    def chooseFile(self):
-        newDatabase = QtGui.QFileDialog.getOpenFileName(None, u'Choose file to import', os.path.expanduser("~"), '*.fpcb')
-        if newDatabase[0].strip() != '':
-            self.filePath.setText(newDatabase[0])
-            self.newDtabase = minidom.parse(newDatabase[0])
+            for i in data["software"]:
+                if i['blanked']:
+                    continue
+                else: # add new package
+                    self.addPackage(i, modelID=self.lastInsertedModelID)
+                
+                #if i['blanked']:
+                    #if int(i['id']) == -1:
+                        #continue
+                    #else:  # del package
+                        #continue
+                        ## self.deletePackage(int(i['id']))
+                #else:
+                    #if int(i['id']) != -1:  # update package
+                        #self.updatePackage(int(i['id']), i)
+                    #else:  # add package
+                        #self.addPackage(i, modelName=name)
             #
-            self.loadCategories()
+            for i in data["params"].keys():
+                if data["params"][i]["active"]:
+                    self.addNewParam(model.id, i, data["params"][i])
+
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (AM): {0} (add new model).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Model {0} was added.\n".format(name))
+            return True
     
-    def selectAllModels(self):
-        for i in QtGui.QTreeWidgetItemIterator(self.modelsTable):
-            if i.value().data(0, QtCore.Qt.UserRole) == 'M':
-                i.value().setCheckState(0, QtCore.Qt.Checked)
+    def paramsDataToDictionary(self, modelData):
+        modelData["params"] = []
+        
+        for i in self.getParamsByModelID(modelData['id']):
+            modelData["params"].append(self.convertToTable(i))
+        
+        return modelData
     
-    def unselectAllModels(self):
-        for i in QtGui.QTreeWidgetItemIterator(self.modelsTable):
-            if i.value().data(0, QtCore.Qt.UserRole) == 'M':
-                i.value().setCheckState(0, QtCore.Qt.Unchecked)
+    def getParamsByModelID(self, param, name='*'):
+        try:
+            if name == "*":
+                query = self.session.query(modelsParam).filter(modelsParam.modelID == int(param))
+            else:
+                query = self.session.query(modelsParam).filter(modelsParam.modelID == int(param), modelsParam.name == name)
+            
+            if query.count() == 0:
+                return []
+            
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get package).\n".format(self.errorsDescription(e)))
+            return []
+    
+    def addNewParam(self, modelID, name, data):
+        try:
+            modelID = int(modelID)
+            name = self.clearString(name)
+            color = self.clearString(str(data['color']))
+            align = self.clearString(data['align'])
+            active = bool(data['active'])
+            display = bool(eval(data['display']))
+            x = float(data['x'])
+            y = float(data['y'])
+            z = float(data['z'])
+            rz = float(data['rz'])
+            size = float(data['size'])
+            spin = bool(eval(data['spin']))
+            
+            param = modelsParam(modelID, name, color, align, active, display, x, y, z, rz, size, spin)
+            self.session.add(param)
+            self.session.commit()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (A_PARAM): {0} (add param).\n".format(e))
+            return [False]
+
+    def updateParam(self, paramID, data):
+        try:
+            paramID = int(paramID)
+            
+            if paramID <= 0:
+                raise MandatoryError()
+            
+            self.session.query(modelsParam).filter(modelsParam.id == paramID).update({
+                    "active": bool(data['active']),
+                    "display": bool(eval(data['display'])),
+                    "x": float(data["x"]),
+                    "y": float(data["y"]),
+                    "z": float(data["z"]),
+                    "rz": float(data["rz"]),
+                    "size": float(data["size"]),
+                    "color": self.clearString(str(data['color'])),
+                    "align": self.clearString(data['align']),
+                    "spin": bool(eval(data['spin'])),
+             })
+             
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (U_PARAM): {0} (update param).\n".format(self.errorsDescription(e)))
+            return False
+
+    def setCategoryForModel(self, modelID, categoryID):
+        try:
+            modelID = int(modelID)
+            
+            if modelID <= 0:
+                raise MandatoryError()
+                
+            self.session.query(Models).filter(Models.id == modelID).update({
+                    "categoryID" : int(categoryID)
+            })
+            self.session.commit()
+            
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (SCFM): {0} (update model).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            return True
+    
+    def updateModelSockedID(self, modelID, socketID):
+        try:
+            if modelID <= 0 or socketID <= 0:
+                raise MandatoryError()
+                
+            self.session.query(Models).filter(Models.id == modelID).update({
+                    "socketID" : socketID
+            })
+            
+            self.session.commit()
+            
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (UMS): {0} (update model).\n".format(self.errorsDescription(e)))
+            return False
+    
+    def updateModel(self, modelID, data):
+        try:
+            name = self.clearString(data["name"])
+            path3DModels = self.clearString(data["path3DModels"])
+            modelID = int(modelID)
+
+            try:
+                socketID = int(data["socketID"])
+            except:
+                socketID = 0
+            
+            if name == '' or path3DModels == '' or modelID <= 0:
+                raise MandatoryError()
+            
+            self.session.query(Models).filter(Models.id == modelID).update({
+                    "name": name,
+                    "description" : self.clearString(data["description"]),
+                    "categoryID" : int(data["categoryID"]),
+                    "datasheet": self.clearString(data["datasheet"]),
+                    "path3DModels" : path3DModels,
+                    "isSocket" : data["isSocket"],
+                    "isSocketHeight" : float(data["isSocketHeight"]),
+                    "socketID" : socketID,
+                    "socketIDSocket" : data["socketIDSocket"]
+            })
+            
+            self.session.commit()
+            #
+            for i in data["software"]:
+                if i['blanked']:
+                    if int(i['id']) == -1:
+                        continue
+                    else:  # del package
+                        self.deletePackage(int(i['id']))
+                else:
+                    if int(i['id']) != -1:  # update package
+                        self.updatePackage(int(i['id']), i)
+                    else:  # add package
+                        self.addPackage(i, modelID=modelID)
+            #
+            for i in data["params"].keys():
+                if data["params"][i]["id"] == -1 and data["params"][i]["active"]: # add new param
+                    self.addNewParam(modelID, i, data["params"][i])
+                elif not data["params"][i]["id"] == -1:  # update param
+                    self.updateParam(data["params"][i]["id"], data["params"][i])
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update model).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Model {0} was updated.\n".format(name))
+            return True
+    
+    def getCategoryByName(self, param):
+        try:
+            query = self.session.query(Categories).filter(Categories.name == self.clearString(param))
+            if query.count() == 0:
+                return [False]
+            
+            return [True, query[0]]
+            
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GCBN): {0} (get category).\n".format(self.errorsDescription(e)))
+            return [False]
+    
+    def getCategoryByID(self, catID=0):
+        if catID <= 0:
+            return False
+        
+        query = self.session.query(Categories).filter(Categories.id == int(catID))
+        
+        if query.count() == 0:
+            FreeCAD.Console.PrintWarning("ERROR (GCBID): Category does not exist.\n")
+            return False
+        
+        return query[0]
+        
+    def getAllcategoriesWithSubCat(self, catID=0):
+        categories = {}
+    
+        for i in self.session.query(Categories).filter(Categories.parentID == catID):
+            categories[i.name] = {}
+            categories[i.name]['id'] = i.id
+            categories[i.name]['description'] = i.description
+            
+            categories[i.name]['sub'] = self.getAllcategoriesWithSubCat(i.id)
+            
+        return categories
+                
+    def getAllcategories(self):
+        return self.session.query(Categories)
+    
+    def deleteCategory(self, categoryID):
+        ''' '''
+        try:
+            categoryID = int(categoryID)
+            
+            categoryData = self.getCategoryByID(categoryID)
+            parentID = categoryData.parentID
+            
+            self.session.query(Categories).filter(Categories.parentID == categoryID).update({"parentID" : parentID})
+            self.session.query(Models).filter(Models.categoryID == categoryID).update({"categoryID" : parentID})
+            
+            self.session.query(Categories).filter(Categories.id == categoryID).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (DC): {0} (delete category).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Category {0} was deleted.\n".format(categoryData.name))
+            return True
+        
+    def updateCategory(self, categoryID, name, parentID, description):
+        ''' '''
+        try:
+            categoryID = int(categoryID)
+            name = self.clearString(name)
+            if parentID == -1 or parentID == None:
+                parentID = 0
+            parentID = int(parentID)
+            description = self.clearString(description)
+            
+            if name == '' or categoryID <= 0:
+                raise MandatoryError()
+            
+            self.session.query(Categories).filter(Categories.id == categoryID).update({"name": name, "parentID" : parentID, "description" : description})
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (UC): {0} (update category).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Category {0} was updated.\n".format(name))
+            return True
+        
+    def addCategory(self, name, parentID, description):
+        ''' '''
+        try:
+            name = self.clearString(name)
+            if parentID == -1 or parentID == None:
+                parentID = 0
+            parentID = int(parentID)
+            description = self.clearString(description)
+            
+            if name == '':
+                raise MandatoryError()
+            
+            categories = Categories(name, parentID, description)
+            self.session.add(categories)
+            self.session.commit()
+            self.lastInsertedID = categories.id
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (AC): {0} (add new category).\n".format(self.errorsDescription(e)))
+            return False
+        else:
+            FreeCAD.Console.PrintWarning("Category {0} was added.\n".format(name))
+            return True
+
+#class dataBase:
+    #def __init__(self, parent=None):
+        #self.config = configparser.RawConfigParser()
+        #self.fileName = None
+    
+    #def convertDatabaseEntries(self):
+        #dial = convertSoftwareItems(self)
+        #if dial.exec_():
+            #soft = dial.toSoftware.currentText()
+            
+            #for i in range(dial.categoriesTable.rowCount()):
+                #if dial.categoriesTable.cellWidget(i, 0).isChecked():
+                    #try:
+                        #sectionID = dial.categoriesTable.item(i, 1).text()
+                        #name = dial.categoriesTable.item(i, 3).text()
+                        #try:
+                            #x = float(dial.categoriesTable.item(i, 5).text())
+                        #except ValueError:
+                            #x = 0.0
+                        #try:
+                            #y = float(dial.categoriesTable.item(i, 6).text())
+                        #except ValueError:
+                            #y = 0.0
+                        #try:
+                            #z = float(dial.categoriesTable.item(i, 7).text())
+                        #except ValueError:
+                            #z = 0.0  
+                        #try:
+                            #rx = float(dial.categoriesTable.item(i, 8).text())
+                        #except ValueError:
+                            #rx = 0.0
+                        #try:
+                            #ry = float(dial.categoriesTable.item(i, 9).text())
+                        #except ValueError:
+                            #ry = 0.0
+                        #try:
+                            #rz = float(dial.categoriesTable.item(i, 10).text())
+                        #except ValueError:
+                            #rz = 0.0
+                        ##
+                        #softsList = eval(self.getValues(sectionID)['soft'])
+                        
+                        #if not [name, soft, x, y, z, rx, ry, rz] in softsList:
+                            #connections = [[name, soft, x, y, z, rx, ry, rz]]
+                         
+                            #dane = {'soft': connections + softsList}
+                            #self.updatePackage(sectionID, dane)
+                    #except:
+                        #continue
+            ##
+            #return True
+        
+    #def read(self, fileName):
+        #if fileName != "":
+            ##self.config = configparser.RawConfigParser()
+            #sciezka = os.path.dirname(fileName)
+            #if os.access(sciezka, os.R_OK) and os.access(sciezka, os.F_OK):
+                #self.fileName = fileName
+                #self.config.read(fileName)
+                #return True
+            #FreeCAD.Console.PrintWarning("Access Denied. The file '{0}' may not exist, or there could be permission problem.\n".format(fileName))
+            
+    #def create(self, fileName):
+        #plik = builtins.open(fileName, "w")
+        #plik.close()
+        #self.fileName = fileName
+        ##self.config = configparser.RawConfigParser()
+        #self.config.read(fileName)
+        
+    #def write(self):
+        #if os.access(os.path.dirname(self.fileName), os.W_OK):
+            #with open(self.fileName, 'wb') as configfile:
+                #self.config.write(configfile)
+            #return True
+        #FreeCAD.Console.PrintWarning("Access Denied. The file '{0}' may not exist, or there could be permission problem.\n".format(self.fileName))
+
+    #def has_section(self, name):
+        #return self.config.has_section(str(name))
+        
+    #def findPackage(self, package, soft):
+        #for i in self.packages():
+            #for j in eval(self.getValues(i)["soft"]):
+                #if soft == '*':
+                    #if package.lower()+"'" in str(j).lower():
+                        #return [True, i, j, int(self.getValues(i)['category'])]
+                #else:
+                    #if str(soft) in j and package.lower()+"'" in str(j).lower():
+                        #return [True, i, j, int(self.getValues(i)['category'])]
+        #return [False]
+        
+    #def has_value(self, valueName, txt):
+        #for i in self.packages():
+            #if self.config.get(i, valueName) == txt:
+                #return [True, i]
+        #return [False]
+            
+    #def getValues(self, sectionName):
+        #dane = {}
+        #for i in self.config.items(sectionName):
+            #dane[i[0]] = i[1]
+        #return dane
+        
+    #def reloadList(self):
+        #self.read(self.fileName)
+            
+    #def delPackage(self, name):
+        #self.config.remove_section(name)
+        #self.write()
+    
+    #def updateValue(self, sectionName, txt, value):
+        #self.config.set(sectionName, txt, value)
+        
+    #def updatePackage(self, sectionName, dane):
+        #for i, j in dane.items():
+            #self.config.set(sectionName, i, j)
+        ##self.config.set(sectionName, 'name', dane["name"])
+        ##self.config.set(sectionName, 'path', dane["path"])
+        ##self.config.set(sectionName, 'x', dane["x"])
+        ##self.config.set(sectionName, 'y', dane["y"])
+        ##self.config.set(sectionName, 'z', dane["z"])
+        ##self.config.set(sectionName, 'rx', dane["rx"])
+        ##self.config.set(sectionName, 'ry', dane["ry"])
+        ##self.config.set(sectionName, 'rz', dane["rz"])
+        ##self.config.set(sectionName, 'add_socket', dane["add_socket"])
+        ##self.config.set(sectionName, 'add_socket_id', dane["add_socket_id"])
+        ##self.config.set(sectionName, 'socket', dane["socket"])
+        ##self.config.set(sectionName, 'socket_height', dane["socket_height"])
+        ##self.config.set(sectionName, 'description', dane["description"])
+        ##self.config.set(sectionName, 'datasheet', dane["datasheet"])
+        #self.write()
+        
+    #def wygenerujID(self, ll, lc):
+        #''' generate random section name '''
+        #numerID = ""
+    
+        #for i in range(ll):
+            #numerID += random.choice('abcdefghij')
+        #numerID += "_"
+        #for i in range(lc):
+            #numerID += str(random.randrange(0, 99, 1))
+        
+        #if not self.has_section(numerID):
+            #return numerID
+        #else:
+            #return self.wygenerujID(ll, lc)
+            
+    #def addPackage(self, dane):
+        #sectionName = self.wygenerujID(5, 5)
+        
+        #self.config.add_section(sectionName)
+        #for i, j in dane.items():
+            #self.config.set(sectionName, i, j)
+        ##self.config.set(sectionName, 'name', dane["name"])
+        ##self.config.set(sectionName, 'path', dane["path"])
+        ##self.config.set(sectionName, 'x', dane["x"])
+        ##self.config.set(sectionName, 'y', dane["y"])
+        ##self.config.set(sectionName, 'z', dane["z"])
+        ##self.config.set(sectionName, 'rx', dane["rx"])
+        ##self.config.set(sectionName, 'ry', dane["ry"])
+        ##self.config.set(sectionName, 'rz', dane["rz"])
+        ##self.config.set(sectionName, 'add_socket', dane["add_socket"])
+        ##self.config.set(sectionName, 'add_socket_id', dane["add_socket_id"])
+        ##self.config.set(sectionName, 'socket', dane["socket"])
+        ##self.config.set(sectionName, 'socket_height', dane["socket_height"])
+        ##self.config.set(sectionName, 'description', dane["description"])
+        ##self.config.set(sectionName, 'datasheet', dane["datasheet"])
+        #self.write()
+            
+    #def packages(self):
+        #return self.config.sections()
+    
+    #def makeACopy(self):
+        #try:
+            #newFolder = QtGui.QFileDialog.getExistingDirectory(None, 'Save database copy', os.path.expanduser("~"))
+            #if newFolder:
+                #try:
+                    #xml = minidom.Document()
+                    #root = xml.createElement("pcb")
+                    #xml.appendChild(root)
+                    
+                    ## categories
+                    #categories = xml.createElement("categories")
+                    #root.appendChild(categories)
+
+                    #for i,j in readCategories().items():
+                        #category = xml.createElement("category")
+                        #category.setAttribute('number', str(i))
+                        #category.setAttribute('name', str(j[0]))
+                        ##
+                        #description = xml.createTextNode(str(j[1]))
+                        #category.appendChild(description)
+                        ##
+                        #categories.appendChild(category)
+                    ## models
+                    #models = xml.createElement("models")
+                    #root.appendChild(models)
+                    
+                    #for i in self.packages():
+                        #dane = self.getValues(i)
+                        
+                        #model = xml.createElement("model")
+                        #model.setAttribute('ID', str(i))
+                        #model.setAttribute('name', str(dane['name']))
+                        #model.setAttribute('category', str(dane['category']))
+                        #model.setAttribute('datasheet', str(dane['datasheet']))
+                        #model.setAttribute('isSocket', str(eval(dane['socket'])[0]))
+                        #model.setAttribute('height', str(eval(dane['socket'])[1]))
+                        #model.setAttribute('socket', str(eval(dane['add_socket'])[0]))
+                        #model.setAttribute('socketID', str(eval(dane['add_socket'])[1]))
+                        ##
+                        #description = xml.createElement("description")
+                        #model.appendChild(description)
+                        
+                        #descriptionTXT = xml.createTextNode(str(dane['description']))
+                        #description.appendChild(descriptionTXT)
+                        ##
+                        #paths = xml.createElement("paths")
+                        #model.appendChild(paths)
+                        
+                        #for j in dane['path'].split(';'):
+                            #path = xml.createElement("path")
+                            
+                            #description = xml.createTextNode(str(j))
+                            #path.appendChild(description)
+                            ##
+                            #paths.appendChild(path)
+                        ##
+                        #connections = xml.createElement("connections")
+                        #model.appendChild(connections)
+                        
+                        #for j in eval(dane['soft']):
+                            #item = xml.createElement("item")
+                            #item.setAttribute('name', str(j[0]))
+                            #item.setAttribute('soft', str(j[1]))
+                            #item.setAttribute('x', str(j[2]))
+                            #item.setAttribute('y', str(j[3]))
+                            #item.setAttribute('z', str(j[4]))
+                            #item.setAttribute('rx', str(j[5]))
+                            #item.setAttribute('ry', str(j[6]))
+                            #item.setAttribute('rz', str(j[7]))
+                            ##
+                            #connections.appendChild(item)
+                        ##
+                        #adjust = xml.createElement("adjust")
+                        #model.appendChild(adjust)
+                        
+                        #try:
+                            #for i, j in eval(str(dane["adjust"])).items():
+                                #item = xml.createElement("item")
+                                #item.setAttribute('parameter', str(i))
+                                
+                                #item.setAttribute('active', str(j[0]))
+                                #item.setAttribute('visible', str(j[1]))
+                                #item.setAttribute('x', str(j[2]))
+                                #item.setAttribute('y', str(j[3]))
+                                #item.setAttribute('z', str(j[4]))
+                                #item.setAttribute('size', str(j[5]))
+                                #item.setAttribute('align', str(j[7]))
+                                ##
+                                #color = xml.createElement("color")
+                                #color.setAttribute('R', str(j[6][0]))
+                                #color.setAttribute('G', str(j[6][1]))
+                                #color.setAttribute('B', str(j[6][2]))
+                                ###
+                                #item.appendChild(color)
+                                ##
+                                #adjust.appendChild(item)
+                        #except:
+                            #pass
+                        ##
+                        #models.appendChild(model)
+                    
+                    ## write to file
+                    #outputFile = builtins.open(os.path.join(newFolder, 'freecad-pcb_copy.fpcb'), 'w')
+                    #xml.writexml(outputFile)
+                    #outputFile.close()
+                #except Exception as e:
+                    #FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+        #except Exception as e:
+            #FreeCAD.Console.PrintWarning(u"{0} \n".format(e))
+    
+    #def readFromXML(self):
+        #try:
+            #dial = readDatabaseFromXML_GUI(self)
+            #if dial.exec_():
+                #for i in QtGui.QTreeWidgetItemIterator(dial.modelsTable):
+                    #if str(i.value().data(0, QtCore.Qt.UserRole)) != 'PM':
+                        #continue
+                
+                    #mainItem = i.value()
+                    ## items
+                    #connections = []
+                    #checked = 0
+                    #for j in range(mainItem.childCount()):
+                        #if mainItem.child(j).checkState(0) == QtCore.Qt.Checked:
+                            #child = mainItem.child(j).data(0, QtCore.Qt.UserRole + 2)
+                            ## <item name="1X08" rx="90.0" ry="0.0" rz="0.0" soft="Eagle" x="0.0" y="0.0" z="2.77"/>
+                            #name = child.getAttribute("name")
+                            #soft = child.getAttribute("soft")
+                            #x = float(child.getAttribute("x"))
+                            #y = float(child.getAttribute("y"))
+                            #z = float(child.getAttribute("z"))
+                            #rx = float(child.getAttribute("rx"))
+                            #ry = float(child.getAttribute("ry"))
+                            #rz = float(child.getAttribute("rz"))
+                            ##
+                            #connections.append([name, soft, x, y, z, rx, ry, rz])
+                            #checked += 1
+                    
+                    #if checked == 0:
+                        #continue
+                    ##
+                    #if mainItem.data(0, QtCore.Qt.UserRole + 4) == 'new': # new entry
+                        #topLevelItem = mainItem.parent()
+                        #modelXML = mainItem.data(0, QtCore.Qt.UserRole + 2)
+                        ##
+                        #if topLevelItem.data(0, QtCore.Qt.UserRole) == -1:  # models without category
+                            #modelCategory = -1
+                        #elif topLevelItem.data(0, QtCore.Qt.UserRole) == 'New':  # new category
+                            #rowNum = topLevelItem.data(0, QtCore.Qt.UserRole + 1)
+                        
+                            #categoryName = dial.categoriesTable.item(rowNum, 2).text()
+                            #categoryDescription = dial.categoriesTable.item(rowNum, 3).text()
+                            ##
+                            #modelCategory = getCategoryIdByName(categoryName)
+                            #if modelCategory == -1:
+                                #addCategory(categoryName, categoryDescription)
+                                #modelCategory = getCategoryIdByName(categoryName)
+                        #elif topLevelItem.data(0, QtCore.Qt.UserRole) == 'Old':  # add models to existing category
+                            #rowNum = topLevelItem.data(0, QtCore.Qt.UserRole + 1)
+                            #modelCategory = int(dial.categoriesTable.cellWidget(rowNum, 4).itemData(dial.categoriesTable.cellWidget(rowNum, 4).currentIndex())[0])
+                        ##
+                        #modelPaths = []
+                        #for j in modelXML.getElementsByTagName('paths')[0].getElementsByTagName('path'):
+                            #try:
+                                #modelPaths.append(j.firstChild.data)
+                            #except AttributeError:
+                                #pass
+                        #modelPaths = '; '.join(modelPaths)
+                        ##
+                        #try:
+                            #modelDescription = modelXML.getElementsByTagName('description')[0].firstChild.data
+                        #except AttributeError:
+                            #modelDescription = ''
+                        ##
+                        ##
+                        #adjust = {}
+                        #for j in modelXML.getElementsByTagName('adjust')[0].getElementsByTagName('item'):
+                            #parameter = str(j.getAttribute('parameter')).strip()
+                            #active = j.getAttribute('active')
+                            #visible = str(j.getAttribute('visible'))
+                            #x = float(j.getAttribute('x'))
+                            #y = float(j.getAttribute('y'))
+                            #z = float(j.getAttribute('z'))
+                            #size = float(j.getAttribute('size'))
+                            #align = str(j.getAttribute('align')).strip()
+                            ##
+                            #colors = j.getElementsByTagName('color')[0]
+                            #color = {float(colors.getAttribute('R')), float(colors.getAttribute('G')), float(colors.getAttribute('B'))}
+                            ##
+                            #adjust[parameter] = [active, visible, x, y, z, size, color, align]
+                        ##
+                        #self.addPackage({
+                            #"name": str(modelXML.getAttribute('name').strip()),
+                            #"path": modelPaths,
+                            #"add_socket": str([False, False]),
+                            #"socket": str([eval(modelXML.getAttribute('isSocket')), float(modelXML.getAttribute('height'))]),
+                            #"description": str(modelDescription),
+                            #"datasheet": str(modelXML.getAttribute('datasheet').strip()),
+                            #"soft": str(connections),
+                            #"category": str(modelCategory),
+                            #"adjust": str(adjust)
+                        #})
+                    #else:
+                        #sectionID = mainItem.data(0, QtCore.Qt.UserRole + 4)
+                        
+                        #dane = {'soft': connections + eval(self.getValues(sectionID)['soft'])}
+                        #self.updatePackage(sectionID, dane)
+                
+                #return True
+        #except Exception as e:
+            #FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        
+        #return False
 
 
-########################################################################
-########################################################################
-class convertSoftwareItems(QtGui.QDialog):
-    def __init__(self, sql, parent=None):
-        QtGui.QDialog.__init__(self, parent)
-        self.sql = sql
-        
-        self.setWindowTitle(u'Convert items')
-        #
-        ########################
-        ###### entries
-        ########################
-        # buttons
-        selectAll = QtGui.QPushButton()
-        selectAll.setFlat(True)
-        selectAll.setToolTip('Select all')
-        selectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_checked_16x16.png"))
-        selectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(selectAll, QtCore.SIGNAL("clicked()"), self.selectAllCategories)
-        
-        unselectAll = QtGui.QPushButton()
-        unselectAll.setFlat(True)
-        unselectAll.setToolTip('Deselect all')
-        unselectAll.setIcon(QtGui.QIcon(":/data/img/checkbox_unchecked_16x16.PNG"))
-        unselectAll.setStyleSheet('''border:1px solid rgb(237, 237, 237);''')
-        self.connect(unselectAll, QtCore.SIGNAL("clicked()"), self.unselectAllCategories)
-        # table
-        self.categoriesTable = QtGui.QTableWidget()
-        self.categoriesTable.setStyleSheet('''QTableWidget{background-color:#fff; border:1px solid rgb(199, 199, 199);}''')
-        self.categoriesTable.setColumnCount(11)
-        self.categoriesTable.setGridStyle(QtCore.Qt.DashDotLine)
-        self.categoriesTable.setHorizontalHeaderLabels([' Active ', 'ID', ' Package type ', ' Package name ', 'Category', ' X ', ' Y ', ' Z ', ' RX ', ' RY ', ' RZ '])
-        self.categoriesTable.verticalHeader().hide()
-        self.categoriesTable.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        self.categoriesTable.horizontalHeader().setStretchLastSection(True)
-        self.categoriesTable.hideColumn(1)
-        
-        # software
-        self.fromSoftware = QtGui.QComboBox()
-        self.toSoftware = QtGui.QComboBox()
-        
-        searchItemsButton = QtGui.QPushButton('Find entries')
-        self.connect(searchItemsButton, QtCore.SIGNAL("clicked()"), self.findEntries)
-        
-        softwareFrame = QtGui.QFrame()
-        softwareFrame.setObjectName('lay_path_widget')
-        softwareFrame.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;}''')
-        softwareLayout = QtGui.QHBoxLayout(softwareFrame)
-        softwareLayout.addStretch(10)
-        softwareLayout.addWidget(QtGui.QLabel(u'From:\t'))
-        softwareLayout.addWidget(self.fromSoftware)
-        softwareLayout.addSpacing(20)
-        softwareLayout.addWidget(QtGui.QLabel(u'To:\t'))
-        softwareLayout.addWidget(self.toSoftware)
-        softwareLayout.addSpacing(40)
-        softwareLayout.addWidget(searchItemsButton)
-        softwareLayout.addStretch(10)
-        softwareLayout.setContentsMargins(0, 0, 0, 0)
-        
-        # buttons
-        buttons = QtGui.QDialogButtonBox()
-        buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
-        buttons.addButton("Convert", QtGui.QDialogButtonBox.AcceptRole)
-        self.connect(buttons, QtCore.SIGNAL("accepted()"), self, QtCore.SLOT("accept()"))
-        self.connect(buttons, QtCore.SIGNAL("rejected()"), self, QtCore.SLOT("reject()"))
-        
-        buttonsFrame = QtGui.QFrame()
-        buttonsFrame.setObjectName('lay_path_widget')
-        buttonsFrame.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;}''')
-        buttonsLayout = QtGui.QHBoxLayout(buttonsFrame)
-        buttonsLayout.addWidget(buttons)
-        buttonsLayout.setContentsMargins(0, 0, 0, 0)
-        
-        # main layout
-        layTableButtons = QtGui.QHBoxLayout()
-        layTableButtons.addWidget(selectAll)
-        layTableButtons.addWidget(unselectAll)
-        layTableButtons.addStretch(10)
-        
-        lay = QtGui.QGridLayout(self)
-        lay.addWidget(softwareFrame, 0, 0, 1, 1)
-        lay.addLayout(layTableButtons, 1, 0, 1, 1)
-        lay.addWidget(self.categoriesTable, 2, 0, 1, 1)
-        lay.addWidget(buttonsFrame, 3, 0, 1, 1)
-        lay.setRowStretch(2, 10)
-        lay.setContentsMargins(5, 5, 5, 5)
-        #
-        self.connect(self.fromSoftware, QtCore.SIGNAL("currentIndexChanged (int)"), self.softwareToLoadCategories)
-        self.loadCategories()
-    
-    def findEntries(self):
-        for i in range(self.categoriesTable.rowCount(), 0, -1):
-            self.categoriesTable.removeRow(i - 1)
-        ##
-        self.sql.reloadList()
-        
-        for i in self.sql.packages():
-            dane = self.sql.getValues(i)
-            
-            software = eval(dane["soft"])
-            for j in software:
-                if j[1] == self.fromSoftware.currentText():
-                    rowNumber = self.categoriesTable.rowCount()
-                    self.categoriesTable.insertRow(rowNumber)
-                    #
-                    widgetActive = QtGui.QCheckBox('')
-                    widgetActive.setStyleSheet('margin-left:18px;')
-                    self.categoriesTable.setCellWidget(rowNumber, 0, widgetActive)
-                    #
-                    item0 = QtGui.QTableWidgetItem(i)
-                    self.categoriesTable.setItem(rowNumber, 1, item0)
-                    #
-                    item1 = QtGui.QTableWidgetItem(dane["name"])
-                    item1.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                    self.categoriesTable.setItem(rowNumber, 2, item1)
-                    #
-                    item2 = QtGui.QTableWidgetItem(j[0])
-                    self.categoriesTable.setItem(rowNumber, 3, item2)
-                    #
-                    itemCat = QtGui.QTableWidgetItem(readCategories()[int(dane['category'])][0])
-                    itemCat.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-                    self.categoriesTable.setItem(rowNumber, 4, itemCat)
-                    #
-                    item3 = QtGui.QTableWidgetItem(str(j[2]))
-                    item3.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 5, item3)
-                    #
-                    item4 = QtGui.QTableWidgetItem(str(j[3]))
-                    item4.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 6, item4)
-                    #
-                    item5 = QtGui.QTableWidgetItem(str(j[4]))
-                    item5.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 7, item5)
-                    #
-                    item6 = QtGui.QTableWidgetItem(str(j[5]))
-                    item6.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 8, item6)
-                    #
-                    item7 = QtGui.QTableWidgetItem(str(j[6]))
-                    item7.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 9, item7)
-                    #
-                    item8 = QtGui.QTableWidgetItem(str(j[7]))
-                    item8.setTextAlignment(QtCore.Qt.AlignCenter)
-                    self.categoriesTable.setItem(rowNumber, 10, item8)
-        
-    def loadCategories(self):
-        self.fromSoftware.clear()
-        self.fromSoftware.addItems(defSoftware)
-        self.fromSoftware.setCurrentIndex(0)
-        #
-        self.softwareToLoadCategories()
-    
-    def softwareToLoadCategories(self):
-        self.toSoftware.clear()
-        #
-        for i in defSoftware:
-            if i != self.fromSoftware.currentText():
-                self.toSoftware.addItem(i)
-        self.toSoftware.setCurrentIndex(0)
-    
-    def selectAllCategories(self):
-        if self.categoriesTable.rowCount() > 0:
-            for i in range(self.categoriesTable.rowCount()):
-                self.categoriesTable.cellWidget(i, 0).setCheckState(QtCore.Qt.Checked)
-            
-    def unselectAllCategories(self):
-        if self.categoriesTable.rowCount() > 0:
-            for i in range(self.categoriesTable.rowCount()):
-                self.categoriesTable.cellWidget(i, 0).setCheckState(QtCore.Qt.Unchecked)
+
+
+
+
+
+
+

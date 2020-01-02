@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -38,7 +38,7 @@ from PCBpartManaging import partsManaging
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject
 from command.PCBassignModel import modelsList
-from command.PCBgroups import createGroup_Parts, makeGroup
+from command.PCBgroups import createGroup_Parts
 from command.PCBannotations import createAnnotation
 
 
@@ -57,7 +57,7 @@ class addModel(QtGui.QWidget, partsManaging):
         #
         self.form = self
         self.form.setWindowTitle("Add model")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/addModel.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         self.listaBibliotek = QtGui.QComboBox()
         
@@ -66,7 +66,8 @@ class addModel(QtGui.QWidget, partsManaging):
         self.package = modelsList()
         self.package.checkItems = False
         self.package.sql = self.__SQL__
-        
+        self.package.reloadList()
+     
         self.side = QtGui.QComboBox()
         self.side.addItems(['TOP', 'BOTTOM'])
         
@@ -91,7 +92,7 @@ class addModel(QtGui.QWidget, partsManaging):
         
         self.error = QtGui.QLabel(u'')
         
-        self.updateView = QtGui.QCheckBox(u'Update active view')
+        self.updateViewQC = QtGui.QCheckBox(u'Update active view')
         
         self.loadModelColors = QtGui.QCheckBox(u'Colorize elements')
         self.loadModelColors.setChecked(freecadSettings.GetBool("partsColorize", True))
@@ -131,7 +132,7 @@ class addModel(QtGui.QWidget, partsManaging):
         
         lay_2 = QtGui.QHBoxLayout()
         lay_2.addWidget(self.groupParts)
-        lay_2.addWidget(self.updateView)
+        lay_2.addWidget(self.updateViewQC)
         lay_2.setContentsMargins(0, 0, 0, 0)
         lay.addLayout(lay_2, 17, 0, 1, 2)
         
@@ -150,13 +151,13 @@ class addModel(QtGui.QWidget, partsManaging):
         self.connect(self.val_x, QtCore.SIGNAL('valueChanged (double)'), self.addArrow)
         self.connect(self.val_y, QtCore.SIGNAL('valueChanged (double)'), self.addArrow)
         self.connect(self.side, QtCore.SIGNAL('currentIndexChanged (int)'), self.addArrow)
-        self.connect(self.updateView, QtCore.SIGNAL('stateChanged (int)'), self.changeView)
+        self.connect(self.updateViewQC, QtCore.SIGNAL('stateChanged (int)'), self.changeView)
         
         self.readLibs()
         self.addArrow()
         
     def changeView(self):
-        if self.updateView.isChecked():
+        if self.updateViewQC.isChecked():
             if self.side.itemText(self.side.currentIndex()) == "TOP":
                 FreeCADGui.activeDocument().activeView().viewTop()
             else:
@@ -244,13 +245,17 @@ class addModel(QtGui.QWidget, partsManaging):
             self.listaBibliotek.clear()
             if str(self.package.currentItem().data(0, QtCore.Qt.UserRole + 1)) == 'C':
                 return
-
-            package = self.__SQL__.getValues(self.package.currentItem().data(0, QtCore.Qt.UserRole))
-            data = eval(package["soft"])
-            for i in range(len(data)):
-                self.listaBibliotek.addItem(u"{0} ({1})".format(data[i][1], data[i][0]))
-                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, data[i][0], QtCore.Qt.UserRole)  # model name
-                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, str(data[i][1]).lower(), QtCore.Qt.UserRole + 1)  # soft name
+            
+            modelData = self.__SQL__.getModelByID(self.package.currentItem().data(0, QtCore.Qt.UserRole))
+            if not modelData[0]:
+                return
+            
+            modelData = self.__SQL__.convertToTable(modelData[1])
+            modelData = self.__SQL__.packagesDataToDictionary(modelData)
+            for i in modelData['software']:
+                self.listaBibliotek.addItem(u"{0} ({1})".format(i['software'], i['name']))
+                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, i['name'], QtCore.Qt.UserRole)  # model name
+                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, str(i['software']).lower(), QtCore.Qt.UserRole + 1)  # soft name
             self.listaBibliotek.setCurrentIndex(0)
         except:
             pass
@@ -267,31 +272,64 @@ class addModel(QtGui.QWidget, partsManaging):
             FreeCAD.Console.PrintWarning("Mandatory field is empty!\n")
             return False
         #
-        name = self.label.text()
-        package = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
-        value = self.value.text()
-        x = self.val_x.value()
-        y = self.val_y.value()
-        rot = self.rotation.value()
-        side = str(self.side.itemText(self.side.currentIndex()))
-        library = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
-        
-        EL_Name = ['', x, y + 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
-        EL_Value = ['', x, y - 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
-        
-        koloroweElemnty = self.loadModelColors.isChecked()
-        adjustParts = self.adjustParts.isChecked()
-        groupParts = self.groupParts.isChecked()
         self.databaseType = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole + 1)
+        #
+        newPart = self.partStandardDictionary()
+        newPart['name'] = self.label.text()
+        newPart['library'] = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        newPart['package'] = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        newPart['value'] = self.value.text()
+        newPart['x'] = self.val_x.value()
+        newPart['y'] = self.val_y.value()
+        newPart['rot'] = self.rotation.value()
+        newPart['side'] = str(self.side.itemText(self.side.currentIndex()))
         
-        newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
-        self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
+        newPart['EL_Name']["x"] = self.val_x.value()
+        newPart['EL_Name']["y"] = self.val_y.value()
+        newPart['EL_Name']["rot"] = self.rotation.value()
+        newPart['EL_Name']["side"] = str(self.side.itemText(self.side.currentIndex()))
+        
+        newPart['EL_Value']["x"] = self.val_x.value()
+        newPart['EL_Value']["y"] = self.val_y.value()
+        newPart['EL_Value']["rot"] = self.rotation.value()
+        newPart['EL_Value']["side"] = str(self.side.itemText(self.side.currentIndex()))
+        
+        self.addPart(newPart, self.loadModelColors.isChecked(), self.adjustParts.isChecked(), self.groupParts.isChecked())
         #
         if self.continueCheckBox.isChecked():
             self.label.setText('')
         else:
             self.removeRoot()
             return True
+        
+        
+        
+        
+        # name = self.label.text()
+        # package = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        # value = self.value.text()
+        # x = self.val_x.value()
+        # y = self.val_y.value()
+        # rot = self.rotation.value()
+        # side = str(self.side.itemText(self.side.currentIndex()))
+        # library = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)
+        
+        # EL_Name = ['', x, y + 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
+        # EL_Value = ['', x, y - 1.27, 1.27, rot, side, "bottom-left", False, 'None', '', True]
+        
+        # koloroweElemnty = self.loadModelColors.isChecked()
+        # adjustParts = self.adjustParts.isChecked()
+        # groupParts = self.groupParts.isChecked()
+        # self.databaseType = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole + 1)
+        
+        # newPart = [[name, package, value, x, y, rot, side, library], EL_Name, EL_Value]
+        # self.addPart(newPart, koloroweElemnty, adjustParts, groupParts)
+        # #
+        # if self.continueCheckBox.isChecked():
+            # self.label.setText('')
+        # else:
+            # self.removeRoot()
+            # return True
             
     def removeRoot(self):
         if self.root:

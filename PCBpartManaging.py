@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -30,7 +30,7 @@ import FreeCADGui
 import Part
 import os
 import re
-import __builtin__
+import builtins
 import glob
 import unicodedata
 import ImportGui
@@ -41,21 +41,21 @@ from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
 from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
-from PCBcategories import readCategories
-from command.PCBgroups import createGroup_Parts, makeGroup
+from command.PCBgroups import createGroup_Parts, createGroup_Others, createGroup, createGroup_Missing
 from command.PCBannotations import createAnnotation
 
 
 class partsManaging(mathFunctions):
-    
-    def __init__(self):
+    def __init__(self, databaseType=None):
         self.objColors = {}
         
         # allSocked - definicja zachowania przy dodawaniu podstawki dla wszystkich obeiktow
         #   -1 - brak podstawek
         #    0 - zapytaj o dodanie podstawki (def)
         #    1 - dodaj podstawki dla wszystkich obiektow
-        self.allSocked = 0
+        self.allSocket = 0
+        self.databaseType = databaseType
+        self.colFileVersion = 3
     
     def adjustRotation(self, angle):
         if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
@@ -67,168 +67,271 @@ class partsManaging(mathFunctions):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
         
-    def getPartShape(self, filePath, step_model, koloroweElemnty):
-        #if not partExistPath(filePath)[0]:
-            #return step_model
-        
-        if filePath in self.objColors:
+    def getPartShape(self, filePath, step_model, colorizeElements):
+        standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
+        ################################################################
+        ################################################################
+        # check if model was already imported
+        ################################################################
+        ################################################################
+        if filePath in self.objColors.keys():
             step_model.Shape = self.objColors[filePath]['shape']
-            if koloroweElemnty:
+            
+            if colorizeElements:
                 step_model.ViewObject.DiffuseColor = self.objColors[filePath]['col']
+            else:
+                step_model.ViewObject.DiffuseColor = standardColor
+            
             return step_model
         else:
             self.objColors[filePath] = {}
-        
-        #active = FreeCAD.ActiveDocument.Label
-        
-        # colFile
+        ################################################################
+        ################################################################
+        # reading data from colFile - if exist
+        ################################################################
+        ################################################################
         colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+        #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
+        
         try:
             if os.path.exists(colFile):
-                colFileData = __builtin__.open(colFile, "r").readlines()
+                colFileData = builtins.open(colFile, "r").readlines()
                 header = colFileData[0].strip().split("|")
                 
-                if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
-                    shape = Part.Shape()
-                    shape.importBrepFromString("".join(colFileData[2:]))
+                if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
+                    newShape = Part.Shape()
+                    newShape.importBrepFromString("".join(colFileData[2:]))
+                    step_model.Shape = newShape
                     
-                    step_model.Shape = shape
-                    if koloroweElemnty:
+                    if colorizeElements:
                         step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                    else:
+                        step_model.ViewObject.DiffuseColor = standardColor
                     
-                    self.objColors[filePath]['shape'] = shape
+                    self.objColors[filePath]['shape'] = newShape
                     self.objColors[filePath]['col'] = eval(colFileData[1].strip())
                     
                     if len(colFileData[2:]) > 20:
                         return step_model
-        except Exception, e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        ##
-        colFileData = __builtin__.open(colFile, "w")
-        colFileData.write("2|{0}\n".format(os.path.getmtime(filePath)))  # wersja|data
+                else:
+                    FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
+            else:  # generate new *.col file
+                FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+        ################################################################
+        ################################################################
+        # generating new col file
+        ################################################################
+        ################################################################
+        active = FreeCAD.ActiveDocument.Name
+        #
+        colFileData = builtins.open(colFile, "w")
+        colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
         
         FreeCAD.newDocument('importingPartsPCB')
-        #FreeCAD.setActiveDocument('importingPartsPCB')
         FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
         FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
         ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
         
         fuse = []
+        col = standardColor
         for i in FreeCAD.ActiveDocument.Objects:
-            if i.isDerivedFrom("Part::Feature") and i.ViewObject.Visibility and len(i.Shape.Solids):
+            if i.ViewObject.Visibility and hasattr(i, 'Shape'):
                 fuse.append(i)
+        
         try:
             if len(fuse) == 1:
                 shape = fuse[0].Shape
                 col = fuse[0].ViewObject.DiffuseColor
             else:
-                newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
-                FreeCAD.ActiveDocument.recompute()
+                # FC 0.16
+                #newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
+                #FreeCAD.ActiveDocument.recompute()
+                #shape = FreeCAD.ActiveDocument.getObject("Union").Shape
+                #col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
+                # FC 0.18
+                newPart = FreeCAD.ActiveDocument.addObject("Part::Compound","Compound")
+                newPart.Links = fuse
+                newPart.recompute()
+                shape = newPart.Shape
+                col = newPart.ViewObject.DiffuseColor
             
-                shape = FreeCAD.ActiveDocument.getObject("Union").Shape
-                col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
-        except Exception,e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+            step_model.Shape = shape
+            if colorizeElements:
+                step_model.ViewObject.DiffuseColor = col
+            else:
+                step_model.ViewObject.DiffuseColor = standardColor
+            
+            colFileData.write(str(col))
+            colFileData.write(shape.exportBrepToString())
+            
+            self.objColors[filePath]['shape'] = shape
+            self.objColors[filePath]['col'] = col
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("2. {0}\n".format(e))
         
-        #FreeCADGui.insert(u"{0}".format(filePath), "importingPartsPCB")
-        
-        colFileData.write(str(col))
-        colFileData.write(shape.exportBrepToString())
         colFileData.close()
         
         FreeCAD.closeDocument("importingPartsPCB")
-        #FreeCAD.setActiveDocument(active)
-        #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-        #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-        
-        step_model.Shape = shape
-        if koloroweElemnty:
-            step_model.ViewObject.DiffuseColor = col
-        
-        self.objColors[filePath]['shape'] = shape
-        self.objColors[filePath]['col'] = col
+        FreeCAD.setActiveDocument(active)
+        FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+        FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
         
         return step_model
+    
+    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y):
+
+        step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
+            
+        step_model.Placement.Base.x = cX
+        step_model.Placement.Base.y = cY
+        
+        step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(cRZ, cRY, cRX)) # rotation correction
+        
+        xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+        yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+        
+        step_model.Placement.Base.x = xB0 + X # final position X-axis
+        step_model.Placement.Base.y = yB0 + Y # final position Y-axis
+        step_model.Proxy.offsetZ = cZ
+    
+    def partStandardDictionary(self):
+        return {
+            'name': '', 
+            'library': '', 
+            'package': '', 
+            'value': '', 
+            'x': 0, 
+            'y': 0, 
+            'locked': False, 
+            'populated': False,  
+            'smashed': False, 
+            'rot': 0, 
+            'side': 'TOP', 
+            'dataElement': None,
+            'EL_Name': {
+                'text': 'NAME', 
+                'x': 0,
+                'y': 0, 
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'center', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }, 
+            'EL_Value': {
+                'text': 'VALUE', 
+                'x': 0, 
+                'y': 0,
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'bottom-left', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }
+        }
         
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
+        #newPart = {
+            # 'name': 'E$2', 
+            # 'library': 'eagle-ltspice', 
+            # 'package': 'R0806', 
+            # 'value': '', 
+            # 'x': 19.0, 
+            # 'y': 5.5, 
+            # 'locked': False, 
+            # 'populated': False,  
+            # 'smashed': False, 
+            # 'rot': 90, 
+            # 'side': 'TOP', 
+            # 'dataElement': <DOM Element: element at 0x1bc2634cf20>, 
+            # 'EL_Name': {
+                # 'text': 'NAME', 
+                # 'x': 16.73,
+                # 'y': 6.23, 
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 135, 
+                # 'side': 'TOP', 
+                # 'align': 'center', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'
+            # }, 
+            # 'EL_Value': {
+                # 'text': 'VALUE', 
+                # 'x': 21.54, 
+                # 'y': 4.23,
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 90, 
+                # 'side': 'TOP', 
+                # 'align': 'bottom-left', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'}
+        # }
+        ###############################################################
         doc = FreeCAD.activeDocument()
-        gruboscPlytki = getPCBheight()[1]
+        pcb = getPCBheight()
         result = ['OK']
         
-        #grp = doc.addObject("App::DocumentObjectGroup", "Parts")
-        
-        # basic data
-        partNameTXT = partNameTXT_label = self.generateNewLabel(newPart[0][0])
-        if isinstance(partNameTXT, unicode):
-            partNameTXT = unicodedata.normalize('NFKD', partNameTXT).encode('ascii', 'ignore')
-        #
-        partValueTXT = newPart[0][2]
-        #if isinstance(partValueTXT, unicode):
-            #partValueTXT = unicodedata.normalize('NFKD', partValueTXT).encode('ascii', 'ignore')
-        partRotation = self.adjustRotation(newPart[0][5])  # rotation around Z
-        # check if 3D model exist
-        #################################################################
-        #################################################################
-        fileData = self.partExist(newPart[0], "{0} {1} ({2})".format(partNameTXT_label, partValueTXT, newPart[0][1]))
-        
+        partNameTXT = self.generateNewLabel(newPart['name'])
+        ###############################################################
+        # checking if 3D model exist
+        ###############################################################
+        fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']))
         if fileData[0]:
-            if fileData[2]:
-                packageData = self.__SQL__.getValues(fileData[2])
+            if fileData[2] > 0:
+                modelData = self.__SQL__.getModelByID(fileData[2])
+                
+                if modelData[0]:
+                    modelData = self.__SQL__.convertToTable(modelData[1])
+                else:
+                    modelData = {'sockedID': 0, 'socketIDSocket': False}
             else:
-                packageData = {'add_socket':'[False,None]'}
+                modelData = {'add_socket':'[False,None]'}
+            #
+            newPart['rot'] = self.adjustRotation(newPart['rot'])
             filePath = fileData[1]
-            
-            correctingValue_X = fileData[3][2]  # pos_X
-            correctingValue_Y = fileData[3][3]  # pos_Y
-            correctingValue_Z = fileData[3][4]  # pos_Z
-            correctingValue_RX = fileData[3][5]  # pos_RX
-            correctingValue_RY = fileData[3][6]  # pos_RY
-            correctingValue_RZ = fileData[3][7]  # pos_RZ
-            
-            ################################################################
-            # DODANIE OBIEKTU NA PLANSZE
-            ################################################################
-            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3][0]))
-            step_model.Label = partNameTXT_label
-            
-            if not koloroweElemnty:
-                step_model.Shape = Part.read(filePath)
-            else:
-                active = FreeCAD.ActiveDocument.Name
-                step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
-                FreeCAD.setActiveDocument(active)
-                FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-                FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-            
+            correctingValue_X = fileData[3]['x']  # pos_X
+            correctingValue_Y = fileData[3]['y']  # pos_Y
+            correctingValue_Z = fileData[3]['z']  # pos_Z
+            correctingValue_RX = fileData[3]['rx']  # pos_RX
+            correctingValue_RY = fileData[3]['ry']  # pos_RY
+            correctingValue_RZ = fileData[3]['rz']  # pos_RZ
+            ############################################################
+            # ADDING OBJECT
+            ############################################################
+            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3]['name']))
+            step_model.Label = partNameTXT
+            step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
+            #
             obj = partObject(step_model)
-            step_model.Package = u"{0}".format(fileData[3][0])
-            step_model.Side = "{0}".format(newPart[0][6])
-            ################################################################
+            step_model.Package = u"{0}".format(fileData[3]['name'])
+            ############################################################
             # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
-            ################################################################
-            # rotate object according to (RX, RY, RZ) set by user
-            sX = step_model.Shape.BoundBox.Center.x * (-1) + step_model.Placement.Base.x
-            sY = step_model.Shape.BoundBox.Center.y * (-1) + step_model.Placement.Base.y
-            sZ = step_model.Shape.BoundBox.Center.z * (-1) + step_model.Placement.Base.z + gruboscPlytki / 2.
-            
-            rotateX = correctingValue_RX
-            rotateY = correctingValue_RY
-            rotateZ = correctingValue_RZ
-            
-            pla = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(rotateX, rotateY, rotateZ), FreeCAD.Base.Vector(sX, sY, sZ))
-            step_model.Placement = pla
-            
-            ## placement object to 0, 0, PCB_size / 2. (X, Y, Z)
-            sX = step_model.Shape.BoundBox.Center.x * (-1) + step_model.Placement.Base.x
-            sY = step_model.Shape.BoundBox.Center.y * (-1) + step_model.Placement.Base.y
-            sZ = step_model.Shape.BoundBox.Center.z * (-1) + step_model.Placement.Base.z + gruboscPlytki / 2.
-
-            step_model.Placement.Base.x = sX + correctingValue_X
-            step_model.Placement.Base.y = sY + correctingValue_Y
-            step_model.Placement.Base.z = sZ
-            
-            # move object to correct Z
-            step_model.Placement.Base.z = step_model.Placement.Base.z + (gruboscPlytki - step_model.Shape.BoundBox.Center.z) + correctingValue_Z
+            ############################################################
+            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart["x"], newPart["y"])
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
@@ -257,57 +360,20 @@ class partsManaging(mathFunctions):
                     doc.removeObject(step_model.Name)
                     return
             #################################################################
-            # SETTTING OBJECT SIDE ON THE PCB
+            # ADDING SOCKET
+            #   addSocket = 
+            #               False - no socket
+            #               True  - add socket
+            #
             #################################################################
-            if newPart[0][6] == 'BOTTOM':
-                # ROT Y - MIRROR
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, gruboscPlytki / 2.), (0.0, 1.0, 0.0), 180)
-                step_model.Placement = shape.Placement
-                
-                # ROT Z - VALUE FROM EAGLE
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), -partRotation)
-                step_model.Placement = shape.Placement
-            else:
-                # ROT Z - VALUE FROM EAGLE
-                shape = step_model.Shape.copy()
-                shape.Placement = step_model.Placement
-                shape.rotate((0, 0, 0), (0.0, 0.0, 1.0), partRotation)
-                step_model.Placement = shape.Placement
-            #################################################################
-            # placement object to X, Y set in eagle
-            #################################################################
-            step_model.Placement.Base.x = step_model.Placement.Base.x + newPart[0][3]
-            step_model.Placement.Base.y = step_model.Placement.Base.y + newPart[0][4]
-            #################################################################
-            # 
-            #################################################################
-            step_model.X = step_model.Shape.BoundBox.Center.x
-            step_model.Y = step_model.Shape.BoundBox.Center.y
-            step_model.Proxy.oldX = step_model.Shape.BoundBox.Center.x
-            step_model.Proxy.oldY = step_model.Shape.BoundBox.Center.y
-            step_model.Proxy.offsetX = correctingValue_X
-            step_model.Proxy.offsetY = correctingValue_Y
-            step_model.Proxy.oldROT = partRotation
-            step_model.Rot = partRotation
-            step_model.Proxy.update_Z = step_model.Placement.Base.z
-            #################################################################
-            # DODANIE PODSTAWKI
-            #   dodajPodstawke - definicja zachowania dla danego obiektu
-            #     0 - brak podstawki
-            #     1 - dodanie podstawki
-            #################################################################
-            dodajPodstawke = False
+            addSocket = False
             
-            if eval(packageData["add_socket"])[0] and self.allSocked == 0 and eval(packageData["add_socket"])[1] != fileData[2]:
-                socketData = self.__SQL__.getValues(eval(packageData["add_socket"])[1])
+            if modelData['socketIDSocket'] and self.allSocket == 0 and modelData['socketID'] != fileData[2]:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                if eval(socketData["socket"])[0]:
+                if socketData["isSocket"]:
                     dial = QtGui.QMessageBox()
-                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart[0][1], newPart[0][7]))
+                    dial.setText(u"Add socket to part {0} (Package: {1}, Library: {2})?".format(partNameTXT, newPart['package'], newPart["library"]))
                     dial.setWindowTitle("Socket")
                     dial.setIcon(QtGui.QMessageBox.Question)
                     dial.addButton('No', QtGui.QMessageBox.RejectRole)
@@ -317,234 +383,245 @@ class partsManaging(mathFunctions):
                     dial.exec_()
                     
                     if dial.clickedButton() == nigdyPodstawki:
-                        self.allSocked = -1
+                        self.allSocket = -1
                     elif dial.clickedButton() == zawszePodstawki:
-                        self.allSocked = 1
+                        self.allSocket = 1
                     elif dial.clickedButton() == podstawkaTAK:
-                        dodajPodstawke = True
+                        addSocket = True
                     else:
-                        dodajPodstawke = False
+                        addSocket = False
             #
-            if (dodajPodstawke or self.allSocked == 1) and eval(packageData["add_socket"])[0]:
-                socketData = self.__SQL__.getValues(eval(packageData["add_socket"])[1])
+            if (addSocket or self.allSocket == 1) and modelData['socketIDSocket']:
+                socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
-                if self.__SQL__.has_section(eval(packageData["add_socket"])[1]):  # sprawdzamy czy podana podstawka istnieje
-                    step_model.Socket = float(eval(socketData["socket"])[1])  # ustawienie wysokosci podstawki
-                    package = eval(socketData["soft"])[0][0]
-                    
-                    EL_Name = [socketData["name"], newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                    EL_Value = ["", newPart[0][3], newPart[0][4], 1.27, newPart[0][5], newPart[0][6], "bottom-left", False, 'None', '', True]
-                    PCB_EL = [[socketData["name"], package, "", newPart[0][3], newPart[0][4], newPart[0][5], newPart[0][6], ""], EL_Name, EL_Value]
-                else:
-                    PCB_EL = [socketData["name"], socketData["name"], "", ""]
-                    
-                self.addPart(PCB_EL, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
-            ##################################################################
-            ## part name object
-            ## [txt, x, y, size, rot, side, align, spin, mirror, font]
-            ##################################################################
-            annotationName = createAnnotation()
-            annotationName.defaultName = '{0}_Name'.format(partNameTXT_label)
-            annotationName.mode = 'anno_name'
-            annotationName.Side = newPart[1][5]
-            annotationName.Rot = self.adjustRotation(newPart[1][4])
-            annotationName.Text = partNameTXT_label
-            annotationName.Spin = newPart[1][7]
-            
-            if adjustParts and "adjust" in packageData.keys() and "Name" in eval(packageData["adjust"]).keys() and eval(str(eval(packageData["adjust"])["Name"][0])):
-                values = eval(packageData["adjust"])["Name"]
+                step_model.Socket.Value = socketData["isSocketHeight"]  # socket height
+                #
+                socketModel = self.partStandardDictionary()
+                socketModel['name'] = "{0}_socket".format(partNameTXT)
+                socketModel['library'] = ""
+                socketModel['package'] = socketData["name"]
+                socketModel['value'] = ""
+                socketModel['x'] = newPart["x"]
+                socketModel['y'] = newPart["y"]
+                socketModel['rot'] = newPart['rot']
+                socketModel['side'] = newPart["side"]
                 
-                if step_model.Side == "BOTTOM":
-                    x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    annotationName.Mirror = True
-                    
-                    [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                else:
-                    annotationName.Mirror = False
-                    
-                    [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
+                socketModel['EL_Name']["x"] = newPart["x"]
+                socketModel['EL_Name']["y"] = newPart["y"]
+                socketModel['EL_Name']["rot"] = newPart['rot']
+                socketModel['EL_Name']["side"] = newPart["side"]
                 
-                annotationName.X = xR
-                annotationName.Y = yR
-                annotationName.Z = values[4]
-                annotationName.Align = str(values[7])
-                annotationName.Size = values[5]
-                annotationName.Color = values[6]
-                annotationName.Visibility = eval(values[1])
-            else:
-                annotationName.X = newPart[1][1]
-                annotationName.Y = newPart[1][2]
-                annotationName.Z = 0
-                annotationName.Align = newPart[1][6]
-                annotationName.Size = newPart[1][3]
-                annotationName.Mirror = newPart[1][8]
-                annotationName.Color = (1., 1., 1.)
-                annotationName.Visibility = newPart[1][10]
-            
-            annotationName.generate()
-            #################################################################
-            # part value
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            #################################################################
-            annotationValue = createAnnotation()
-            annotationValue.defaultName = '{0}_Value'.format(partNameTXT_label)
-            annotationValue.mode = 'anno_value'
-            annotationValue.Side = newPart[2][5]
-            annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            annotationValue.Text = partValueTXT
-            annotationValue.Spin = newPart[2][7]
-            
-            if adjustParts and "adjust" in packageData.keys() and "Value" in eval(packageData["adjust"]).keys() and eval(str(eval(packageData["adjust"])["Value"][0])):
-                values = eval(packageData["adjust"])["Value"]
-                
-                if step_model.Side == "BOTTOM":
-                    x1 = self.odbijWspolrzedne(newPart[0][3] + values[2], step_model.X.Value)
-                    annotationValue.Mirror = True
-                    
-                    [xR, yR] = self.obrocPunkt2([x1, newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], -step_model.Rot.Value)
-                else:
-                    annotationValue.Mirror = False
-                    
-                    [xR, yR] = self.obrocPunkt2([newPart[0][3] + values[2], newPart[0][4] + values[3]], [step_model.X.Value, step_model.Y.Value], step_model.Rot.Value)
-                
-                annotationValue.X = xR
-                annotationValue.Y = yR
-                annotationValue.Z = values[4]
-                annotationValue.Align = str(values[7])
-                annotationValue.Size = values[5]
-                annotationValue.Color = values[6]
-                annotationValue.Visibility = eval(values[1])
-            else:
-                annotationValue.X = newPart[2][1]
-                annotationValue.Y = newPart[2][2]
-                annotationValue.Z = 0
-                annotationValue.Align = newPart[2][6]
-                annotationValue.Size = newPart[2][3]
-                annotationValue.Mirror = newPart[2][8]
-                annotationValue.Color = (1., 1., 1.)
-                annotationValue.Visibility = newPart[2][10]
-            
-            annotationValue.generate()
-            #
-            step_model.PartName = annotationName.Annotation
-            step_model.PartValue = annotationValue.Annotation
-            ################
+                socketModel['EL_Value']["x"] = newPart["x"]
+                socketModel['EL_Value']["y"] = newPart["y"]
+                socketModel['EL_Value']["rot"] = newPart['rot']
+                socketModel['EL_Value']["side"] = newPart["side"]
+                #
+                self.addPart(socketModel, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+            ############################################################
+            # 
+            ############################################################
             viewProviderPartObject(step_model.ViewObject)
-            #################################################################
-            # KOLORY DLA ELEMENTOW
-            #################################################################
-            #if koloroweElemnty:
-                #if filePath.upper().endswith('.IGS') or filePath.upper().endswith('IGES'):
-                    #step_model = self.getColorFromIGS(filePath, step_model)
-                #elif filePath.upper().endswith('.STP') or filePath.upper().endswith('STEP'):
-                    #step_model = self.getColorFromSTP(filePath, step_model)
-        else:
+            #
+            step_model.X = newPart["x"]
+            step_model.Y = newPart["y"]
+            if not self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+                step_model.Rot = newPart['rot'] # after setting X/Y
+            if newPart["side"] == "BOTTOM":
+                step_model.Side = newPart["side"]
+            step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
+        else: # there is no suitable model in library
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################
             if partMinX != 0 or partMinY or partMinZ:
                 return
-            #################################################################
-            #################################################################
-            ## DODANIE OBIEKTU NA PLANSZE
-            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, newPart[0][1]))
-            step_model.Label = partNameTXT_label
-            obj = partObject_E(step_model)
-            #step_model.Label = partNameTXT
-            step_model.Package = "{0}".format(newPart[0][1])
-            #step_model.Value = "{0}".format(i[0][2])
-            #####
-            # placement object to X, Y set in eagle
-            step_model.Placement.Base.x = step_model.Placement.Base.x + newPart[0][3]
-            step_model.Placement.Base.y = step_model.Placement.Base.y + newPart[0][4]
+            ############################################################
+            # ADDING OBJECT
+            ############################################################
+            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, newPart["package"]))
+            step_model.Label = partNameTXT
             
-            # move object to correct Z
-            step_model.Placement.Base.z = step_model.Placement.Base.z + gruboscPlytki
-            #####
-            step_model.Side = "{0}".format(newPart[0][6])
-            step_model.X = newPart[0][3]
-            step_model.Y = newPart[0][4]
-            step_model.Rot = partRotation
-            step_model.Proxy.update_Z = 0
-            ######
-            ######
-            # part name object
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            annotationName = createAnnotation()
-            annotationName.defaultName = u'{0}_Name'.format(partNameTXT_label)
-            annotationName.mode = 'anno_name'
-            annotationName.X = newPart[1][1]
-            annotationName.Y = newPart[1][2]
-            annotationName.Z = 0
-            annotationName.Side = newPart[1][5]
-            annotationName.Rot = self.adjustRotation(newPart[1][4])
-            annotationName.Text = partNameTXT_label
-            annotationName.Align = newPart[1][6]
-            annotationName.Size = newPart[1][3]
-            annotationName.Spin = newPart[1][7]
-            annotationName.Mirror = newPart[1][8]
-            annotationName.Visibility = newPart[1][10]
-            annotationName.Color = (1., 1., 1.)
-            annotationName.generate()
-            # part value
-            # [txt, x, y, size, rot, side, align, spin, mirror, font]
-            annotationValue = createAnnotation()
-            annotationValue.defaultName = u'{0}_Value'.format(partNameTXT_label)
-            annotationValue.mode = 'anno_value'
-            annotationValue.X = newPart[2][1]
-            annotationValue.Y = newPart[2][2]
-            annotationValue.Z = 0
-            annotationValue.Side = newPart[2][5]
-            annotationValue.Rot = self.adjustRotation(newPart[2][4])
-            annotationValue.Text = partValueTXT
-            annotationValue.Align = newPart[2][6]
-            annotationValue.Size = newPart[2][3]
-            annotationValue.Spin = newPart[2][7]
-            annotationValue.Mirror = newPart[2][8]
-            annotationValue.Visibility = newPart[2][10]
-            annotationValue.Color = (1., 1., 1.)
-            annotationValue.generate()
-            #
-            step_model.PartName = annotationName.Annotation
-            step_model.PartValue = annotationValue.Annotation
-            ######
-            ######
+            obj = partObject_E(step_model)
+            step_model.Package = "{0}".format(newPart["package"])
+            
             viewProviderPartObject_E(step_model.ViewObject)
-            #################################################################
+            #
+            step_model.X = newPart["x"]
+            step_model.Y = newPart["y"]
+            if not self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+                step_model.Rot = newPart['rot'] # after setting X/Y
+            if newPart["side"] == "BOTTOM":
+                step_model.Side = newPart["side"]
+            step_model.Proxy.updatePosition_Z(step_model, pcb[1], True)
+            #
             result = ['Error']
-        ######
-        result.append(step_model)
-        self.addPartToGroup(groupParts, fileData, step_model)
-        #self.updateView()
-        return result
-    
-    def addPartToGroup(self, groupParts, fileData, step_model):
+        ##################################################################
+        ## part name object
+        ##################################################################
+        # 'EL_Name': {
+                # 'text': 'NAME', 
+                # 'x': 16.73,
+                # 'y': 6.23, 
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 135, 
+                # 'side': 'TOP', 
+                # 'align': 'center', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'
+            # }, 
         try:
-            FreeCAD.ActiveDocument.removeObject(step_model.InList[0].Label)
-        except Exception, e:
+            annotation = createAnnotation()
+            annotation.X = newPart['EL_Name']["x"]
+            annotation.Y = newPart['EL_Name']["y"]
+            annotation.Z = newPart['EL_Name']["z"]
+            annotation.Side = newPart['EL_Name']["side"]
+            annotation.Rot = newPart['EL_Name']["rot"]
+            annotation.Text = newPart['name']
+            annotation.Align = newPart['EL_Name']["align"]
+            annotation.Size = newPart['EL_Name']["size"]
+            annotation.Spin = newPart['EL_Name']["spin"]
+            annotation.tracking = newPart['EL_Name']["tracking"]
+            annotation.lineDistance = newPart['EL_Name']["distance"]
+            annotation.Color = (1., 1., 1.)
+            annotation.Font = newPart['EL_Name']["font"]
+            annotation.Visibility = newPart['EL_Name']["display"]
+            annotation.mode = newPart['EL_Name']["mode"]
+            #
+            if adjustParts and step_model.Proxy.Type == "PCBpart":
+                paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Name')
+                if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
+                    try:
+                        if newPart["side"] == "TOP":
+                            [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        else:
+                            [x, y] = self.obrocPunkt2([-paramData[0].x + step_model.X.Value, -paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], -newPart['rot'])
+                        annotation.X = x
+                        annotation.Y = y
+                        annotation.Z = paramData[0].z + step_model.Socket.Value + pcb[1]
+                        annotation.Color = eval(paramData[0].color)
+                        annotation.Visibility = paramData[0].display
+                        annotation.Size = paramData[0].size
+                        annotation.Align = paramData[0].align
+                        annotation.Rot = paramData[0].rz + newPart['rot']
+                        annotation.Spin = paramData[0].spin
+                    except Exception as e:
+                        print(e)
+            #
+            annotation.generate(False)
+            step_model.PartName = annotation.Annotation
+        except Exception as e:
             pass
-        
+        ##################################################################
+        ## part value object
+        ##################################################################
+        # 'EL_Value': {
+                # 'text': 'VALUE', 
+                # 'x': 21.54, 
+                # 'y': 4.23,
+                # 'z': 0, 
+                # 'size': 1.27, 
+                # 'rot': 90, 
+                # 'side': 'TOP', 
+                # 'align': 'bottom-left', 
+                # 'spin': True, 
+                # 'font': 'Proportional', 
+                # 'display': True, 
+                # 'distance': 50, 
+                # 'tracking': 0, 
+                # 'mode': 'param'}
+        # }
         try:
-            step_model.InList[0].removeObject(step_model)
+            annotation = createAnnotation()
+            annotation.X = newPart['EL_Value']["x"]
+            annotation.Y = newPart['EL_Value']["y"]
+            annotation.Z = newPart['EL_Value']["z"]
+            annotation.Side = newPart['EL_Value']["side"]
+            annotation.Rot = newPart['EL_Value']["rot"]
+            annotation.Text = newPart['value']
+            annotation.Align = newPart['EL_Value']["align"]
+            annotation.Size = newPart['EL_Value']["size"]
+            annotation.Spin = newPart['EL_Value']["spin"]
+            annotation.tracking = newPart['EL_Value']["tracking"]
+            annotation.lineDistance = newPart['EL_Value']["distance"]
+            annotation.Color = (1., 1., 1.)
+            annotation.Font = newPart['EL_Value']["font"]
+            annotation.Visibility = newPart['EL_Value']["display"]
+            annotation.mode = newPart['EL_Value']["mode"]
+            #
+            if adjustParts and step_model.Proxy.Type == "PCBpart":
+                paramData = self.__SQL__.getParamsByModelID(modelData['id'], 'Value')
+                if not isinstance(paramData, list) and paramData[0].active: # param exists and is active
+                    try:
+                        if newPart["side"] == "TOP":
+                            [x, y] = self.obrocPunkt2([paramData[0].x + step_model.X.Value, paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], newPart['rot'])
+                        else:
+                            [x, y] = self.obrocPunkt2([-paramData[0].x + step_model.X.Value, -paramData[0].y + step_model.Y.Value] , [step_model.X.Value,  step_model.Y.Value], -newPart['rot'])
+                        annotation.X = x
+                        annotation.Y = y
+                        annotation.Z = paramData[0].z + step_model.Socket.Value + pcb[1]
+                        annotation.Color = eval(paramData[0].color)
+                        annotation.Visibility = paramData[0].display
+                        annotation.Size = paramData[0].size
+                        annotation.Align = paramData[0].align
+                        annotation.Rot = paramData[0].rz + newPart['rot']
+                        annotation.Spin = paramData[0].spin
+                    except Exception as e:
+                        print(e)
+            #
+            annotation.generate(False)
+            step_model.PartValue = annotation.Annotation
         except:
             pass
-        #
-        grp = createGroup_Parts()
-        
-        if groupParts:
-            try:
-                if fileData[4] == -1:
-                    grp_2 = makeGroup('Others')
-                else:
-                    grp_2 = makeGroup(readCategories()[fileData[4]][0])
-            except:
-                grp_2 = makeGroup('Missing')
-            
-            grp_2.addObject(step_model)
-            grp.addObject(grp_2)
-        else:
-            grp.addObject(step_model)
+        ##################################################################
+        #step_model.Rot = newPart['rot'] # after setting X/Y
+        if self.databaseType in ["freepcb", "kicad_v4", "kicad"]:
+            step_model.Rot = newPart['rot'] # after setting X/Y
+        ##################################################################
+        result.append(step_model)
+        self.addPartToGroup(groupParts, step_model)
+        pcb[2].Proxy.addObject(pcb[2], step_model)
+        self.updateView()
+        return result
     
+    def partGenerateAnnotation(self, data, ):
+        pass
+    
+    def addPartToGroup(self, groupParts, step_model):
+        if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+            return
+        #
+        partsFolder = createGroup_Parts()
+        #
+        try:
+            if groupParts and getPCBheight()[0]:
+                if step_model.Proxy.Type == "PCBpart_E":
+                    grp_2 = createGroup_Missing()
+                else:
+                    fileData = self.__SQL__.findPackage(step_model.Package, "*")
+                    
+                    if fileData:
+                        model = self.__SQL__.getModelByID(fileData.modelID)
+                        categoryData = self.__SQL__.getCategoryByID(int(model[1].categoryID))
+                        
+                        if categoryData == 0:
+                            grp_2 = createGroup_Others()
+                        else:
+                            grp_2 = createGroup(categoryData.name)
+                    else:
+                        grp_2 = createGroup_Missing()
+                
+                grp_2.addObject(step_model)
+                partsFolder.addObject(grp_2)
+            else:
+                partsFolder.addObject(step_model)
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+
     def getObjRot(self, obj):
         rx = obj.Placement.Rotation.Q[0]
         ry = obj.Placement.Rotation.Q[1]
@@ -625,7 +702,7 @@ class partsManaging(mathFunctions):
         #return FreeCAD.Base.Rotation(x, y, z, w)
         
     def generateNewLabel(self, label):
-        #if isinstance(label, unicode):
+        #if isinstance(label, str):
             #label = unicodedata.normalize('NFKD', label).encode('ascii', 'ignore')
         
         if label.strip() == "":
@@ -645,7 +722,7 @@ class partsManaging(mathFunctions):
             #
             colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
             if os.path.exists(colFile):
-                colFileData = __builtin__.open(colFile, "r").readlines()
+                colFileData = builtins.open(colFile, "r").readlines()
                 header = colFileData[0].strip().split("|")
                 
                 if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
@@ -657,10 +734,10 @@ class partsManaging(mathFunctions):
                     except:
                         pass
             
-            colFileData = __builtin__.open(colFile, "w")
+            colFileData = builtins.open(colFile, "w")
             colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
             #
-            plik = __builtin__.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
+            plik = builtins.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
             paletaKolorow = []
             # v2
             defColors = {}
@@ -700,7 +777,7 @@ class partsManaging(mathFunctions):
             self.objColors[filePath] = paletaKolorow
             colFileData.write(str(paletaKolorow))
             colFileData.close()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error 1b: {0} \n".format(e))
         return step_model
 
@@ -717,7 +794,7 @@ class partsManaging(mathFunctions):
             #
             colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
             if os.path.exists(colFile):
-                colFileData = __builtin__.open(colFile, "r").readlines()
+                colFileData = builtins.open(colFile, "r").readlines()
                 header = colFileData[0].strip().split("|")
                 
                 if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
@@ -729,10 +806,10 @@ class partsManaging(mathFunctions):
                     except:
                         pass
             
-            colFileData = __builtin__.open(colFile, "w")
+            colFileData = builtins.open(colFile, "w")
             colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
             #
-            plik = __builtin__.open(filePath, "r").readlines()
+            plik = builtins.open(filePath, "r").readlines()
             
             stopka = plik[-1]  # stopka okresla ile lini zawiera naglowek oraz poszczegolne czesci pliku
             dlugoscSTART = int(re.search('S.*G', stopka).group(0)[1:-1])  # S = Start Sender comments
@@ -849,91 +926,96 @@ class partsManaging(mathFunctions):
             self.objColors[filePath] = paletaKolorow
             colFileData.write(str(paletaKolorow))
             colFileData.close()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error 1a: {0} \n".format(e))
         
         return step_model
     
     def setDatabase(self):
         self.__SQL__ = dataBase()
-        self.__SQL__.read(getFromSettings_databasePath())
+        self.__SQL__.connect()
 
-    def partExist(self, info, model, showDial=True):
+    def partExist(self, package, model, showDial=True):
+        if not self.databaseType:
+            return [False]
+        
         try:
-            name = info[1]
-            
             databaseType = self.databaseType
-            if databaseType == 'kicad_v4':
+            if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
+            
             #
-            modelInfo = getExtensionInfo(info,'model')
-            if modelInfo:  # kicad users
-                [found, path] = partExistPath(modelInfo['path'])
-                if found:
-                    at = modelInfo['at']
-                    modelInfo.pop('at')
-                    rotate = modelInfo['rotate']
-                    modelInfo.pop('rotate')
+            #modelInfo = getExtensionInfo(info, 'model')
+            #if modelInfo:  # kicad users
+                #[found, path] = partExistPath(modelInfo['path'])
+                #if found:
+                    #at = modelInfo['at']
+                    #modelInfo.pop('at')
+                    #rotate = modelInfo['rotate']
+                    #modelInfo.pop('rotate')
 
-                    #if databaseType == 'kicad': 
-                        # This is what I think how FreeCAD-PCB places objects.
-                        # 
-                        # 1) After loading the model, it will move the object so that it centers at the origin.
-                        # 2) Rotate the object with the angles stored in the database using x, y and z as rotation 
-                        #    axis. In other word, FreeCAD-PCB stores the rotation as yaw, pitch and roll.
-                        # 3) Move the object to its final position using the translation stored in the database.
-                        #
-                        # However, kicad has no step 1), which is why we need to adjust the placement as follow.
-                        # Do a yaw, pitch, roll rotation of the object center vector. Add the resulting vector
-                        # to the translation.
-                        #pos = FreeCAD.Placement(\
-                                    #FreeCAD.Base.Vector(0.0,0.0,0.0), \
-                                    #FreeCAD.Rotation(rotate[0], rotate[1], rotate[2]), \
-                                    #FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shape.BoundBox.Center)
-                        #at[0] += pos.x
-                        #at[1] += pos.y
-                        #at[2] += pos.z
+                    ##if databaseType == 'kicad': 
+                        ## This is what I think how FreeCAD-PCB places objects.
+                        ## 
+                        ## 1) After loading the model, it will move the object so that it centers at the origin.
+                        ## 2) Rotate the object with the angles stored in the database using x, y and z as rotation 
+                        ##    axis. In other word, FreeCAD-PCB stores the rotation as yaw, pitch and roll.
+                        ## 3) Move the object to its final position using the translation stored in the database.
+                        ##
+                        ## However, kicad has no step 1), which is why we need to adjust the placement as follow.
+                        ## Do a yaw, pitch, roll rotation of the object center vector. Add the resulting vector
+                        ## to the translation.
+                        ##pos = FreeCAD.Placement(\
+                                    ##FreeCAD.Base.Vector(0.0,0.0,0.0), \
+                                    ##FreeCAD.Rotation(rotate[0], rotate[1], rotate[2]), \
+                                    ##FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shape.BoundBox.Center)
+                        ##at[0] += pos.x
+                        ##at[1] += pos.y
+                        ##at[2] += pos.z
 
-                    modelSoft = [name,supSoftware[databaseType]['name']]
-                    modelSoft.extend(at)
-                    modelSoft.extend(rotate)
-                    modelInfo['soft'] = str([modelSoft])
+                    #modelSoft = [name,supSoftware[databaseType]['name']]
+                    #modelSoft.extend(at)
+                    #modelSoft.extend(rotate)
+                    #modelInfo['soft'] = str([modelSoft])
 
-                    return [True, path, '', modelSoft, -1]; 
-            #
-            sectionName = self.__SQL__.findPackage(name, supSoftware[databaseType]['name'])
-            if sectionName[0]:
-                partPath = self.__SQL__.getValues(sectionName[1])
+                    #return [True, path, '', modelSoft, -1]; 
+            #################
+            package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
+            
+            if package:
+                modelData = self.__SQL__.getModelByID(package.modelID)
                 
-                filePos = partPath["path"]
-
-                # multi models definition for one part
-                if isinstance(model, unicode):
-                    model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
-                
-                #if len(filePos.split(';')) > 1:
-                    #return [False]
-                if len(filePos.split(';')) > 1 and showDial:
-                    #active = FreeCAD.ActiveDocument.Label
-                    dial = modelTypes(model, filePos.split(';'))
+                if modelData[0]:
+                    modelData = self.__SQL__.convertToTable(modelData[1])
+                    filePos = modelData["path3DModels"]
                     
-                    if dial.exec_():
-                        filePos = str(dial.modelsList.currentItem().text())
+                    # multi models definition for one part
+                    if isinstance(model, str):
+                        model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
+                        #if len(filePos.split(';')) > 1:
+                        #return [False]
+                    if len(filePos.split(';')) > 1 and showDial:
+                        #active = FreeCAD.ActiveDocument.Label
+                        dial = modelTypes(model, filePos.split(';'))
+                        
+                        if dial.exec_():
+                            filePos = str(dial.modelsList.currentItem().text())
+                        else:
+                            return [False]
+                        #FreeCAD.setActiveDocument(active)
+                        #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+                        #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+                    ######################################
+                    [boolValue, path] = partExistPath(filePos)
+                    if boolValue:
+                        return [True, path, modelData['id'], self.__SQL__.convertToTable(package), modelData['categoryID']]
                     else:
                         return [False]
-                    #FreeCAD.setActiveDocument(active)
-                    #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-                    #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-                ######################################
-                [boolValue, path] = partExistPath(filePos)
-                if boolValue:
-                    return [True, path, sectionName[1], sectionName[2], sectionName[3]]
                 else:
                     return [False]
-                
             return [False]
-        except Exception, e:
-            FreeCAD.Console.PrintWarning(u"Error 2: {0} \n".format(e))
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"Error partExist(): {0} \n".format(e))
             return [False]
             #FreeCAD.Console.PrintWarning(u"Error 2: {0} \n".format(e))
             #return [False]

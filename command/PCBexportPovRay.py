@@ -30,7 +30,7 @@ __url__ = ["http://www.freecadweb.org"]
 
 
 import FreeCAD, FreeCADGui
-import __builtin__
+import builtins
 import Mesh
 from PySide import QtCore, QtGui
 import os
@@ -162,7 +162,7 @@ def exportObjectToPOVRAY(fileName, objectName, projectObjects):
         #
         objectNameFormat = objectName.replace('-', '')
         #
-        plik = __builtin__.open(fileName, "w")
+        plik = builtins.open(fileName, "w")
         plik.write('''// ////////////////////////////////////////////////////////////
 // 
 // Add to file e3d_tools.inc
@@ -192,7 +192,7 @@ union {
 #end'''.format(newRX, newRY, newRZ, newX, newY, newZ))
 
         plik.close()
-    except Exception, e:
+    except Exception as e:
         FreeCAD.Console.PrintWarning("{0} \n".format(e))
         return
         

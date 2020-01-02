@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -32,16 +32,26 @@ import FreeCAD
 import os
 from math import degrees
 #
-from PCBboard import getHoles, getPCBsize, getBoardOutline
+from PCBboard import getPCBsize, getHoles, getPCBheight
 from command.PCBdxf import *
 from command.PCBsvg import *
 from command.PCBdrillingMapSymbols import drillingSymbols
+from PCBfunctions import sketcherGetGeometry
 
 
 exportList = {
     'dxf': {'name': 'Data exchange format (DXF)', 'class': 'dxf()', 'extension': 'dxf'},
     'svg': {'name': 'Scalable Vector Graphics (SVG)', 'class': 'svg()', 'extension': 'svg'},
 }
+
+def getBoardOutline():
+    pcb = getPCBheight()
+    if pcb[0]:  # board is available
+        board = sketcherGetGeometry(pcb[2].Border)
+        if board[0]:
+            return board[1]
+    
+    return []
 
 
 #***********************************************************************
@@ -52,6 +62,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         
         self.setWindowTitle(u"Create drilling map")
+        self.setWindowIcon(QtGui.QIcon(":/data/img/drilling.svg"))
         #
         # Output file format
         self.formatList = QtGui.QComboBox()
@@ -79,7 +90,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         packageFooter.setContentsMargins(10, 0, 10, 10)
         # header
         icon = QtGui.QLabel('')
-        icon.setPixmap(QtGui.QPixmap(":/data/img/drill-icon.png"))
+        icon.setPixmap(QtGui.QPixmap(":/data/img/drilling1.svg"))
         
         headerWidget = QtGui.QWidget()
         headerWidget.setStyleSheet("padding: 10px; border-bottom: 1px solid #dcdcdc; background-color:#FFF;")
@@ -111,6 +122,7 @@ class exportDrillingMap_Gui(QtGui.QDialog):
         export.fileName = FreeCAD.ActiveDocument.Label
         export.export()
         #super(exportDrillingMap_Gui, self).accept()
+        self.close()
         
     def zmianaSciezkiF(self):
         ''' change output file path '''
@@ -134,28 +146,15 @@ class exportDrillingMap:
             exportClass = eval(exportList[self.fileFormat]['class'])
             exportClass.fileName = self.fileName
             exportClass.filePath = self.filePath
-            exportClass.holes = self.getHoles()
+            exportClass.holes = getHoles()
             exportClass.outline = getBoardOutline()
             [exportClass.pcbMin_X, exportClass.pcbMin_Y, exportClass.pcbXLength, exportClass.pcbYLength] = getPCBsize()
             exportClass.export()
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def getHoles(self):
-        holes = {}
-        #
-        for i in FreeCAD.ActiveDocument.Board.Holes.Geometry:
-            if str(i.__class__) == "<type 'Part.GeomCircle'>" and not i.Construction:
-                x = i.Center[0]
-                y = i.Center[1]
-                r = i.Radius
-                
-                if not r in holes.keys():
-                    holes[r] = []
-                
-                holes[r].append([x, y])
-        #
-        return holes
+        else:
+            FreeCAD.Console.PrintWarning("File has been successfully exported\n")
+            
 
 
 ##***********************************************************************
@@ -199,9 +198,9 @@ class svg(drillMap):
 <svg
     xmlns="http://www.w3.org/2000/svg"
     version="1.1"
-    width="{self.pcbXLength}"
-    height="{self.pcbYLength}"
->'''.format(self=self))
+    width="{0}"
+    height="{1}"
+>'''.format(self.pcbXLength+2, self.pcbYLength+2))
     
     def writeFooter(self, files):
         files.write('''
@@ -260,6 +259,8 @@ class svg(drillMap):
         data = ''
         
         for i in range(len(self.holes.keys())):
+            key = list(self.holes)
+            
             char = self.randomChar()
             layer = 'T{0}'.format(i + 1)
             color_R = hex(randomValue(254)).split('x')[1]
@@ -268,12 +269,12 @@ class svg(drillMap):
             
             self.addCode(files, '\n\t<g id="{0}" inkscape:groupmode="layer" inkscape:label="{0}">'.format(layer))
             header = False
-            for j in self.holes[self.holes.keys()[i]]:
+            for j in self.holes[key[i]]:
                 self.addCode(files, '\n\t\t<g>')
                 for k in char:
                     x = self.correctX(j[0])
                     y = self.correctY(j[1])
-                    r = self.holes.keys()[i]
+                    r = key[i]
                     
                     if k[0] == 'l':
                         p1 = eval(k[1])
@@ -329,13 +330,13 @@ class svg(drillMap):
                 self.addCode(files, '\n\t\t</g>')
             self.addCode(files, '\n\t</g>')
             # add annotation under board
-            txt = SVG_Text(str(self.holes.keys()[i] * 2))
+            txt = SVG_Text(str(key[i] * 2))
             txt.x = self.pcbMin_X + 2.1
             txt.y = self.pcbMin_Y + 0.4 - lineNumber * lineHeight
             txt.fontSize = 0.5
             self.addCode(files, txt)
             
-            txt = SVG_Text(str(len(self.holes[self.holes.keys()[i]])))
+            txt = SVG_Text(str(len(self.holes[key[i]])))
             txt.x = self.pcbMin_X + 4.3
             txt.y = self.pcbMin_Y + 0.4 - lineNumber * lineHeight
             txt.fontSize = 0.5
@@ -371,33 +372,46 @@ class svg(drillMap):
         #self.addCode(files, '\n\t</g>')
     
     def correctY(self, value):
-        return value * -1 + self.pcbMin_Y + self.pcbYLength
+        return value * -1 + self.pcbMin_Y + self.pcbYLength + 1
     
     def correctX(self, value):
-        return value - self.pcbMin_X
+        return value - self.pcbMin_X + 1
     
     def writeBoardOutline(self, files):
         layerColor = [0, 0 ,0]
         
         self.addCode(files, '\n\t<g id="{0}" inkscape:groupmode="layer" inkscape:label="{0}">'.format('Border outline'))
         for i in self.outline:
-            if i[0] == 'line':
+            if i['type'] == 'line':
                 line = SVG_Line()
-                line.p1 = [self.correctX(i[1]), self.correctY(i[2]), 0]
-                line.p2 = [self.correctX(i[3]), self.correctY(i[4]), 0]
+                line.p1 = [self.correctX(i['x1']), self.correctY(i['y1']), 0]
+                line.p2 = [self.correctX(i['x2']), self.correctY(i['y2']), 0]
                 line.color = layerColor
                 
                 self.addCode(files, line)
-            elif i[0] == 'circle':
+            elif i['type'] == 'circle':
                 circle = SVG_Circle()
-                circle.r = i[1]
-                circle.x = self.correctX(i[2])
-                circle.y = self.correctY(i[3])
+                circle.r = i['r']
+                circle.x = self.correctX(i['x'])
+                circle.y = self.correctY(i['y'])
                 circle.color = layerColor
                 
                 self.addCode(files, circle)
-            elif i[0] == 'arc':
-                pass
+            elif i['type'] == 'arc':
+                arc = SVG_Arc()
+                arc.p1 = [self.correctX(i['x1']), self.correctY(i['y1']), 0]
+                arc.p2 = [self.correctX(i['x2']), self.correctY(i['y2']), 0]
+                arc.color = layerColor
+                arc.r = i['r']
+                
+                if i['angle'] > 0:
+                    arc.direction = 0
+                
+                if i['angle'] > 180:
+                    arc.side = 1
+                
+                self.addCode(files, arc)
+        #
         self.addCode(files, '\n\t</g>')
     
     def addCode(self, files, data):
@@ -449,28 +463,28 @@ class dxf(drillMap):
         layerColor = 7
         
         for i in self.outline:
-            if i[0] == 'line':
+            if i['type'] == 'line':
                 line = DXF_Line(layerName)
-                line.p1 = [i[1], i[2], 0]
-                line.p2 = [i[3], i[4], 0]
+                line.p1 = [i['x1'], i['y1'], 0]
+                line.p2 = [i['x2'], i['y2'], 0]
                 line.color = layerColor
                 
                 self.addCode(files, eval(str(line)))
-            elif i[0] == 'circle':
+            elif i['type'] == 'circle':
                 circle = DXF_Circle(layerName)
-                circle.r = i[1]
-                circle.x = i[2]
-                circle.y = i[3]
+                circle.r = i['r']
+                circle.x = i['x']
+                circle.y = i['y']
                 circle.color = layerColor
                 
                 self.addCode(files, eval(str(circle)))
-            elif i[0] == 'arc':
+            elif i['type'] == 'arc':
                 arc = DXF_Arc(layerName)
-                arc.r = i[1]
-                arc.x = i[2]
-                arc.y = i[3]
-                arc.startAngle = degrees(i[4])
-                arc.stopAngle = degrees(i[5])
+                arc.r = i['r']
+                arc.x = i['x']
+                arc.y = i['y']
+                arc.startAngle = i['startAngle']
+                arc.stopAngle = i['stopAngle']
                 arc.color = layerColor
                 
                 self.addCode(files, eval(str(arc)))
@@ -501,6 +515,8 @@ class dxf(drillMap):
         #
         num = 1
         for i in range(len(self.holes.keys())):
+            key = list(self.holes)
+            
             color = randomValue(254)
             char = self.randomChar()
             #layer = 'T{0}_{1}mm'.format(i + 1, self.holes.keys()[i])
@@ -508,11 +524,11 @@ class dxf(drillMap):
             #
             header = False
             
-            for j in self.holes[self.holes.keys()[i]]:
+            for j in self.holes[key[i]]:
                 for k in char:
                     x = j[0]
                     y = j[1]
-                    r = self.holes.keys()[i]
+                    r = key[i]
                     
                     if k[0] == 'l':
                         p1 = eval(k[1])
@@ -575,12 +591,12 @@ class dxf(drillMap):
             
             header = True
             # add annotation under board
-            txt = DXF_Text("Info", str(self.holes.keys()[i] * 2))
+            txt = DXF_Text("Info", str(key[i] * 2))
             txt.p = [self.pcbMin_X + 3.5, self.pcbMin_Y - lineNumber * lineHeight, 0.0]
             txt.height = 0.5
             self.addCode(files, eval(str(txt)))
             
-            txt = DXF_Text("Info", str(len(self.holes[self.holes.keys()[i]])))
+            txt = DXF_Text("Info", str(len(self.holes[key[i]])))
             txt.p = [self.pcbMin_X + 7.3, self.pcbMin_Y - lineNumber * lineHeight, 0.0]
             txt.height = 0.5
             self.addCode(files, eval(str(txt)))

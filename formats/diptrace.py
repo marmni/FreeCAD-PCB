@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -27,7 +27,7 @@
 
 import FreeCAD
 import Sketcher
-import __builtin__
+import builtins
 import Part
 import FreeCADGui
 import re
@@ -43,7 +43,7 @@ class dialogMAIN(dialogMAIN_FORM):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "diptrace"
         #
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\n', ' ')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\n', ' ')
         self.layersNames = {}
         
         self.plytkaPCB_elementy.setVisible(False)
@@ -63,7 +63,7 @@ class DipTrace_PCB(mainPCB):
         
 
     def setProject(self, filename):
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r\n', '\n').replace('\r', '\n').replace('\\n', '\n')
+        self.projektBRD = builtins.open(filename, "r").read().replace('\r\n', '\n').replace('\r', '\n').replace('\\n', '\n')
     
         #unit = re.search(r'\(Units "(.*?)"\)', self.projektBRD).groups()[0]
         #if unit == 'in':

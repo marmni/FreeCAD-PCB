@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -33,114 +33,130 @@ __title__="FreeCAD Printed Circuit Board Workbench - Init file"
 __author__ = "marmni <marmni@onet.eu>"
 __url__ = ["http://www.freecadweb.org"]
 
-
 # ICONS
 # drill-icon.png -> http://www.fatcow.com/free-icons
 
 # Database backup
-# Database uload
+# Database upload
 # http://creativecommons.org/licenses/by/3.0/
 # <div>Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0">CC BY 3.0</a></div>
-
 
 class PCB(Workbench):
     MenuText = "Printed Circuit Board"
     ToolTip = "PCB workbench"
     Icon = """
-        /* XPM */
-        static char * arch_xpm[] = {
-        "17 17 45 1",
-        " 	c None",
-        ".	c #00F000",
-        "+	c #00F200",
-        "@	c #00E200",
-        "#	c #00F100",
-        "$	c #00FF00",
-        "%	c #00F300",
-        "&	c #00FC00",
-        "*	c #00F400",
-        "=	c #00F700",
-        "-	c #00D600",
-        ";	c #00CD00",
-        ">	c #00D800",
-        ",	c #00F800",
-        "'	c #00DD00",
-        ")	c #00F600",
-        "!	c #008F00",
-        "~	c #008800",
-        "{	c #009800",
-        "]	c #009700",
-        "^	c #00A600",
-        "/	c #007F00",
-        "(	c #00E500",
-        "_	c #00A700",
-        ":	c #00FA00",
-        "<	c #008900",
-        "[	c #00CA00",
-        "}	c #00FD00",
-        "|	c #00FB00",
-        "1	c #00F900",
-        "2	c #009A00",
-        "3	c #007A00",
-        "4	c #00B200",
-        "5	c #00EF00",
-        "6	c #00FE00",
-        "7	c #00AD00",
-        "8	c #007200",
-        "9	c #008400",
-        "0	c #00C300",
-        "a	c #00BE00",
-        "b	c #007400",
-        "c	c #00DC00",
-        "d	c #007000",
-        "e	c #008300",
-        "f	c #00B600",
-        "                 ",
-        "                 ",
-        "                 ",
-        "      .+@        ",
-        "     #$$$$%@     ",
-        "    %$$$$$$$$&$  ",
-        "   *$$=-;>,$$$$$'",
-        "  )$$)!~{]^=$$$*/",
-        " =$$$(_    %$$:< ",
-        "[}$$$|    #1$&2  ",
-        " 345$$|61=$$67   ",
-        "   890:$$$$$a    ",
-        "      b2c$$c     ",
-        "        defb     ",
-        "                 ",
-        "                 ",
-        "                 "};"""
+/* XPM */
+static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm[] = {
+"32 32 41 1",
+" 	c None",
+".	c #FFFFFF",
+"+	c #7E7E7E",
+"@	c #6E6E6E",
+"#	c #EBEBEB",
+"$	c #1D1D1D",
+"%	c #000000",
+"&	c #0F0F0F",
+"*	c #0C0C0C",
+"=	c #DADADA",
+"-	c #7B7B7B",
+";	c #FDFDFD",
+">	c #FBFBFB",
+",	c #6C6C6C",
+"'	c #6F6F6F",
+")	c #161616",
+"!	c #F9F9F9",
+"~	c #090909",
+"{	c #D8D8D8",
+"]	c #B4B4B4",
+"^	c #575757",
+"/	c #171717",
+"(	c #FEFEFE",
+"_	c #D7D7D7",
+":	c #9D9D9D",
+"<	c #808080",
+"[	c #121212",
+"}	c #101010",
+"|	c #D3D3D3",
+"1	c #EEEEEE",
+"2	c #777777",
+"3	c #D9D9D9",
+"4	c #BABABA",
+"5	c #E3E3E3",
+"6	c #A1A1A1",
+"7	c #D6D6D6",
+"8	c #848484",
+"9	c #C4C4C4",
+"0	c #ABABAB",
+"a	c #F2F2F2",
+"b	c #FAFAFA",
+"                                ",
+"      .....................     ",
+"      .+@@@@@@@@@@@@@@@@@#.     ",
+"      .$%%&*%%%%%%%%%%%%%=.     ",
+"      .$%-;>,%%%%%%%%%%%%=.     ",
+"  %%%'.$);..!~%%%%%%%%%%%{]%%%  ",
+" %%%%^.$/(..!~%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%<(>'%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%[}%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+"     |.$%%%%%%%%%%%%%%%%%=1     ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"  %%%2.$%%%%%%%%%%%%%%%%%34%%%  ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+"     4.$%%%%%%%%%%%%%%%%%=5     ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"     6.$%%%%%%%%%%%%%%%%%=7     ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+" %%%%^.$%%%%%%%%%%%%%%%%%_:%%%% ",
+"  %%%8.$%%%%%%%%%%%%%%%%%39%%%  ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"      .$%%%%%%%%%%%%%%%%%=.     ",
+"      .066666666666666666a.     ",
+"      >bbbbbbbbbbbbbbbbbbb.     ",
+"                                "};
+
+"""
 
     def Initialize(self):
-        import PCBtoolBar, PCBrc, PCBcommands
-        import SketcherGui
-        
-        FreeCADGui.addIconPath(":/data/img")
-        FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui","PCB")
-        FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui","PCB")
-        FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui","PCB")
-        
-        self.explodeSettings = PCBcommands.listaExplode
-        self.parts_E_Settings = PCBcommands.listaPartsE
-        self.partsSettings = PCBcommands.listaParts
-        
-        self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch", 
-                                "Sketcher_ViewSketch", "Sketcher_MapSketch",
-                                "Separator", "ScriptCmd_OpenSketcherWorkbench",
-                                "Separator", 
-                                "Sketcher_CreatePoint", "Sketcher_CreateArc", 
-                                "Sketcher_Create3PointArc", "Sketcher_CreateCircle", 
-                                "Sketcher_Create3PointCircle", "Sketcher_CreateLine", 
-                                "Sketcher_CreatePolyline", "Sketcher_CreateRectangle", 
-                                "Sketcher_CreateSlot", "Separator", 
-                                "Sketcher_CreateFillet", "Sketcher_Trimming", 
-                                "Sketcher_External", "Sketcher_ToggleConstruction"]
+        import PCBcheckFreeCADVersion
+        result = PCBcheckFreeCADVersion.checkCompatibility()
+        if result[0]:
+            PCBcheckFreeCADVersion.setDefaultValues()
+            
+            import PCBtoolBar, PCBrc, PCBcommands
+            import SketcherGui
+            
+            FreeCADGui.addIconPath(":/data/img")
+            FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui","PCB")
+            FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui","PCB")
+            FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui","PCB")
+            
+            self.explodeSettings = PCBcommands.listaExplode
+            self.parts_E_Settings = PCBcommands.listaPartsE
+            self.partsSettings = PCBcommands.listaParts
+            
+            self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch", 
+                                    "Sketcher_ViewSketch", "Sketcher_MapSketch",
+                                    "Separator", "ScriptCmd_OpenSketcherWorkbench",
+                                    "Separator", 
+                                    "Sketcher_CreatePoint", "Sketcher_CreateArc", 
+                                    "Sketcher_Create3PointArc", "Sketcher_CreateCircle", 
+                                    "Sketcher_Create3PointCircle", "Sketcher_CreateLine", 
+                                    "Sketcher_CreatePolyline", "Sketcher_CreateRectangle", 
+                                    "Sketcher_CreateSlot", "Separator", 
+                                    "Sketcher_CreateFillet", "Sketcher_Trimming", 
+                                    "Sketcher_External", "Sketcher_ToggleConstruction"]
 
-        self.appendToolbar("Sketcher", self.sketchertools)
-        self.appendMenu("Sketcher", self.sketchertools)
-        
+            self.appendToolbar("Sketcher", self.sketchertools)
+            self.appendMenu("Sketcher", self.sketchertools)
+
     def Activated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):
             FreeCADGui.pcbToolBar.Activated()
@@ -148,7 +164,7 @@ class PCB(Workbench):
             FreeCADGui.pcbToolBarView.Activated()
         if hasattr(FreeCADGui,"sketcherToolBar"):
             FreeCADGui.sketcherToolBar.Activated()
-
+        
     def Deactivated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):
             FreeCADGui.pcbToolBar.Deactivated()
@@ -163,7 +179,7 @@ class PCB(Workbench):
     def ContextMenu(self, recipient):
         elem = FreeCADGui.Selection.getSelection()
         if(elem) and len(elem) == 1:
-            if hasattr(elem[0], "Proxy") and hasattr(elem[0], "Type"):
+            if hasattr(elem[0], "Proxy") and hasattr(elem[0].Proxy, "Type"):
                 if elem[0].Proxy.Type == 'Explode':
                     self.appendContextMenu("Explode", self.explodeSettings)
                 elif elem[0].Proxy.Type == 'PCBpart_E':
@@ -173,11 +189,3 @@ class PCB(Workbench):
 
 
 Gui.addWorkbench(PCB())
-#FreeCAD.addImportType("Eagle BRD file format (*.brd)", "brd")
-#FreeCAD.addImportType("gEDA PCB file format (*.pcb)", "brd")
-#FreeCAD.addImportType("FreePCB FPC file format (*.fpc)", "brd")
-#FreeCAD.addImportType("Razen RZP file format (*.rzp)", "brd")
-#FreeCAD.addImportType("FidoCadJ FCD file format (*.fcd)", "brd")
-#FreeCAD.addImportType("KiCad PCB file format (*.kicad_pcb)", "brd")
-#FreeCAD.addImportType("IDF EMN file format (*.emn)", "brd")
-FreeCAD.addImportType("PCB file formats (*.brd *.pcb *.fpc *.rzp *.fcd *.kicad_pcb *.idf *.emn *.bdf *.idb *.HYP)", "PCBbrd")

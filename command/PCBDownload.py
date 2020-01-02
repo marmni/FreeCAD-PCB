@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -57,16 +57,16 @@ class downloadModelW(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #
         self.form = self
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/downloadModel.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         #
         if searchPhrase:
             self.form.setWindowTitle('Download model for {0}'.format(searchPhrase))
-            url_1 = odnosnik("<a href='http://sourceforge.net/projects/eaglepcb2freecad/files/models/'>FreeCAD-PCB</a>")
+            url_1 = odnosnik("<a href='https://github.com/marmni/FreeCAD-PCB-library'>FreeCAD-PCB</a>")
             url_2 = odnosnik("<a href='http://www.tracepartsonline.net/(S(q4odzm45rnnypc4513kjgy45))/content.aspx?SKeywords={0}'>trace<b>parts</b></a>".format(searchPhrase))
             url_3 = odnosnik("<a href='http://www.3dcontentcentral.com/Search.aspx?arg={0}'>3D ContentCentral</a>".format(searchPhrase))
         else:
             self.form.setWindowTitle('Download model')
-            url_1 = odnosnik("<a href='http://sourceforge.net/projects/eaglepcb2freecad/files/models/'>FreeCAD-PCB</a>")
+            url_1 = odnosnik("<a href='https://github.com/marmni/FreeCAD-PCB-library'>FreeCAD-PCB</a>")
             url_2 = odnosnik("<a href='http://www.tracepartsonline.net/(S(q4odzm45rnnypc4513kjgy45))/content.aspx'>trace<b>parts</b></a>")
             url_3 = odnosnik("<a href='http://www.3dcontentcentral.com/'>3D ContentCentral</a>")
         #

@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -37,9 +37,9 @@ import PCBrc
 from PCBobjects import *
 from PCBboard import getPCBheight
 from PCBpartManaging import partsManaging
+from PCBdataBase import dataBase
 from command.PCBassignModel import dodajElement
 from command.PCBexplode import *
-from command.PCBwire import *
 from command.PCBexport import exportPCB_Gui
 from command.PCBexportBOM import exportBOM_Gui, createCentroid_Gui
 from command.PCBexportHoles import exportHoles_Gui, exportHolesReport_Gui
@@ -50,7 +50,7 @@ from command.PCBDownload import downloadModelW
 from command.PCBaddModel import addModel
 from command.PCBcreateBoard import createPCB
 from command.PCBlayers import layersSettings
-from command.PCBannotations import createAnnotation_Gui
+from command.PCBannotations import createAnnotation_Gui, PCBannotation, viewProviderPCBannotation
 from command.PCBexportKerkythea import exportToKerkytheaGui
 from command.PCBexportPovRay import exportObjectToPovRayGui
 from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
@@ -58,6 +58,7 @@ from command.PCBglue import createGlueGui
 from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssembly
 from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
+from command.PCBconstraintAreas import createConstraintArea
 
 
 class pcbToolBarMain(QtGui.QToolBar):
@@ -107,37 +108,57 @@ class pcbToolBarView(pcbToolBarMain):
         self.setObjectName("pcbToolBarView")
         
         # przyciski
-        scriptCmd_viewShaded = self.createAction(u"Display mode: Shaded", u"Display mode: Shaded", ":/data/img/viewShaded.png")
+        scriptCmd_viewShaded = self.createAction(u"Display mode: Shaded", u"Display mode: Shaded", ":/data/img/displayShaded.png")
         par = partial(self.changeDisplayMode, 'Shaded')
         QtCore.QObject.connect(scriptCmd_viewShaded, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewFlatLines = self.createAction(u"Display mode: Shaded with Edges", u"Display mode: Shaded with Edges", ":/data/img/viewFlatLines.png")
+        scriptCmd_viewFlatLines = self.createAction(u"Display mode: Shaded with Edges", u"Display mode: Shaded with Edges", ":/data/img/displayFlatLines.png")
         par = partial(self.changeDisplayMode, 'Flat Lines')
         QtCore.QObject.connect(scriptCmd_viewFlatLines, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewWireframe = self.createAction(u"Display mode: Wireframe", u"Display mode: Wireframe", ":/data/img/viewWireframe.png")
+        scriptCmd_viewWireframe = self.createAction(u"Display mode: Wireframe", u"Display mode: Wireframe", ":/data/img/displayWrireFrame.png")
         par = partial(self.changeDisplayMode, 'Wireframe')
         QtCore.QObject.connect(scriptCmd_viewWireframe, QtCore.SIGNAL("triggered()"), par)
         
-        scriptCmd_viewInternalView = self.createAction(u"Display mode: Internal View", u"Display mode: Internal View", ":/data/img/viewInternalView.png")
+        scriptCmd_viewInternalView = self.createAction(u"Display mode: Internal View", u"Display mode: Internal View", ":/data/img/displayInternalView.png")
         par = partial(self.changeDisplayMode, 'Internal View')
         QtCore.QObject.connect(scriptCmd_viewInternalView, QtCore.SIGNAL("triggered()"), par)
-        
-        self.scriptCmd_HeightDisplay = self.createAction(u"Show/hide height", u"Show/hide height", ":/data/img/uklad.png")
-        QtCore.QObject.connect(self.scriptCmd_HeightDisplay, QtCore.SIGNAL("triggered()"), self.heightDisplay)
-        self.scriptCmd_HeightDisplay.setCheckable(True)
-        
-        scriptCmd_Layers = self.createAction(u"Layers settings", u"Layers settings", ":/data/img/layers.png")
+
+        scriptCmd_Layers = self.createAction(u"Layers settings", u"Layers settings", ":/data/img/layers_TI.svg")
         QtCore.QObject.connect(scriptCmd_Layers, QtCore.SIGNAL("triggered()"), self.Flayers)
+        # Cut to board outline
+        scriptCmd_cutToBoardOutlineON = self.createAction(u"Cut to board outline - ON", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineON, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, True))
         
-        scriptCmd_cutToBoardOutline = self.createAction(u"Cut to board outline (ON/OFF)", u"Cut to board outline (ON/OFF)", ":/data/img/mesh_cut.png")
-        QtCore.QObject.connect(scriptCmd_cutToBoardOutline, QtCore.SIGNAL("triggered()"), self.cutToBoardOutline)
+        scriptCmd_cutToBoardOutlineON2 = self.createAction(u"Cut to board outline - ON", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineON2, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, True))
         
+        scriptCmd_cutToBoardOutlineOFF = self.createAction(u"Cut to board outline - OFF", u"Cut to board outline ON", ":/data/img/cutToBoard.svg")
+        QtCore.QObject.connect(scriptCmd_cutToBoardOutlineOFF, QtCore.SIGNAL("triggered()"), partial(self.cutToBoardOutline, False))
+        
+        groupsMenuCTB = QtGui.QMenu(self)
+        groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineON2)
+        groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineOFF)
+        scriptCmd_cutToBoardOutlineON.setMenu(groupsMenuCTB)
+        # Cut holes through all layers ON/OFF
+        scriptCmd_cutHolesThroughAllLayersON = self.createAction(u"Cut holes through all layers - ON", u"Cut holes through all layers - ON", ":/data/img/layers_TI_Holes.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersON, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, True))
+        
+        scriptCmd_cutHolesThroughAllLayersON2 = self.createAction(u"Cut holes through all layers - ON", u"Cut holes through all layers - ON", ":/data/img/layers_TI_Holes.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersON2, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, True))
+        
+        scriptCmd_cutHolesThroughAllLayersOFF = self.createAction(u"Cut holes through all layers - OFF", u"Cut holes through all layers - OFF", ":/data/img/layers_TI.svg")
+        QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersOFF, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, False))
+        
+        groupsMenuCH = QtGui.QMenu(self)
+        groupsMenuCH.addAction(scriptCmd_cutHolesThroughAllLayersON2)
+        groupsMenuCH.addAction(scriptCmd_cutHolesThroughAllLayersOFF)
+        scriptCmd_cutHolesThroughAllLayersON.setMenu(groupsMenuCH)
         # rendering
-        scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.png")
+        scriptCmd_ExportToKerkythea = self.createAction(u"3D rendering: export to Kerkythea", u"3D rendering: export to Kerkythea", ":/data/img/kticon.ico")
         QtCore.QObject.connect(scriptCmd_ExportToKerkythea, QtCore.SIGNAL("triggered()"), self.exportToKerkytheaF)
         
-        scriptCmd_ExportObjectToPovRay = self.createAction(u"3D rendering: export object to POV-Ray (*.inc)", u"3D rendering: export object to POV-Ray (*.inc)", ":/data/img/file_inc_slick_32.png")
+        scriptCmd_ExportObjectToPovRay = self.createAction(u"3D rendering: export object to POV-Ray (*.inc)", u"3D rendering: export object to POV-Ray (*.inc)", ":/data/img/povray.ico")
         QtCore.QObject.connect(scriptCmd_ExportObjectToPovRay, QtCore.SIGNAL("triggered()"), self.exportObjectToPovRayF)
         
         # assembly
@@ -154,10 +175,10 @@ class pcbToolBarView(pcbToolBarMain):
         QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
         
         # parts groups
-        scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/Draft_AddToGroup.png")
+        scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/ungroup.svg")
         QtCore.QObject.connect(scriptCmd_ungroupParts, QtCore.SIGNAL("triggered()"), self.ungroupParts)
         
-        scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/Draft_SelectGroup.png")
+        scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/group.svg")
         QtCore.QObject.connect(scriptCmd_groupParts, QtCore.SIGNAL("triggered()"), self.groupParts)
         
         ##########
@@ -167,47 +188,65 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_viewInternalView)
         self.addSeparator()
         self.addAction(scriptCmd_Layers)
-        self.addAction(scriptCmd_cutToBoardOutline)
+        self.addAction(scriptCmd_cutHolesThroughAllLayersON)
+        self.addAction(scriptCmd_cutToBoardOutlineON)
         self.addAction(scriptCmd_ungroupParts)
         self.addAction(scriptCmd_groupParts)
         self.addSeparator()
         self.addAction(scriptCmd_ExportToKerkythea)
         self.addAction(scriptCmd_ExportObjectToPovRay)
-        self.addSeparator()
-        self.addAction(scriptCmd_QuickAssembly)
-        self.addAction(scriptCmd_QuickAssembly2)
-        self.addAction(scriptCmd_exportAssembly)
-        self.addAction(scriptCmd_CheckForCollisions)
-        #self.addAction(self.scriptCmd_HeightDisplay)
+        #self.addSeparator()
+        #self.addAction(scriptCmd_QuickAssembly)
+        #self.addAction(scriptCmd_QuickAssembly2)
+        #self.addAction(scriptCmd_exportAssembly)
+        #self.addAction(scriptCmd_CheckForCollisions)
         self.addToolBar(self)
     
-    def cutToBoardOutline(self):
-        for j in FreeCAD.activeDocument().Objects:
-            try:
-                if hasattr(j, "Proxy") and hasattr(j.Proxy, "cutToBoard"):
-                    j.Proxy.cutToBoard = not j.Proxy.cutToBoard
-                    j.Proxy.generuj(j)
-            except Exception ,e:
-                pass
-                #FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    def cutHolesThroughAllLayers(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Cut") and not i.Cut == value:
+                    i.Cut = value
+    
+    def cutToBoardOutline(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "CutToBoard") and not i.CutToBoard == value:
+                    i.CutToBoard = value
     
     def ungroupParts(self):
-        for j in FreeCAD.activeDocument().Objects:
-            if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                aa = partsManaging()
-                aa.addPartToGroup(False, [], j)
-    
-    def groupParts(self):
-        for j in FreeCAD.activeDocument().Objects:
-            if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and j.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                aa = partsManaging()
-                aa.setDatabase()
-                fileData = aa.__SQL__.findPackage(j.Package, '*')
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            groupsToDelete = []
+            pM = partsManaging()
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    if not i.getParentGroup().Name in groupsToDelete:
+                        groupsToDelete.append(i.getParentGroup().Name)
+                    
+                    pM.addPartToGroup(False, i)
+            
+            for i in groupsToDelete:
+                if i == "Parts":
+                    continue
                 
-                if fileData[0] == True:
-                    aa.addPartToGroup(True, [None, None, None, None, fileData[3]], j)
-                else:
-                    aa.addPartToGroup(True, [False], j)
+                try:
+                    FreeCAD.ActiveDocument.removeObject(i)
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
+
+    def groupParts(self):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            pM = partsManaging()
+            pM.setDatabase()
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    pM.addPartToGroup(True, i)
     
     def exportAssembly(self):
         exportAssembly()
@@ -216,21 +255,21 @@ class pcbToolBarView(pcbToolBarMain):
         try:
             if FreeCAD.activeDocument():
                 FreeCADGui.Control.showDialog(createAssemblyGui())
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
         
     def quickAssemblyUpdate(self):
         try:
             if FreeCAD.activeDocument():
                 updateAssembly()
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def checkForCollisionsF(self):
         try:
             if FreeCAD.activeDocument():
                 FreeCADGui.Control.showDialog(checkCollisionsGui())
-        except Exception ,e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportToKerkytheaF(self):
@@ -242,16 +281,11 @@ class pcbToolBarView(pcbToolBarMain):
             FreeCADGui.Control.showDialog(exportObjectToPovRayGui())
     
     def Flayers(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(layersSettings())
+        pcb = getPCBheight()
+        if FreeCAD.activeDocument() and pcb[0]:
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(layersSettings())
 
-    def heightDisplay(self):
-        if FreeCAD.activeDocument():
-            mode = self.scriptCmd_HeightDisplay.isChecked()
-            for i in FreeCAD.activeDocument().Objects:
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == 'PCBpart':
-                    i.ViewObject.ShowHeight = mode
-        
     def changeDisplayMode(self, mode):
         hidePCB = False
         if mode == 'Internal View':
@@ -274,7 +308,7 @@ class pcbToolBarView(pcbToolBarMain):
         if hidePCB:
             try:
                 FreeCAD.ActiveDocument.Board.ViewObject.DisplayMode = 'Wireframe'
-            except:
+            except Exception as e:
                 pass
 
 
@@ -294,16 +328,16 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_CreateGluePath = self.createAction(u"Create glue path", u"Create glue path", ":/data/img/gluePath.png")
         QtCore.QObject.connect(scriptCmd_CreateGluePath, QtCore.SIGNAL("triggered()"), self.createGluePath)
  
-        scriptCmd_Assign = self.createAction(u"Assign models", u"Assign models", ":/data/img/uklad.png")
+        scriptCmd_Assign = self.createAction(u"Assign models", u"Assign models", ":/data/img/assignModels.png")
         QtCore.QObject.connect(scriptCmd_Assign, QtCore.SIGNAL("triggered()"), self.assignModels)
         
-        scriptCmd_AddModel = self.createAction(u"Add model", u"Add model", ":/data/img/addModel.png")
+        scriptCmd_AddModel = self.createAction(u"Add model", u"Add model", ":/data/img/addNewModel.png")
         QtCore.QObject.connect(scriptCmd_AddModel, QtCore.SIGNAL("triggered()"), self.addModel)
         
-        scriptCmd_UpdateModels = self.createAction(u"Update models", u"Update models", ":/data/img/updateParts.png")
+        scriptCmd_UpdateModels = self.createAction(u"Update models", u"Update models", ":/data/img/updateModels.png")
         QtCore.QObject.connect(scriptCmd_UpdateModels, QtCore.SIGNAL("triggered()"), self.updateModels)
         
-        scriptCmd_DownloadModels = self.createAction(u"Download models", u"Download models", ":/data/img/downloadModel.png")
+        scriptCmd_DownloadModels = self.createAction(u"Download models", u"Download models", ":/data/img/downloadModels.png")
         QtCore.QObject.connect(scriptCmd_DownloadModels, QtCore.SIGNAL("triggered()"), self.downloadModels)
         #
         scriptCmd_Explode = self.createAction(u"Explode", u"Explode", ":/data/img/explode.png")
@@ -318,11 +352,11 @@ class pcbToolBar(pcbToolBarMain):
         groupsMenu.addAction(scriptCmd_FastExplode)
         scriptCmd_Explode.setMenu(groupsMenu)
         # Bounding Box
-        scriptCmd_BoundingBox_M = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBox.png")
+        scriptCmd_BoundingBox_M = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBoxAll.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBox_M, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBox)
-        scriptCmd_BoundingBox = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBox.png")
+        scriptCmd_BoundingBox = self.createAction(u"Bounding box", u"Bounding box", ":/data/img/boundingBoxAll.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBox, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBox)
-        scriptCmd_BoundingBoxSel = self.createAction(u"Bounding box from selection", u"Bounding box from selection", ":/data/img/boundingBoxSel.png")
+        scriptCmd_BoundingBoxSel = self.createAction(u"Bounding box from selection", u"Bounding box from selection", ":/data/img/boundingBoxSelected.svg")
         QtCore.QObject.connect(scriptCmd_BoundingBoxSel, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBoxSel)
         
         boundingBoxMenu = QtGui.QMenu(self)
@@ -383,7 +417,7 @@ class pcbToolBar(pcbToolBarMain):
         constraintsAreaPlaceOutlineBottom = self.createAction(u"Bottom", u"Place Outline Bottom", ":/data/img/constraintsArea.png")
         par = partial(self.constraintAreaF, "bPlaceOutline")
         QtCore.QObject.connect(constraintsAreaPlaceOutlineBottom, QtCore.SIGNAL("triggered()"), par)
-        constraintsAreaPlaceOutlineBoth = self.createAction(u"Bottom", u"Place Outline Both", ":/data/img/constraintsArea.png")
+        constraintsAreaPlaceOutlineBoth = self.createAction(u"Both", u"Place Outline Both", ":/data/img/constraintsArea.png")
         par = partial(self.constraintAreaF, "vPlaceOutline")
         QtCore.QObject.connect(constraintsAreaPlaceOutlineBoth, QtCore.SIGNAL("triggered()"), par)
 
@@ -421,7 +455,7 @@ class pcbToolBar(pcbToolBarMain):
         constraintsAreaRouteKeepoutMenu.addAction(constraintsAreaRouteKeepoutBoth)
         constraintsAreasMenu.addMenu(constraintsAreaRouteKeepoutMenu)
         ##########
-        scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportModel.png")
+        scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportPCB.png")
         QtCore.QObject.connect(scriptCmd_Export, QtCore.SIGNAL("triggered()"), self.exportPCB)
         ##
         scriptCmd_ExportBOM = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
@@ -430,7 +464,7 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportBOM_2 = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
         QtCore.QObject.connect(scriptCmd_ExportBOM_2, QtCore.SIGNAL("triggered()"), self.exportBOM)
         
-        scriptCmd_centroid = self.createAction(u"Centroid", u"Centroid", ":/data/img/exportBOM.png")
+        scriptCmd_centroid = self.createAction(u"Centroid", u"Centroid", ":/data/img/centroid.svg")
         QtCore.QObject.connect(scriptCmd_centroid, QtCore.SIGNAL("triggered()"), self.exportCentroid)
         
         groupsMenu = QtGui.QMenu(self)
@@ -439,27 +473,27 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_ExportBOM.setMenu(groupsMenu)
         
         # export drills
-        scriptCmd_ExportHoleLocations = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocations = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
-        scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocations_2 = self.createAction(u"Export hole locations", u"Export hole locations", ":/data/img/centroid.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocations_2, QtCore.SIGNAL("triggered()"), self.exportHoleLocations)
         
-        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations", ":/data/img/drill-icon.png")
+        scriptCmd_ExportHoleLocationsReport = self.createAction(u"Export hole locations report", u"Export hole locations report", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportHoleLocationsReport, QtCore.SIGNAL("triggered()"), self.exportHoleLocationsReport)
         
-        scriptCmd_ExportDrillingMap = self.createAction(u"Create drilling map", u"Create drilling map", ":/data/img/drill-icon.png")
+        scriptCmd_ExportDrillingMap = self.createAction(u"Create drilling map", u"Create drilling map", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_ExportDrillingMap, QtCore.SIGNAL("triggered()"), self.exportDrillingMap)
         
-        scriptCmd_CreateCenteDrill = self.createAction(u"Create drill center", u"Create drill center", ":/data/img/drill-icon.png")
+        scriptCmd_CreateCenteDrill = self.createAction(u"Create drill center", u"Create drill center", ":/data/img/drilling.svg")
         QtCore.QObject.connect(scriptCmd_CreateCenteDrill, QtCore.SIGNAL("triggered()"), self.createCenteDrill)
         
         groupsMenu = QtGui.QMenu(self)
         groupsMenu.addAction(scriptCmd_ExportHoleLocations_2)
         groupsMenu.addAction(scriptCmd_ExportHoleLocationsReport)
         groupsMenu.addAction(scriptCmd_ExportDrillingMap)
-        groupsMenu.addSeparator()
-        groupsMenu.addAction(scriptCmd_CreateCenteDrill)
+        #groupsMenu.addSeparator()
+        #groupsMenu.addAction(scriptCmd_CreateCenteDrill)
         scriptCmd_ExportHoleLocations.setMenu(groupsMenu)
         ##########
         self.wyszukajElementy = QtGui.QLineEdit('')
@@ -472,15 +506,11 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_NextPackage = self.createAction(u"Next package", u"Next package", ":/data/img/next_16x16.png")
         QtCore.QObject.connect(scriptCmd_NextPackage, QtCore.SIGNAL("triggered()"), self.wyszukajObiektyNext)
         ##########
-        scriptCmd_addWirePointStartEnd = self.createAction(u"Add wire Start-End point", u"Add wire Start-End point", ":/data/img/convert_16x16.png")
-        QtCore.QObject.connect(scriptCmd_addWirePointStartEnd, QtCore.SIGNAL("triggered()"), self.addWirePointStartEnd)
-        
-        scriptCmd_addWirePoint = self.createAction(u"Add wire point", u"Add wire point", ":/data/img/convert_16x16.png")
-        QtCore.QObject.connect(scriptCmd_addWirePoint, QtCore.SIGNAL("triggered()"), self.addWirePoint)
-        ##########
-        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation", ":/data/img/annotation.png")
+        scriptCmd_addAnnotation = self.createAction(u"Add annotation", u"Add annotation",  ":/data/img/addAnnotation.svg")
         QtCore.QObject.connect(scriptCmd_addAnnotation, QtCore.SIGNAL("triggered()"), self.addAnnotation)
 
+        scriptCmd_storeNameValueAsParam = self.createAction(u"Store Name/Value as param", u"Store Name/Value as param",  ":/data/img/modelAddAnnotation.svg")
+        QtCore.QObject.connect(scriptCmd_storeNameValueAsParam, QtCore.SIGNAL("triggered()"), self.storeNameValueAsParam)
         ##########
         self.addAction(scriptCmd_Export)
         self.addAction(scriptCmd_ExportBOM)
@@ -491,6 +521,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_CreatePCB)
         self.addAction(scriptCmd_CreateGluePath)
         self.addAction(scriptCmd_addAnnotation)
+        self.addAction(scriptCmd_storeNameValueAsParam)
         self.addSeparator()
         self.addAction(scriptCmd_Assign)
         self.addAction(scriptCmd_AddModel)
@@ -505,21 +536,102 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_PreviousPackage)
         self.addWidget(self.wyszukajElementy)
         self.addAction(scriptCmd_NextPackage)
-        #self.addSeparator()
-        #self.addAction(scriptCmd_addWirePointStartEnd)
-        #self.addAction(scriptCmd_addWirePoint)
+        #
         self.addToolBar(self)
-
+    
+    def storeNameValueAsParam(self):
+        sel = FreeCADGui.Selection.getSelection()
+        if not FreeCAD.activeDocument():
+            return
+        elif len(sel) > 1:
+            FreeCAD.Console.PrintWarning("Select only one part.\n")
+            return
+        elif not len(sel):
+            FreeCAD.Console.PrintWarning("No part selected.\n")
+            return
+        elif hasattr(sel[0], "Proxy") and hasattr(sel[0].Proxy, "Type") and not sel[0].Proxy.Type in ["PCBpart"]:
+            FreeCAD.Console.PrintWarning("Wrong part type selected.\n")
+            return
+        
+        pcb = getPCBheight()
+        if not pcb[0]:
+            FreeCAD.Console.PrintWarning("PCB not found.\n")
+            return
+        #
+        sql = dataBase()
+        sql.connect()
+        
+        model = sel[0]
+        #
+        packageData = sql.findPackage(model.Package, '*')
+        if packageData:
+            modelData = sql.getModelByID(packageData.modelID)
+            if modelData[0]:
+                
+                [mX, mY, mROT, mSIDE] = [model.X.Value, model.Y.Value, model.Rot.Value, model.Side]
+                model.X.Value = 0
+                model.Y.Value = 0
+                model.Rot.Value = 0
+                model.Side = "TOP"
+                ###############################
+                modelData = modelData[1]
+                # NAME
+                if model.PartName:
+                    #
+                    nameParam = model.PartName
+                    
+                    table = {
+                        'active': True,
+                        'display': str(nameParam.ViewObject.Visibility),
+                        'x': model.X.Value - nameParam.X.Value,
+                        'y': nameParam.Y.Value - model.Y.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value - pcb[1],
+                        'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
+                        'size': nameParam.Size,
+                        'color': nameParam.ViewObject.ShapeColor,
+                        'align': nameParam.Justification,
+                        'spin': str(nameParam.Spin)
+                    }
+                    #
+                    paramData = sql.getParamsByModelID(modelData.id, 'Name')
+                    if isinstance(paramData, list):  # new param
+                        sql.addNewParam(modelData.id, 'Name', table)
+                    else:
+                        sql.updateParam(paramData[0].id, table)
+                # VALUE
+                if model.PartValue:
+                    #
+                    nameParam = model.PartValue
+                    
+                    table = {
+                        'active': True,
+                        'display': str(nameParam.ViewObject.Visibility),
+                        'x': model.X.Value - nameParam.X.Value,
+                        'y': nameParam.Y.Value - model.Y.Value,
+                        'z': nameParam.Z.Value - model.Socket.Value - pcb[1],
+                        'rz': nameParam.Rot.Value + ( model.Rot.Value * -1),
+                        'size': nameParam.Size,
+                        'color': nameParam.ViewObject.ShapeColor,
+                        'align': nameParam.Justification,
+                        'spin': str(nameParam.Spin)
+                    }
+                    #
+                    paramData = sql.getParamsByModelID(modelData.id, 'Value')
+                    if isinstance(paramData, list):  # new param
+                        sql.addNewParam(modelData.id, 'Value', table)
+                    else:
+                        sql.updateParam(paramData[0].id, table)
+                ###############################
+                model.X.Value = mX
+                model.Y.Value = mY
+                model.Rot.Value = mROT
+                model.Side = mSIDE
+            
     def addAnnotation(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(createAnnotation_Gui())
-        
-    def addWirePointStartEnd(self):
-        wireStartEndPoint()
-    
-    def addWirePoint(self):
-        wirePoint()
-        
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createAnnotation_Gui())
+
     def exportHoleLocations(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             exportHoles_Gui().exec_()
@@ -533,7 +645,7 @@ class pcbToolBar(pcbToolBarMain):
             try:
                 form = createDrillcenter_Gui()
                 FreeCADGui.Control.showDialog(form)
-            except Exception ,e:
+            except Exception as e:
                 FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
     def exportDrillingMap(self):
@@ -589,34 +701,20 @@ class pcbToolBar(pcbToolBarMain):
         zaznaczoneObiekty = FreeCADGui.Selection.getSelection()
 
         if len(zaznaczoneObiekty) and getPCBheight()[0]:
-            grp = createGroup_Areas()
+            #grp = createGroup_Areas()
             for i in zaznaczoneObiekty:
-                if i.isDerivedFrom("Sketcher::SketchObject") and i.Shape.isClosed():
-                    i.ViewObject.Visibility = False
-                    
-                    #layerName = PCBconstraintAreas[typeCA][0]
-                    layerColor = (PCBconstraintAreas[typeCA][3][0] / 255., PCBconstraintAreas[typeCA][3][1] / 255., PCBconstraintAreas[typeCA][3][2] / 255.)
-                    layerTransparent = PCBconstraintAreas[typeCA][2]
-                    typeL = PCBconstraintAreas[typeCA][1]
-                    #numLayer = 0
-                    #
-                    a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", typeCA + "_{0}".format(0))
-                    constraintAreaObject(a, typeL)
-                    a.Base = i
-                    viewProviderConstraintAreaObject(a.ViewObject)
-                    
-                    grp.addObject(a)
-                    FreeCADGui.activeDocument().getObject(a.Name).ShapeColor = layerColor
-                    FreeCADGui.activeDocument().getObject(a.Name).Transparency = layerTransparent
-                    FreeCADGui.activeDocument().getObject(a.Name).DisplayMode = 1
-                    #grp.Proxy.Object.Group.append(a)
-                    #grp.Object.Group.append(a)
+                try:
+                    createConstraintArea(i, typeCA)
+                except Exception as e:
+                    continue
+                    #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
         elif not pcb[0]:
             FreeCAD.Console.PrintWarning("No PCB found\n")
-    
+        
     def createGluePath(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(createGlueGui())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createGlueGui())
             
     def createPCB_F(self):
         if FreeCAD.activeDocument():
@@ -630,7 +728,8 @@ class pcbToolBar(pcbToolBarMain):
                     form.pcbBorder.setText(FreeCADGui.Selection.getSelection()[0].Name)
                     if len(FreeCADGui.Selection.getSelection()) > 1 and FreeCADGui.Selection.getSelection()[1].isDerivedFrom("Sketcher::SketchObject"):
                         form.pcbHoles.setText(FreeCADGui.Selection.getSelection()[1].Name)
-            FreeCADGui.Control.showDialog(form)
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(form)
 
     def addAllGroups(self):
         ''' add to current document all groups '''
@@ -657,51 +756,20 @@ class pcbToolBar(pcbToolBarMain):
     def fastExplodeModels(self):
         if FreeCAD.activeDocument():
             doc = FreeCAD.activeDocument()
-            if len(doc.Objects):
+            pcb = getPCBheight()
+            
+            if pcb[0]:  # board is available
                 a = doc.addObject("App::FeaturePython", 'Explode')
                 obj = explodeObject(a)
                 viewProviderExplodeObject(a.ViewObject)
-                
-                for elem in doc.Objects:
-                    if hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == "PCBpart":
-                        if elem.Side == "TOP":
-                            obj.spisObiektowGora[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
+                #
+                for i in pcb[2].Group:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
+                        if i.Side == "TOP":
+                            obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
                         else:
-                            obj.spisObiektowDol[elem.Name] = [doc.getObject(elem.Name).Placement.Base.z, 3]
-                    #elif hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == 'partsGroup':  # objects
-                        #for i in elem.OutList:
-                            #if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type == "PCBpart":
-                                #if i.Side == "TOP":
-                                    #obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                                #else:
-                                    #obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                            ##if float("%4.2f" % i.Placement.Rotation.Axis.x) > 0.:  # bottom side -> nie zawsze rozpoznaje poprawnie
-                                ##obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                            ##else:  # top side
-                                ##obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                    elif hasattr(elem, "Proxy") and hasattr(elem, "Type") and elem.Proxy.Type == 'layersGroup':  # layers
-                        for i in elem.OutList:
-                            if hasattr(i, "Proxy") and hasattr(i, "Type") and ('tSilk' in i.Proxy.Type or 'tDocu' in i.Proxy.Type):
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 1]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tPad' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tPath' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            #elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tKeepout' in i.Proxy.Type:
-                                #obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 4]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'tcenterDrill' in i.Proxy.Type:
-                                obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and ('bSilk' in i.Proxy.Type or 'bDocu' in i.Proxy.Type):
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 1]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bPad' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bPath' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                            #elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bKeepout' in i.Proxy.Type:
-                                #obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 4]
-                            elif hasattr(i, "Proxy") and hasattr(i, "Type") and 'bcenterDrill' in i.Proxy.Type:
-                                obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 2]
-                
+                            obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
+                #
                 obj.setParam(a, 'Inverse', False)
                 obj.setParam(a, 'Active', True)
                 obj.setParam(a, 'TopStepSize', 10)
@@ -712,7 +780,8 @@ class pcbToolBar(pcbToolBarMain):
         doc = FreeCAD.activeDocument()
         if doc and len(doc.Objects):
             panel = explodeWizard()
-            FreeCADGui.Control.showDialog(panel)
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(panel)
             
     def wyszukajObiektyNext(self):
         ''' find next object '''
@@ -746,19 +815,24 @@ class pcbToolBar(pcbToolBarMain):
         
     def wyszukajObiekty(self, fraza):
         ''' find object in current document '''
-        FreeCADGui.Selection.clearSelection()
-        self.szukaneFrazy = []
-        self.szukaneFrazyNr = 0
-        
-        fraza = str(fraza).strip()
-        if fraza != "":
-            for i in FreeCAD.ActiveDocument.Objects:
-                if hasattr(i, "Proxy") and hasattr(i, "Type") and i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
-                    if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
-                        self.szukaneFrazy.append(i)
-        
-        if len(self.szukaneFrazy):
-            FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
+        try:
+            FreeCADGui.Selection.clearSelection()
+            self.szukaneFrazy = []
+            self.szukaneFrazyNr = 0
+            
+            fraza = str(fraza).strip()
+            if fraza != "":
+                pcb = getPCBheight()
+                if pcb[0]:
+                    for i in pcb[2].Group:
+                        if i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
+                            if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
+                                self.szukaneFrazy.append(i)
+
+            if len(self.szukaneFrazy):
+                FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
 
     #def convertDB(self):
         #''' convert old database format ot new one '''
@@ -768,19 +842,25 @@ class pcbToolBar(pcbToolBarMain):
     def addModel(self):
         ''' add model from library to project '''
         if FreeCAD.activeDocument() and getPCBheight()[0]:
-            FreeCADGui.Control.showDialog(addModel())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(addModel())
 
     def assignModels(self):
         ''' assign 3d models to packages '''
-        dodajElement().exec_()
+        try:
+            dodajElement().exec_()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
 
     def updateModels(self):
         ''' update 3d models of packages '''
         if FreeCAD.activeDocument():
-            FreeCADGui.Control.showDialog(updateParts())
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(updateParts())
     
     def downloadModels(self):
-        FreeCADGui.Control.showDialog(downloadModelW())
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(downloadModelW())
         
     def showPCBBoundingBox(self):
         boundingBox()

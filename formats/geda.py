@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -26,64 +26,88 @@
 #****************************************************************************
 
 import FreeCAD
-import __builtin__
+import builtins
 import re
 from math import radians
-
+#
 from PCBconf import PCBlayers, softLayers
 from PCBobjects import *
-from formats.PCBmainForms import *
+from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
+from PCBfunctions import mathFunctions, setProjectFile, filterHoles
 
 
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "geda"
-        
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\n', ' ')
-        self.layersNames = {}
-        self.getLayersNames()
-        #        
-        self.plytkaPCB_grupujElementy.setChecked(False)
-        self.plytkaPCB_grupujElementy.setDisabled(True)
-        
-        self.plytkaPCB_otworyH.setChecked(False)
-        self.plytkaPCB_otworyH.setDisabled(True)
-        
-        self.plytkaPCB_elementy.setChecked(False)
-        self.plytkaPCB_elementy.setDisabled(True)
-        
-        self.plytkaPCB_elementyKolory.setChecked(False)
-        self.plytkaPCB_elementyKolory.setDisabled(True)
-        
-        self.plytkaPCB_plikER.setChecked(False)
-        self.plytkaPCB_plikER.setDisabled(True)
-        
-        self.adjustParts.setChecked(False)
-        self.adjustParts.setDisabled(True)
-        
-        self.partMinX.setDisabled(True)
-        self.partMinY.setDisabled(True)
-        self.partMinZ.setDisabled(True)
-        ###
-        self.generateLayers()
+        #
+        self.projektBRD = builtins.open(filename, "r").read().replace('\n', ' ')
+        self.layersNames = self.getLayersNames()
+        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
+            self.gruboscPlytki.setValue(self.getBoardThickness())
+        ##
+        self.generateLayers() # blocked layers
         self.spisWarstw.sortItems(1)
-        
+    
+    def getBoardThickness(self):
+        pcbThickness = 1.5 # mm
+        return pcbThickness
+    
     def getLayersNames(self):
-        for i in re.findall("Layer\((.+?) \"(.+?)\"\)", self.projektBRD):
-            self.layersNames[int(i[0])] = i[1]
+        dane = {}
+        for i in re.findall("Layer\((.+?) \"(.+?)\" \"(.+?)\"\)", self.projektBRD):
+            layerNumber = i[0]
+            layerName = i[1]
+            layerType = i[2]
+            layerColor = None
+            
+            if layerName == "outline":
+                continue
+            
+            dane[layerNumber] = {"name": layerName, "color": layerColor, "type": layerType, "number": layerNumber}
+        
+        # extra layers
+        dane[0] = {"name": softLayers[self.databaseType]["anno"]["description"], "color": softLayers[self.databaseType]["anno"]["color"], "type": "anno", "number": 0}  # annotations
+        dane[100000] = {"name": softLayers[self.databaseType]["padT"]["description"], "color": softLayers[self.databaseType]["padT"]["color"], "type": "pad", "number": 100000}
+        dane[100001] = {"name": softLayers[self.databaseType]["padB"]["description"], "color": softLayers[self.databaseType]["padB"]["color"], "type": "pad", "number": 100001}
+        #
+        return dane
 
 
-class gEDA_PCB(mainPCB):
+class gEDA_PCB(mathFunctions):
     '''Board importer for gEDA software'''
-    def __init__(self, filename):
-        mainPCB.__init__(self, None)
-        
-        self.groups = {}  # layers groups
-        
-        self.dialogMAIN = dialogMAIN(filename)
+    def __init__(self, filename, parent):
+        #self.groups = {}  # layers groups
+        #
+        self.fileName = filename
+        self.dialogMAIN = dialogMAIN(self.fileName)
         self.databaseType = "geda"
+        self.parent = parent
+        self.elements = []
+    
+    def setProject(self):
+        '''Load project from file'''
+        #self.projektBRD = builtins.open(self.fileName, "r").read().replace('\r\n', '\n')
+        self.projektBRD = setProjectFile(self.fileName)
+        
+        ##############
+        try:
+            re.search('PCB\s*\[.+? (.+?) (.+?)\]', self.projektBRD).groups()
+            self.globalUnit = True  # mils
+        except:
+            self.globalUnit = False
+        # ##############
+        # # layers groups
+        # # c: top
+        # # s: bottom
+        # data = re.search('Groups\("(.*?)"\)', self.projektBRD).groups()[0]
+        # self.groups = {
+            # 'top': re.search('([0-9,]*?),c', data).groups()[0].split(','),
+            # 'bottom': re.search('([0-9,]*?),s', data).groups()[0].split(',')
+            # }
+        # ##############
+        # #self.projektBRD = re.sub(r'(.*)\((.*)\)', r'\1[\2]', self.projektBRD)
         
     def setUnit(self, value):
         '''Get unit from transferred value and convert to millimeters - if necessary
@@ -105,221 +129,351 @@ class gEDA_PCB(mainPCB):
             
         #return float(data[0]) * multiplier
         return float("%.3f" % (float(data[0]) * multiplier))
-
-    def setProject(self, filename):
-        '''Load project from file'''
-        self.projektBRD = __builtin__.open(filename, "r").read().replace('\r\n', '\n')
-        ##############
-        try:
-            re.search('PCB\s*\(.+? (.+?) (.+?)\)', self.projektBRD).groups()
-            self.globalUnit = True  # mils
-        except:
-            self.globalUnit = False
-        ##############
-        # layers groups
-        # c: top
-        # s: bottom
-        data = re.search('Groups\("(.*?)"\)', self.projektBRD).groups()[0]
-        self.groups = {
-            'top': re.search('([0-9,]*?),c', data).groups()[0].split(','),
-            'bottom': re.search('([0-9,]*?),s', data).groups()[0].split(',')
-            }
-        ##############
-        self.projektBRD = re.sub(r'(.*)\((.*)\)', r'\1[\2]', self.projektBRD)
-    
-    def getAnnotations(self):
-        annotations = []
+        
+    def getNormalAnnotations(self):
+        adnotacje = []
         #
-        for i in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', self.projektBRD):
-            x = self.setUnit(i[0])
-            y = 0 - self.setUnit(i[1])
-            #txt = str(i[4])[1:-1]
-            txt = str(i[4])
-            align = 'top-left'
-            size = (float(i[3]) * 40 * 0.0254) / 100
-            spin = False
-            mirror = 0
-            font = 'proportional'
-            side = 'TOP'
+        data= re.findall(r'Layer\([0-9]*\s+"(.+?)\s+.+?\)\[stop\]\[start\](.+?)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL)
+        for i in data:
+            for j in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', i[1]):
+                side = "TOP"
+                rot = int(j[2]) * 90
+                if "bottom" in i[0].lower():
+                    side = "BOTTOM"
+                    rot += 180
+                
+                adnotacje.append({
+                    "text": str(j[4]),
+                    "x": self.setUnit(j[0]),
+                    "y": 0 - self.setUnit(j[1]),
+                    "z": 0,
+                    "size": (float(j[3]) * 1.016) / 100, # 1.016 == 40mils (default size)
+                    "rot": rot,
+                    "side": side,
+                    "align": "top-left",
+                    "spin": True,
+                    "font": "Fixed",
+                    "display": True,
+                    "distance": 1,
+                    "tracking": 0,
+                    "mode": 'anno'
+                })
+        #
+        return adnotacje
+
+    #def getAnnotations(self, dane1, mode='anno'):
+        # annotations = []
+        # #
+        # for i in re.findall(r'Text\s*\[(.+?) (.+?) ([0-9]+) ([0-9]+) "(.+?)" (.+?)\]', self.projektBRD):
+            # x = self.setUnit(i[0])
+            # y = 0 - self.setUnit(i[1])
+            # #txt = str(i[4])[1:-1]
+            # txt = str(i[4])
+            # align = 'top-left'
+            # size = (float(i[3]) * 40 * 0.0254) / 100
+            # spin = False
+            # mirror = 0
+            # font = 'proportional'
+            # side = 'TOP'
             
-            if int(i[2]) == 0:
-                rot = 0
-            elif int(i[2]) == 1:
-                rot = 90
-            elif int(i[2]) == 2:
-                rot = 180
-            else:
-                rot = 270
+            # if int(i[2]) == 0:
+                # rot = 0
+            # elif int(i[2]) == 1:
+                # rot = 90
+            # elif int(i[2]) == 2:
+                # rot = 180
+            # else:
+                # rot = 270
 
-            annotations.append([txt, x, y, size, rot, side, align, spin, mirror, font])
-        #
-        return annotations
+            # annotations.append([txt, x, y, size, rot, side, align, spin, mirror, font])
+        # #
+        # return annotations
     
-    def getHoles(self, types):
-        holes = []
+    def getParts(self):
+        self.getElements()
+        parts = []
+        #
+        for k in self.elements:
+            for i in re.findall(r'Attribute\("(.*?)" "(.*?)"\)', k['dataElement'], re.MULTILINE|re.DOTALL):
+                if i[0] == 'FREECAD': # use different 3D model for current package
+                    if i[1].strip() == "":
+                        FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(k["name"]))
+                    else:
+                        FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(k["name"], i[1].strip(), k['package']))
+                        k['package'] = i[1].strip()
+                        #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
+                        #    FreeCAD.Console.PrintWarning(u"\tIncorrect package '{1}' set for the element {0}.\n".format(i["name"], attr.getAttribute('value').strip()))
+                        
+                        #if self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
+                            # FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
+                            # package = attr.getAttribute('value').strip()
+                        # else:
+                            # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
+                elif i[0] == 'VALUE':
+                    if not i[1].strip() == "":
+                        k['value'] = i[1].strip()
+                        
+                        k['EL_Value'] = {
+                            "text": "VALUE",
+                            "x": k['txtX'] + k['x'] + 0.5,
+                            "y": -k['txtY'] + k['y'] + 0.5,
+                            "z": 0,
+                            "size": k['txtSize'],
+                            "rot": k['rot'],
+                            "side": k['side'],
+                            "align": "bottom-center",
+                            "spin": True,
+                            "font": "Fixed",
+                            "display": True,
+                            "distance": 1,
+                            "tracking": 0,
+                            "mode": 'param'
+                        }
+            ####################################
+            k['EL_Name'] = {
+                "text": "NAME",
+                "x": k['txtX'] + k['x'] - 0.5,
+                "y": k['txtY'] + k['y'] - 0.5,
+                "z": 0,
+                "size": k['txtSize'],
+                "rot": k['rot'],
+                "side": k['side'],
+                "align": "top-left",
+                "spin": True,
+                "font": "Fixed",
+                "display": True,
+                "distance": 1,
+                "tracking": 0,
+                "mode": 'param'
+            }
+            ####################################
+            parts.append(k)
+        #
+        return parts
+    
+    def getHoles(self, holesObject, types, Hmin, Hmax):
+        ''' holes/vias '''
+        if types['IH']:  # detecting collisions between holes - intersections
+            holesList = []
+
+        # holes
+        if types['H']:
+            for i in self.getAllVias():
+                if not "hole" in i["sflags"]:
+                    continue
+                
+                r = i["drill"] / 2. + 0.001
+                
+                if filterHoles(r, Hmin, Hmax):
+                    if types['IH']:  # detecting collisions between holes - intersections
+                        add = True
+                        try:
+                            for k in holesList:
+                                d = sqrt( (i["x"] - k[0]) ** 2 + (i["y"] - k[1]) ** 2)
+                                if(d < r + k[2]):
+                                    add = False
+                                    break
+                        except Exception as e:
+                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                        
+                        if (add):
+                            holesList.append([i["x"], i["y"], r])
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+                        else:
+                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(i["x"], i["y"]))
+                    else:
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+
         # vias
         if types['V']:
             for i in self.getAllVias():
-                (x, y, drill, r) = self.getViaParameters(i)
+                if not i["through"] or "hole" in i["sflags"]:
+                    continue
                 
-                holes.append([x, y, drill])
-        ### pads
-        if types['P']:  # pads
-            for elem in self.getAllParts():
-                X1 = self.setUnit(elem[4])
-                Y1 = self.setUnit(elem[5])
+                r = i["drill"] / 2. + 0.001
                 
-                for i in self.getElementPins(elem[-1]):
-                    (x, y, drill, r) = self.getPinParameters(i)
+                if filterHoles(r, Hmin, Hmax):
+                    if types['IH']:  # detecting collisions between holes - intersections
+                        add = True
+                        try:
+                            for k in holesList:
+                                d = sqrt( (i["x"] - k[0]) ** 2 + (i["y"] - k[1]) ** 2)
+                                if(d < r + k[2]):
+                                    add = False
+                                    break
+                        except Exception as e:
+                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                        
+                        if (add):
+                            holesList.append([i["x"], i["y"], r])
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+                        else:
+                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(i["x"], i["y"]))
+                    else:
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+        # pads
+        if types['P'] or types['H']:
+            self.getElements()
+            for j in self.elements:
+                X1 = j["x"]
+                Y1 = j["y"]
+                
+                if types['P']:  # pins
+                    for i in self.getAllPins(j["dataElement"]):
+                        if "hole" in i["sflags"]:
+                            continue
+                        
+                        r = i["drill"] / 2. + 0.001
+                        x = i["x"] + X1
+                        y = i["y"] + Y1
+                        
+                        if filterHoles(r, Hmin, Hmax):
+                            if types['IH']:  # detecting collisions between holes - intersections
+                                add = True
+                                try:
+                                    for k in holesList:
+                                        d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
+                                        if(d < r + k[2]):
+                                            add = False
+                                            break
+                                except Exception as e:
+                                    FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                                
+                                if (add):
+                                    holesList.append([x, y, r])
+                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                                else:
+                                    FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
+                            else:
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                if types['H']:
+                    for i in self.getAllPins(j["dataElement"]):
+                        if not "hole" in i["sflags"]:
+                            continue
+                        
+                        r = i["drill"] / 2. + 0.001
+                        x = i["x"] + X1
+                        y = i["y"] + Y1
+                        
+                        if filterHoles(r, Hmin, Hmax):
+                            if types['IH']:  # detecting collisions between holes - intersections
+                                add = True
+                                try:
+                                    for k in holesList:
+                                        d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
+                                        if(d < r + k[2]):
+                                            add = False
+                                            break
+                                except Exception as e:
+                                    FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+                                
+                                if (add):
+                                    holesList.append([x, y, r])
+                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                                else:
+                                    FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
+                            else:
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
 
-                    holes.append([x + X1, y - Y1, drill])  # shift hole according to part position
-        #
-        return holes
-
-    def getPCB(self):
-        PCB = []
-        ##
-        #line
-        for i in self.getAllLines(self.getLayerByNumber(7)):
-            (x1, y1, x2, y2, width) = self.getLineParameters(i)
-
-            if [x1, y1] != [x2, y2]:
-                PCB.append(['Line', x1, y1, x2, y2])
-        #arcs
-        for i in self.getAllArcs(self.getLayerByNumber(7)):
-            (x1, y1, x2, y2, curve, width) = self.getArcParameters(i)
-            
-            PCB.append(['Arc', x2, y2, x1, y1, curve])
-        #
-        if len(PCB) == 0:
+    def getPCB(self, borderObject):
+        # checking if there is a layer "outline" (prio layer as PCB aoutline)
+        data = re.findall(r'Layer\([0-9]*\s+"outline"\s+.+?\)\[stop\]\[start\](.+?)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL)
+        if len(data) and data[0]!= '(\n)':
+            for i in re.findall('Line\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? .+?\]', data[0]):
+                x1 = self.setUnit(i[0])
+                y1 = 0 - self.setUnit(i[1])
+                x2 = self.setUnit(i[2])
+                y2 = 0 - self.setUnit(i[3])
+                #
+                if [x1, y1] != [x2, y2]:
+                    borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+            for i in re.findall('Arc\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? (.+?) (.+?) .+?\]', data[0]):
+                if float(i[5]) == 360 and display[1]: # circle
+                    xs = self.setUnit(i[0])
+                    ys = 0 - self.setUnit(i[1])
+                    r = self.setUnit(i[2])
+                    #
+                    borderObject.addGeometry(Part.Circle(FreeCAD.Vector(xs, ys), FreeCAD.Vector(0, 0, 1), r))
+                else:
+                    (x1, y1, x2, y2, curve, width) = self.getArcParameters(i)
+                    #
+                    [x3, y3] = self.arcMidPoint([x1, y1], [x2, y2],curve)
+                    arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
+                    borderObject.addGeometry(arc)
+        else:
             pcbSize = re.search('PCB\s*\[.+? (.+?) (.+?)\]', self.projektBRD).groups()
             self.width = self.setUnit(pcbSize[0])
-            self.height = self.setUnit(pcbSize[1])
+            self.height = self.setUnit(pcbSize[1]) * (-1)
             
-            PCB.append(['Line', 0, 0, self.width, 0])
-            PCB.append(['Line', self.width, 0, self.width, -self.height])
-            PCB.append(['Line', self.width, -self.height, 0, -self.height])
-            PCB.append(['Line', 0, -self.height, 0, 0])
-        #
-        return [PCB, True]
+            borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(self.width, 0, 0)))
+            borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(self.width, 0, 0), FreeCAD.Vector(self.width, self.height, 0)))
+            borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(self.width, self.height, 0), FreeCAD.Vector(0, self.height, 0)))
+            borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(0, self.height, 0), FreeCAD.Vector(0, 0, 0)))
 
-    def getPads(self, doc, layerNumber, grp, layerName, layerColor, defHeight):
-        layerName = "{0}_{1}".format(layerName, layerNumber)
-        layerSide = PCBlayers[softLayers["geda"][layerNumber][1]][0]
-        layerType = PCBlayers[softLayers["geda"][layerNumber][1]][3]
-        
-        ####
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.holes = self.showHoles()
-        layerNew.defHeight = defHeight
-        ####
-        ## via
+    def getPads(self, layerNew, layerNumber, layerSide):
+        # via
         for i in self.getAllVias():
-            (x, y, drill, r) = self.getViaParameters(i)
+            if "hole" in i["sflags"]:
+                continue
             
-            layerNew.createObject()
-            layerNew.addCircle(x, y, r)
+            layerNew.addCircle(i["x"], i["y"], i["thickness"] / 2.)
             layerNew.setFace()
-        ###
-        ## pin
-        for elem in self.getAllParts():
-            X1 = self.setUnit(elem[4])
-            Y1 = self.setUnit(elem[5])
+        #
+        self.getElements()
+        for j in self.elements:
+            X1 = j["x"]
+            Y1 = j["y"]
             
-            for i in self.getElementPins(elem[-1]):
-                padType = i[8].replace('"', '')
-                (X, Y, drill, diameter) = self.getPinParameters(i)
-                X += X1
-                Y -= Y1
+            # pins
+            for i in self.getAllPins(j["dataElement"]):
+                if "hole" in i["sflags"]:
+                    continue
                 
-                if "square" in padType or len(padType) > 8 and padType[7] == '1':
-                    a = diameter
+                if "square" in i["sflags"]:
+                    a = i["thickness"] / 2.
+                    x1 = i["x"] + X1 - a
+                    y1 = i["y"] + Y1 - a
+                    x2 = i["x"] + X1 + a
+                    y2 = i["y"] + Y1 + a
                     
-                    x1 = X - a
-                    y1 = Y - a
-                    x2 = X + a
-                    y2 = Y + a
-                    
-                    layerNew.createObject()
                     layerNew.addRectangle(x1, y1, x2, y2)
                     layerNew.setFace()
-                else:  # circle
-                    layerNew.createObject()
-                    layerNew.addCircle(X, Y, diameter)
+                else: # circle
+                    r = i["thickness"] / 2.
+                    x = i["x"] + X1
+                    y = i["y"] + Y1
+                    
+                    layerNew.addCircle(x, y, r)
                     layerNew.setFace()
-            #
-            if layerSide == 1:
-                for i in re.findall(r'Pad\[(.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) "(.+?)" "(.+?)" (.+?)\]', elem[-1]):
-                    padType = i[9].replace('"', '')
-                    a = self.setUnit(i[4]) / 2.
+            # pads
+            if j['side'] == "BOTTOM" and "B" in layerNumber[0] or j['side'] == "TOP" and "T" in layerNumber[0]:
+                for i in self.getAllPads(j["dataElement"]):
+                    a = i["thickness"] / 2.
                     
-                    if i[0] == i[2]:
-                        x1 = X1 + self.setUnit(i[0]) + a
-                        y1 = 0 - Y1 - self.setUnit(i[1]) + a
-                        x2 = X1 + self.setUnit(i[2]) - a
-                        y2 = 0 - Y1 - self.setUnit(i[3]) - a
+                    if i["x1"] != i["x2"]:
+                        x1 = X1 + i["x1"] - a
+                        y1 = Y1 + i["y1"] - a
+                        x2 = X1 + i["x2"] + a
+                        y2 = Y1 + i["y2"] + a
+
                     else:
-                        x1 = X1 + self.setUnit(i[0]) - a
-                        y1 = 0 - Y1 - self.setUnit(i[1]) + a
-                        x2 = X1 + self.setUnit(i[2]) + a
-                        y2 = 0 - Y1 - self.setUnit(i[3]) - a
+                        x1 = X1 + i["x1"] + a
+                        y1 = Y1 + i["y1"] + a
+                        x2 = X1 + i["x2"] - a
+                        y2 = Y1 + i["y2"] - a
                     
-                    if "square" in padType or len(padType) > 8 and padType[7] == '1':
-                        layerNew.createObject()
+                    if "square" in i["sflags"]:
                         layerNew.addRectangle(x1, y1, x2, y2)
                         layerNew.setFace()
-                    else:  # long pad
+                    else: # long pad
                         xs = x1 - (x1 - x2) / 2.
                         ys = y1 - (y1 - y2) / 2.
                         dx = abs((x1 - x2) / 2.)
                         dy = abs((y1 - y2) / 2.)
                         
-                        layerNew.createObject()
                         layerNew.addPadLong(xs, ys, dx, dy, 100)
                         layerNew.setFace()
-        ###
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        grp.addObject(layerS)
-        #
-        doc.recompute()
-    
-    def getPaths(self, layerID):
-        wires = []
-        signal = []
-        
-        if layerID == 1:  # top
-            layers = self.groups['top']
-        else:  # bottom
-            layers = self.groups['bottom']
-        
-        for layerNumber in layers:
-            #line
-            for i in self.getAllLines(self.getLayerByNumber(layerNumber)):
-                (x1, y1, x2, y2, width) = self.getLineParameters(i)
 
-                if [x1, y1] != [x2, y2]:
-                    wires.append(['line', x1, y1, x2, y2, width])
-            #
-            for i in self.getAllArcs(self.getLayerByNumber(layerNumber)):
-                if float(i[5]) == 360:  # arcs
-                        xs = self.setUnit(i[0])
-                        ys = 0 - self.setUnit(i[1])
-                        r = self.setUnit(i[2])
-                        width = self.setUnit(i[4])
-                        
-                        wires.append(['circle', xs, ys, r, width])
-                else:  # circles
-                    (x1, y1, x2, y2, curve, width) = self.getArcParameters(i)
-                
-                    wires.append(['arc', x1, y1, x2, y2, curve, width, 'round'])
-        #
-        wires.append(signal)
-        return wires
-        
     def getElementArcParameters(self, arc):
         return self.getArcParameters([arc[0], arc[1], arc[2], arc[3], arc[6], arc[4], arc[5]])
         
@@ -347,180 +501,213 @@ class gEDA_PCB(mainPCB):
         [x2, y2] = self.obrocPunkt2([x1, y1], [xs, ys], stopAngle - startAngle)
         
         return (x1, y1, x2, y2, stopAngle - startAngle, width)
+
+    def getAllPads(self, baseData):
+        data = []
+        # Pad [rX1 rY1 rX2 rY2 Thickness Clearance Mask "Name" "Number" SFlags]
+        for i in re.findall(r'Pad\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)', baseData):
+            data.append({
+                "x1": self.setUnit(i[0]),
+                "y1": 0 - self.setUnit(i[1]),
+                "x2": self.setUnit(i[2]),
+                "y2": 0 - self.setUnit(i[3]),
+                "thickness": self.setUnit(i[4]),
+                "clearance": self.setUnit(i[5]),
+                "mask": self.setUnit(i[6]),
+                "sflags": i[9]
+            })
         
-    def getLineParameters(self, line):
-        x1 = self.setUnit(line[0])
-        y1 = 0 - self.setUnit(line[1])
-        x2 = self.setUnit(line[2])
-        y2 = 0 - self.setUnit(line[3])
-        width = self.setUnit(line[4])
-        
-        return (x1, y1, x2, y2, width)
-        
-    def getAllLines(self, layer):
-        return re.findall('Line\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? .+?\]', layer)
-        
-    def getAllArcs(self, layer):
-        return re.findall('Arc\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? (.+?) (.+?) .+?\]', layer)
-        
-    def getPinParameters(self, pin):
-        return self.getViaParameters(pin)
+        return data
     
-    def getViaParameters(self, via):
-        x = self.setUnit(via[0])
-        y = 0 - self.setUnit(via[1])
-        drill = self.setUnit(via[5]) / 2.
-        r = self.setUnit(via[2]) / 2.
+    def getAllPins(self, baseData):
+        data = []
+        # Pin [rX rY Thickness Clearance Mask Drill "Name" "Number" SFlags]
+        for i in re.findall(r'Pin\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)', baseData):
+            data.append({
+                "x": self.setUnit(i[0]),
+                "y": 0 - self.setUnit(i[1]),
+                "thickness": self.setUnit(i[2]),
+                "clearance": self.setUnit(i[3]),
+                "mask": self.setUnit(i[4]),
+                "drill": self.setUnit(i[5]),
+                "sflags": i[8]
+            })
         
-        return (x, y, drill, r)
+        return data
     
     def getAllVias(self):
-        return re.findall(r'Via\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?)\]', self.projektBRD)
-    
-    def getElementPins(self, part):
-        return re.findall(r'Pin\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?)\]', part)
+        data = []
+        # Via [X Y Thickness Clearance Mask Drill BuriedFrom BuriedTo "Name" SFlags]
+        # Via [X Y Thickness Clearance Mask Drill "Name" SFlags]
+        for i in re.findall(r'Via\s*\[([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)(\s+[\w.]+|)(\s+[\w.]+|)(\s+[\w."]+|)(\s+[\w."]+|)', self.projektBRD):
+            through = True
+
+            if i[6].strip() != "":
+                through = False
+            
+            data.append({
+                "x": self.setUnit(i[0]),
+                "y": 0 - self.setUnit(i[1]),
+                "thickness": self.setUnit(i[2]),
+                "clearance": self.setUnit(i[3]),
+                "mask": self.setUnit(i[4]),
+                "drill": self.setUnit(i[5]),
+                "through": through,
+                "sflags": i[9]
+            })
         
-    def getAllParts(self):
-        return re.findall(r'Element\s*\[(.+?) "(.*?)" "(.*?)" "(.*?)" (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?)\]\n\(\n(.+?)\n\t\)\n', self.projektBRD, re.DOTALL|re.MULTILINE)
+        return data
 
-    def getLayerByNumber(self, layerNumber):
-        '''Function returns whole layer section'''
-        try:
-            layer = re.search('^Layer\s*\[{0} .+?\]\n\(\n([^\)].+?\n)?\)\n'.format(layerNumber), self.projektBRD, re.DOTALL|re.MULTILINE).groups()[0]
-            if layer:
-                return layer
-            else:
-                return ''
-        except:
-            return ''
+    def getElements(self):
+        # Element [SFlags "Desc" "Name" "Value" MX MY TX TY TDir TScale TSFlags] 
+        if len(self.elements) == 0:
+            for i in re.findall(r'Element(.+?)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+                data = re.search(r'^\["(.*?)"\s+"(.*?)"\s+"(.*?)"\s+"(.*?)"\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+"(.*?)"\]', i).groups()
+                
+                locked = False
+                if "lock" in data[0] or "lock" in data[10]:
+                    locked = True
+                
+                side = "TOP"
+                if "onsolder" in data[0] or "onsolder" in data[10]:
+                    side = "BOTTOM"
+                
+                self.elements.append({
+                    'name': data[2], 
+                    'library': "", 
+                    'package': data[3], 
+                    'value': '', 
+                    'x': self.setUnit(data[4]), 
+                    'y': 0 - self.setUnit(data[5]), 
+                    'locked': locked,
+                    'populated': False, 
+                    'smashed': False, 
+                    'rot': int(data[8]) * 90, 
+                    'side': side,
+                    'dataElement': i,
+                    'txtX': self.setUnit(data[6]), 
+                    'txtY': 0 - self.setUnit(data[7]),
+                    'txtSize': (float(data[9]) * 1.016) / 100, # 1.016 == 40mils (default size)
+                })
 
-    def getSilkLayer(self, doc, layerNumber, grp, layerName, layerColor, defHeight):
-        layerName = "{0}_{1}".format(layerName, layerNumber)
-        layerType = PCBlayers[softLayers["geda"][layerNumber][1]][3]
-
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.defHeight = defHeight
-        ####
-        for elem in self.getAllParts():
-            X1 = self.setUnit(elem[4])
-            Y1 = self.setUnit(elem[5])
-            
-            # linie
-            for i in re.findall(r'ElementLine\s*\[(.+?) (.+?) (.+?) (.+?) (.+?)\]', elem[-1]):
-                (x1, y1, x2, y2, width) = self.getLineParameters(i)
-
-                if [x1, y1] != [x2, y2]:
-                    layerNew.createObject()
-                    layerNew.addLineWidth(x1 + X1, y1 - Y1, x2 + X1, y2 - Y1, width)
-                    layerNew.setFace()
-            # luki
-            for i in re.findall(r'ElementArc\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?)\]', elem[-1]):
-                if float(i[5]) == 360:
-                    xs = self.setUnit(i[0])
-                    ys = 0 - self.setUnit(i[1])
-                    radius = self.setUnit(i[2])
+    def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
+        # linie
+        if display[0]:
+            if parent == None:
+                # Line [X1 Y1 X2 Y2 Thickness Clearance SFlags]
+                for i in re.findall('Line\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? .+?\]', dane):
+                    x1 = self.setUnit(i[0])
+                    y1 = 0 - self.setUnit(i[1])
+                    x2 = self.setUnit(i[2])
+                    y2 = 0 - self.setUnit(i[3])
                     width = self.setUnit(i[4])
-                    
-                    layerNew.createObject()
-                    layerNew.addCircle(xs + X1, ys - Y1, radius, width)
+                    #
+                    layerNew.addLineWidth(x1, y1, x2, y2, width)
                     layerNew.setFace()
-                else:
-                    (x1, y1, x2, y2, curve, width) = self.getElementArcParameters(i)
-                    
-                    layerNew.createObject()
-                    layerNew.addArcWidth([x1 + X1, y1 - Y1], [x2 + X1, y2 - Y1], curve, width)
-                    layerNew.setFace()
-        #####
-        silkLayer = self.getLayerByNumber(10)
-        #linie
-        for i in self.getAllLines(silkLayer):
-            (x1, y1, x2, y2, width) = self.getLineParameters(i)
-            
-            if [x1, y1] != [x2, y2]:
-                layerNew.createObject()
-                layerNew.addLineWidth(x1, y1, x2, y2, width)
-                layerNew.setFace()
-        #luki
-        for i in self.getAllArcs(silkLayer):
-            if float(i[5]) == 360:
-                xs = self.setUnit(i[0])
-                ys = 0 - self.setUnit(i[1])
-                radius = self.setUnit(i[2])
-                width = self.setUnit(i[4])
-                
-                layerNew.createObject()
-                layerNew.addCircle(xs, ys, radius, width)
-                layerNew.setFace()
+                # Arc [X Y RadiusX RadiusY Thickness Clearance StartAngle DeltaAngle SFlags]
+                for i in re.findall('Arc\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) .+? (.+?) (.+?) .+?\]', dane):
+                    if float(i[5]) == 360 and display[1]: # circle
+                        xs = self.setUnit(i[0])
+                        ys = 0 - self.setUnit(i[1])
+                        r = self.setUnit(i[2])
+                        width = self.setUnit(i[4])
+                        #
+                        layerNew.addCircle(xs, ys, r, width)
+                        layerNew.setFace()
+                        if i['width'] > 0:
+                            layerNew.circleCutHole(xs, ys, r - width / 2.)
+                    else:
+                        (x1, y1, x2, y2, curve, width) = self.getArcParameters(i)
+                        #
+                        layerNew.addArcWidth([x1, y1], [x2, y2], curve, width)
+                        layerNew.setFace()
             else:
-                (x1, y1, x2, y2, curve, width) = self.getElementArcParameters(i)
-                
-                layerNew.createObject()
-                layerNew.addArcWidth([x1, y1], [x2, y2], curve, width)
-                layerNew.setFace()
-        #polygon
-        for i in re.findall('Polygon\s*\(.+?\)\n\t\(\n.(.+?)\n\t\)\n', silkLayer, re.DOTALL|re.MULTILINE):
-            poin = []
+                # ElementLine [X1 Y1 X2 Y2 Thickness]
+                for i in re.findall('ElementLine \s*\[(.+?) (.+?) (.+?) (.+?) (.+?)\]', dane):
+                    x1 = self.setUnit(i[0]) + parent['x']
+                    y1 = 0 - self.setUnit(i[1]) + parent['y']
+                    x2 = self.setUnit(i[2]) + parent['x']
+                    y2 = 0 - self.setUnit(i[3]) + parent['y']
+                    width = self.setUnit(i[4])
+                    #
+                    layerNew.addLineWidth(x1, y1, x2, y2, width)
+                    layerNew.setFace()
+                # ElementArc [X Y Width Height StartAngle DeltaAngle Thickness]
+                for i in re.findall('ElementArc\s*\[(.+?) (.+?) (.+?) (.+?) (.+?) (.+?) (.+?)\]', dane):
+                    if float(i[5]) == 360 and display[1]: # circle
+                        xs = self.setUnit(i[0]) + parent['x']
+                        ys = 0 - self.setUnit(i[1]) + parent['y']
+                        r = self.setUnit(i[2])
+                        width = self.setUnit(i[6])
+                        #
+                        layerNew.addCircle(xs, ys, r, width)
+                        layerNew.setFace()
+                        if i['width'] > 0:
+                            layerNew.circleCutHole(xs, ys, r - width / 2.)
+                    else:
+                        (x1, y1, x2, y2, curve, width) = self.getElementArcParameters(i)
+                        #
+                        layerNew.addArcWidth([x1 + parent['x'], y1 + parent['y']], [x2 + parent['x'], y2 + parent['y']], curve, width)
+                        layerNew.setFace()
+        ## polygon
+        if display[3]:
+            if parent == None:
+                for i in re.findall('Polygon\s*\(.+?\)\n\t\(\n.(.+?)\n\t\)\n', dane, re.DOTALL|re.MULTILINE):
+                    poin = []
             
-            punkty = i.strip().split("]")
-            punkty = punkty[:-1]
-            for j in range(len(punkty)):
-                x1 = self.setUnit(re.search('\[(.+?) (.*)', punkty[j]).groups()[0])
-                y1 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[j]).groups()[1])
-                
-                if j == len(punkty) - 1:
-                    x2 = self.setUnit(re.search('\[(.+?) (.*)', punkty[0]).groups()[0])
-                    y2 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[0]).groups()[1])
-                else:
-                    x2 = self.setUnit(re.search('\[(.+?) (.*)', punkty[j + 1]).groups()[0])
-                    y2 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[j + 1]).groups()[1])
-                
-                if not [x1, y1] == [x2, y2]:  # remove points, only lines
-                    poin.append(['Line', x1, y1, x2, y2])
-            
-            layerNew.createObject()
-            layerNew.addPolygon(poin)
-            layerNew.setFace()
-        #########
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS)
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        grp.addObject(layerS)
-        #
-        doc.recompute()
+                    punkty = i.strip().split("]")
+                    punkty = punkty[:-1]
+                    for j in range(len(punkty)):
+                        x1 = self.setUnit(re.search('\[(.+?) (.*)', punkty[j]).groups()[0])
+                        y1 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[j]).groups()[1])
+                        
+                        if j == len(punkty) - 1:
+                            x2 = self.setUnit(re.search('\[(.+?) (.*)', punkty[0]).groups()[0])
+                            y2 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[0]).groups()[1])
+                        else:
+                            x2 = self.setUnit(re.search('\[(.+?) (.*)', punkty[j + 1]).groups()[0])
+                            y2 = 0 - self.setUnit(re.search('\[(.+?) (.*)', punkty[j + 1]).groups()[1])
+                        
+                        if not [x1, y1] == [x2, y2]:  # remove points, only lines
+                            poin.append(['Line', x1, y1, x2, y2])
+                    #
+                    layerNew.addPolygon(poin)
+                    layerNew.setFace()
+            else:
+                pass
 
-    def generate(self, doc, groupBRD, filename):
-        board = self.getPCB()
-        if len(board[0]):
-            self.generatePCB(board, doc, groupBRD, self.dialogMAIN.gruboscPlytki.value())
-        else:
-            FreeCAD.Console.PrintWarning('No PCB border detected!\n')
-            return False
-        # holes/vias/pads
-        types = {'H':self.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.dialogMAIN.plytkaPCB_otworyP.isChecked()}
-        self.generateHoles(self.getHoles(types), doc, self.dialogMAIN.holesMin.value(), self.dialogMAIN.holesMax.value())
-        ##  additional layers
-        grp = createGroup_Layers()
-        for i in range(self.dialogMAIN.spisWarstw.rowCount()):
-            if self.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
-                ID = int(self.dialogMAIN.spisWarstw.item(i, 1).text())
-                name = str(self.dialogMAIN.spisWarstw.item(i, 4).text())
-                try:
-                    color = self.dialogMAIN.spisWarstw.cellWidget(i, 2).getColor()
-                except:
-                    color = None
-                try:
-                    transp = self.dialogMAIN.spisWarstw.cellWidget(i, 3).value()
-                except:
-                    transp = None
-                
-                if ID == 10:
-                    self.getSilkLayer(doc, ID, grp, name, color, transp)
-                elif ID in [17, 18]:
-                    self.getPads(doc, ID, grp, name, color, transp)
-                elif ID in [1, 2]:
-                    self.generatePaths(self.getPaths(ID), doc, grp, name, color, ID, transp)
-                elif ID == 0:
-                    self.addAnnotations(self.getAnnotations(), doc, color)
-        return doc
+    def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
+        try:
+            layerNumber = int(layerNumber[0].split("_")[1])
+            #
+            data = re.findall(r'Layer\(' + str(layerNumber) + '\s+.+?\s+.+?\)\[stop\]\[start\](.+?)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+            self.addStandardShapes(data, layerNew, [layerNumber], display)
+        except:
+            pass
+        
+    def getSilkLayerModels(self, layerNew, layerNumber):
+        try:
+            self.getElements()
+            layerNumberN = int(layerNumber[0].split("_")[1])
+            
+            for i in self.elements:
+                if i['side'] == "BOTTOM" and "B" in layerNumber[0]:
+                    self.addStandardShapes(i['dataElement'], layerNew, [layerNumberN], parent=i)
+                elif i['side'] == "TOP" and "T" in layerNumber[0]:
+                    self.addStandardShapes(i['dataElement'], layerNew, [layerNumberN], parent=i)
+        except:
+            pass
+    
+    def getPaths(self, layerNew, layerNumber, display=[True, True, True, True]):
+        pass
+
+    def defineFunction(self, layerNumber):
+        if "pad" in layerNumber.lower():  # pady
+            return "pads"
+        elif "copper" in layerNumber.lower():  # paths
+            return "paths"
+        elif "anno" in layerNumber.lower():
+            return "annotations"
+        else:  # 10
+            return "silk"
+

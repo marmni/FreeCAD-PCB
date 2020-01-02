@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -28,6 +28,7 @@
 import FreeCAD
 import FreeCADGui
 from PySide import QtGui
+import importlib
 #
 import PCBconf
 from PCBpartManaging import partsManaging
@@ -75,7 +76,7 @@ class pickSketch(QtGui.QPushButton):
 
 class createPCB(QtGui.QWidget, partsManaging):
     def __init__(self, parent=None):
-        reload(PCBconf)
+        importlib.reload(PCBconf)
         
         QtGui.QWidget.__init__(self, parent)
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")

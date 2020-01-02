@@ -2,8 +2,8 @@
 #****************************************************************************
 #*                                                                          *
 #*   Printed Circuit Board Workbench for FreeCAD             PCB            *
-#*   Flexible Printed Circuit Board Workbench for FreeCAD    FPCB           *
-#*   Copyright (c) 2013, 2014, 2015                                         *
+#*                                                                          *
+#*   Copyright (c) 2013-2019                                                *
 #*   marmni <marmni@onet.eu>                                                *
 #*                                                                          *
 #*                                                                          *
@@ -31,28 +31,64 @@ import FreeCAD
 #*                             CONSOLE
 #***********************************************************************
 def createGroup_Parts():
-    return makeUnigueGroup('Parts', 'partsGroup')
+    return makeUnigueGroup('Parts')
 
 def createGroup_Layers():
-    return makeUnigueGroup('Layers', 'layersGroup')
+    return makeUnigueGroup('Layers')
 
 def createGroup_PCB():
-    return makeUnigueGroup('PCB', 'pcbGroup')
+    return makeUnigueGroup('PCB')
 
 def createGroup_Annotations():
-    a = makeUnigueGroup('Annotations', 'annotationsGroup')
-    return a
-
-def createGroup_Areas():
-    return makeUnigueGroup('Areas', 'areasGroup')
-    
-def createGroup_Glue():
-    glue = makeUnigueGroup('Glue', 'glueGroup')
+    group = makeUnigueGroup('Annotations')
     
     gr = createGroup_Layers()
-    gr.addObject(glue)
+    gr.addObject(group)
     
-    return glue
+    return group
+    
+def createGroup_Areas():
+    group = makeUnigueGroup('Areas')
+    
+    gr = createGroup_Layers()
+    gr.addObject(group)
+    
+    return group
+    
+def createGroup_Dimensions(groupName="Measures"):
+    group = makeUnigueGroup(groupName)
+    
+    gr = createGroup_Layers()
+    gr.addObject(group)
+    
+    return group
+    
+def createGroup_Others():
+    group = makeUnigueGroup('Others')
+    
+    gr = createGroup_Parts()
+    gr.addObject(group)
+    
+    return group
+
+def createGroup_Missing():
+    group = makeUnigueGroup('Missing')
+    
+    gr = createGroup_Parts()
+    gr.addObject(group)
+    
+    return group
+
+def createGroup(groupName=""):
+    return makeUnigueGroup(groupName)
+    
+def createGroup_Glue():
+    group= makeUnigueGroup('Glue')
+    
+    gr = createGroup_Layers()
+    gr.addObject(group)
+    
+    return group
 
 def setProject():
     createGroup_Parts()
@@ -61,119 +97,13 @@ def setProject():
     createGroup_Annotations()
     createGroup_Areas()
 
-
-def makeGroup(groupName):
-    doc = FreeCAD.ActiveDocument
-    
-    for i in doc.Objects:
-        if hasattr(i, "TypeId") and i.TypeId == 'App::DocumentObjectGroup' and i.Label == groupName:
-            return i
-    
-    obj = doc.addObject("App::DocumentObjectGroup", groupName)
-    #normalGroup(obj)
-    #ViewProviderUnigueGroup(obj.ViewObject)
-    return obj
-
-
-def makeUnigueGroup(groupName, groupType):
-    # group with parts => Type == partsGroup
-    # group with layers => Type == layersGroup
-    # group with pcb => Type == pcbGroup
-    # group with areas => Type == areasGroup
-    # group with annotations => Type == annotationsGroup
-    # group with glue => Type == glueGroup
-    if not FreeCAD.ActiveDocument or not groupType in ['partsGroup', 'layersGroup', 'pcbGroup', 'areasGroup', 'annotationsGroup', 'glueGroup']:
+def makeUnigueGroup(groupName):
+    if not FreeCAD.ActiveDocument:
         return False
     
-    doc = FreeCAD.ActiveDocument
-    
-    for i in doc.Objects:
-        if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type == groupType:
-            return i
-    
-    obj = doc.addObject("App::DocumentObjectGroupPython", groupName)
-    unigueGroup(obj, groupType)
-    ViewProviderUnigueGroup(obj.ViewObject)
-    return obj
-
-
-#***********************************************************************
-#*                             OBJECT
-#***********************************************************************
-class unigueGroup:
-    def __init__(self, obj, typeName):
-        self.Type = typeName
-        obj.Proxy = self
-        self.Object = obj
-
-    def __getstate__(self):
-        return self.Type
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state
-
-    def execute(self, obj):
-        pass
-    
-    def onChanged(self, fp, prop):
-        if not hasattr(self, "Object"):
-            self.Object = fp
-
-    def addObject(self, child):
-        if hasattr(self, "Object"):
-            g = self.Object.Group
-            if not child in g:
-                g.append(child)
-                self.Object.Group = g
-        
-    def removeObject(self, child):
-        if hasattr(self, "Object"):
-            g = self.Object.Group
-            if child in g:
-                g.remove(child)
-                self.Object.Group = g
-
-
-class normalGroup:
-    def __init__(self, obj):
-        self.Object = obj
-
-    def execute(self, obj):
-        pass
-    
-    def onChanged(self, fp, prop):
-        if not hasattr(self, "Object"):
-            self.Object = fp
-
-    def addObject(self, child):
-        if hasattr(self, "Object"):
-            g = self.Object.Group
-            if not child in g:
-                g.append(child)
-                self.Object.Group = g
-        
-    def removeObject(self, child):
-        if hasattr(self, "Object"):
-            g = self.Object.Group
-            if child in g:
-                g.remove(child)
-                self.Object.Group = g
-
-
-class ViewProviderUnigueGroup:
-    def __init__(self, vobj):
-        self.Object = vobj.Object
-
-    def attach(self, vobj):
-        self.Object = vobj.Object
-        return
-    
-    def claimChildren(self):
-        return self.Object.Group
-
-    def __getstate__(self):
-        return None
-
-    def __setstate__(self, state):
-        return None
+    try:
+        group = FreeCAD.ActiveDocument.getObject(groupName)
+        label = group.Label
+        return group
+    except:
+        return FreeCAD.ActiveDocument.addObject("App::DocumentObjectGroup", groupName)

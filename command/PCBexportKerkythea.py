@@ -43,7 +43,7 @@ __url__ = ["http://www.freecadweb.org"]
 
 import FreeCAD, FreeCADGui
 import random
-import __builtin__
+import builtins
 import Mesh
 from PySide import QtCore, QtGui
 import os
@@ -243,7 +243,7 @@ class exportTokerkythea:
 
     def write(self, file, name):
         try:
-            file = __builtin__.open(file, "w")
+            file = builtins.open(file, "w")
             #
             self.writeHeader(file, name)
             
@@ -266,7 +266,7 @@ class exportTokerkythea:
             #file.write('<Parameter Name="./Cameras/Active" Type="String" Value="{0}"/>\n'.format(activeCamera))
 
             self.writeFooter(file, name)
-        except Exception, e:
+        except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
             return
         
@@ -635,7 +635,7 @@ class exportToKerkytheaGui(QtGui.QWidget):
                 if len(sameItems) != 0 and sameItems[0] != self.camerasList.currentItem():
                     FreeCAD.Console.PrintWarning("Camera already exist.\n")
                     return
-            except Exception ,e:
+            except Exception as e:
                 pass
             
             item = self.camerasList.currentItem()
