@@ -32,6 +32,7 @@ from math import sqrt, atan2, degrees, sin, cos, radians, pi, hypot
 import OpenSCAD2Dgeom
 from PySide import QtGui
 import unicodedata
+import random
 #
 from PCBboard import cutToBoardShape, getPCBheight, PCBboardObject, viewProviderPCBboardObject
 from PCBfunctions import mathFunctions
@@ -800,295 +801,109 @@ class objectWire(mathFunctions):
             return Part.Face(mainObj)
         
         
-class layerPolygonObject(objectWire):
-    def __init__(self, obj, typeL):
-        self.points = []
-        self.name = ''
-        self.isolate = 0
-        self.paths = []
+# class layerPolygonObject(objectWire):
+    # def __init__(self, obj, typeL):
+        # self.points = []
+        # self.name = ''
+        # self.isolate = 0
+        # self.paths = []
         
-        self.Type = typeL
-        obj.Proxy = self
-        self.obj = obj
+        # self.Type = typeL
+        # obj.Proxy = self
+        # self.obj = obj
     
-    def updatePosition_Z(self, fp, dummy=None):
-        if 'tPath' in self.Type:
-            thickness = getPCBheight()[1]
+    # def updatePosition_Z(self, fp, dummy=None):
+        # if 'tPath' in self.Type:
+            # thickness = getPCBheight()[1]
             
-            fp.Placement.Base.z = thickness + 0.01
-        else:
-            fp.Placement.Base.z = -0.01
+            # fp.Placement.Base.z = thickness + 0.01
+        # else:
+            # fp.Placement.Base.z = -0.01
     
-    def generuj(self, fp):
-        pass
-        #polygon = 
+    # def generuj(self, fp):
+        # pass
+        # #polygon = 
         
-        #polygon.Placement.Base.z = fp.Placement.Base.z
-        #fp.Shape = polygon
+        # #polygon.Placement.Base.z = fp.Placement.Base.z
+        # #fp.Shape = polygon
             
-    def onChanged(self, fp, prop):
-        pass
+    # def onChanged(self, fp, prop):
+        # pass
     
-    def __getstate__(self):
-        return self.Type
+    # def __getstate__(self):
+        # return self.Type
         
-    def __setstate__(self, state):
-        self.Type = state
+    # def __setstate__(self, state):
+        # self.Type = state
         
-    def execute(self, fp):
-        pass
+    # def execute(self, fp):
+        # pass
 
 
-class viewProviderLayerPolygonObject:
-    def __init__(self, obj):
-        ''' Set this object to the proxy object of the actual view provider '''
-        obj.Proxy = self
+# class viewProviderLayerPolygonObject:
+    # def __init__(self, obj):
+        # ''' Set this object to the proxy object of the actual view provider '''
+        # obj.Proxy = self
         
-    def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        return
+    # def attach(self, obj):
+        # ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        # return
 
-    def updateData(self, fp, prop):
-        ''' If a property of the handled feature has changed we have the chance to handle this here '''
-        return
+    # def updateData(self, fp, prop):
+        # ''' If a property of the handled feature has changed we have the chance to handle this here '''
+        # return
 
-    def getDisplayModes(self, obj):
-        ''' Return a list of display modes. '''
-        modes = []
-        return modes
+    # def getDisplayModes(self, obj):
+        # ''' Return a list of display modes. '''
+        # modes = []
+        # return modes
 
-    def getDefaultDisplayMode(self):
-        ''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
-        return "Wire Frame"
+    # def getDefaultDisplayMode(self):
+        # ''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
+        # return "Wire Frame"
 
-    def setDisplayMode(self, mode):
-        ''' Map the display mode defined in attach with those defined in getDisplayModes.
-        Since they have the same names nothing needs to be done. This method is optional.
-        '''
-        return mode
+    # def setDisplayMode(self, mode):
+        # ''' Map the display mode defined in attach with those defined in getDisplayModes.
+        # Since they have the same names nothing needs to be done. This method is optional.
+        # '''
+        # return mode
 
-    def onChanged(self, vp, prop):
-        vp.setEditorMode("LineColor", 2)
-        vp.setEditorMode("DrawStyle", 2)
-        vp.setEditorMode("LineWidth", 2)
-        vp.setEditorMode("PointColor", 2)
-        vp.setEditorMode("PointSize", 2)
-        vp.setEditorMode("Deviation", 2)
-        vp.setEditorMode("Lighting", 2)
-        vp.setEditorMode("Transparency", 2)
-        vp.setEditorMode("BoundingBox", 2)
-        if hasattr(vp, "AngularDeflection"):
-            vp.setEditorMode("AngularDeflection", 2)
+    # def onChanged(self, vp, prop):
+        # vp.setEditorMode("LineColor", 2)
+        # vp.setEditorMode("DrawStyle", 2)
+        # vp.setEditorMode("LineWidth", 2)
+        # vp.setEditorMode("PointColor", 2)
+        # vp.setEditorMode("PointSize", 2)
+        # vp.setEditorMode("Deviation", 2)
+        # vp.setEditorMode("Lighting", 2)
+        # vp.setEditorMode("Transparency", 2)
+        # vp.setEditorMode("BoundingBox", 2)
+        # if hasattr(vp, "AngularDeflection"):
+            # vp.setEditorMode("AngularDeflection", 2)
         
-        if prop == "ShapeColor":
-            vp.LineColor = vp.ShapeColor
-            vp.PointColor = vp.ShapeColor
+        # if prop == "ShapeColor":
+            # vp.LineColor = vp.ShapeColor
+            # vp.PointColor = vp.ShapeColor
 
-    def getIcon(self):
-        ''' Return the icon in XMP format which will appear in the tree view. This method is optional
-        and if not defined a default icon is shown.
-        '''
-        return ":/data/img/layers_TI.svg"
+    # def getIcon(self):
+        # ''' Return the icon in XMP format which will appear in the tree view. This method is optional
+        # and if not defined a default icon is shown.
+        # '''
+        # return ":/data/img/layers_TI.svg"
 
-    def __getstate__(self):
-        ''' When saving the document this object gets stored using Python's cPickle module.
-        Since we have some un-pickable here -- the Coin stuff -- we must define this method
-        to return a tuple of all pickable objects or None.
-        '''
-        return None
+    # def __getstate__(self):
+        # ''' When saving the document this object gets stored using Python's cPickle module.
+        # Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        # to return a tuple of all pickable objects or None.
+        # '''
+        # return None
 
-    def __setstate__(self, state):
-        ''' When restoring the pickled object from document we have the chance to set some
-        internals here. Since no data were pickled nothing needs to be done here.
-        '''
-        return None
+    # def __setstate__(self, state):
+        # ''' When restoring the pickled object from document we have the chance to set some
+        # internals here. Since no data were pickled nothing needs to be done here.
+        # '''
+        # return None
 
-
-
-#class layerPathObject(objectWire):
-    #def __init__(self, obj, typeL):
-        #self.spisObiektow = []
-        
-        #self.Type = typeL
-        #obj.Proxy = self
-        #self.holes = False
-        #self.obj = obj
-        #self.defHeight = 0.035
-        #self.cutToBoard = False
-        
-    #def changeColor(self):
-        #import random
-        #FreeCAD.Console.PrintWarning(u"{0} \n".format(self.signals))
-        
-        #col = []
-        #for i in self.signals:
-            #R = random.uniform(0, 1)
-            #G = random.uniform(0, 1)
-            #B = random.uniform(0, 1)
-            #for j in i:
-                #col.append((R, G, B, 0.0))
-            
-            
-        #self.obj.ViewObject.DiffuseColor = col
-        #self.obj.ViewObject.update()
-        
-    #def updatePosition_Z(self, fp, dummy=None):
-        #if 'tPath' in self.Type:
-            #thickness = getPCBheight()[1]
-            
-            #fp.Placement.Base.z = thickness
-        #else:
-            #fp.Placement.Base.z = -self.defHeight / 1000.
-            
-    #def updateHoles(self, fp):
-        #self.generuj(fp)
-
-    #def generuj(self, fp):
-        #if len(self.spisObiektow):
-            #obiekty = []
-            
-            #if self.cutToBoard:
-                #board = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Border.Shape.Edges)
-                #board = board.extrude(FreeCAD.Base.Vector(0, 0, 2))
-            
-            #for i in self.spisObiektow:
-                #if i[0] == 'arc':
-                    #p1 = [i[1], i[2]]
-                    #p2 = [i[3], i[4]]
-                    #curve = i[5]
-                    #width = i[6]
-                    #cap = i[7]
-
-                    #o = self.createArc(p1, p2, curve, width, cap)
-                    #if self.cutToBoard:
-                        #o = board.common(o)
-                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    #obiekty.append(o)
-                #elif i[0] == 'circle':
-                    #x = i[1]
-                    #y = i[2]
-                    #r = i[3]
-                    #width = i[4]
-                    
-                    #o = self.createCircle(x, y, r, width)
-                    #if self.cutToBoard:
-                        #o = board.common(o)
-                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    #obiekty.append(o)
-                #elif i[0] == 'line':
-                    #x1 = i[1]
-                    #y1 = i[2]
-                    #x2 = i[3]
-                    #y2 = i[4]
-                    #width = i[5]
-                    
-                    #o = self.createLine(x1, y1, x2, y2, width)
-                    #if self.cutToBoard:
-                        #o = board.common(o)
-                    #o = o.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-                    #obiekty.append(o)
-            ##
-            #path = Part.makeCompound(obiekty)
-            ## cut to board shape
-            ##if self.cutToBoard:
-                ##path = cutToBoardShape(path)
-            ####################################################
-            ##if FreeCAD.ActiveDocument.Board.Display:
-                ##holes = OpenSCAD2Dgeom.edgestofaces(FreeCAD.ActiveDocument.Board.Holes.Shape.Edges)
-                ###holes = holes.extrude(FreeCAD.Base.Vector(0, 0, 0.2))
-            
-                ##path = shapes.cut(holes)
-            ##else:
-                ##path = shapes
-            ##
-            ##path = path.extrude(FreeCAD.Base.Vector(0, 0, self.defHeight / 1000.))
-            #path.Placement.Base.z = fp.Placement.Base.z
-            #fp.Shape = path
-            
-    #def onChanged(self, fp, prop):
-        #pass
-    
-    #def __getstate__(self):
-        #return [self.Type, self.cutToBoard, str(self.spisObiektow), self.defHeight]
-        
-    #def __setstate__(self, state):
-        #self.Type = state[0]
-        #self.cutToBoard = state[1]
-        #self.spisObiektow = eval(state[2])
-        #self.defHeight = state[3]
-        
-    #def execute(self, fp):
-        #self.generuj(fp)
-
-
-#class viewProviderLayerPathObject:
-    #def __init__(self, obj):
-        #''' Set this object to the proxy object of the actual view provider '''
-        #obj.Proxy = self
-        
-    #def attach(self, obj):
-        #''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        #return
-
-    #def updateData(self, fp, prop):
-        #''' If a property of the handled feature has changed we have the chance to handle this here '''
-        #return
-
-    #def getDisplayModes(self, obj):
-        #''' Return a list of display modes. '''
-        #modes = []
-        #return modes
-
-    #def getDefaultDisplayMode(self):
-        #''' Return the name of the default display mode. It must be defined in getDisplayModes. '''
-        #return "Wire Frame"
-
-    #def setDisplayMode(self, mode):
-        #''' Map the display mode defined in attach with those defined in getDisplayModes.
-        #Since they have the same names nothing needs to be done. This method is optional.
-        #'''
-        #return mode
-
-    #def onChanged(self, vp, prop):
-        #vp.setEditorMode("LineColor", 2)
-        #vp.setEditorMode("DrawStyle", 2)
-        #vp.setEditorMode("LineWidth", 2)
-        #vp.setEditorMode("PointColor", 2)
-        #vp.setEditorMode("PointSize", 2)
-        #vp.setEditorMode("Deviation", 2)
-        #vp.setEditorMode("Lighting", 2)
-        #vp.setEditorMode("Transparency", 2)
-        #vp.setEditorMode("BoundingBox", 2)
-        #if hasattr(vp, "AngularDeflection"):
-            #vp.setEditorMode("AngularDeflection", 2)
-        
-        #if prop == "ShapeColor":
-            #vp.LineColor = vp.ShapeColor
-            #vp.PointColor = vp.ShapeColor
-
-    #def getIcon(self):
-        #''' Return the icon in XMP format which will appear in the tree view. This method is optional
-        #and if not defined a default icon is shown.
-        #'''
-        ##***************************************************************
-        ##   Author:     Gentleface custom icons design agency (http://www.gentleface.com/)
-        ##   License:    Creative Commons Attribution-Noncommercial 3.0
-        ##   Iconset:    Mono Icon Set
-        ##***************************************************************
-        #return ":/data/img/layers_TI.svg"
-
-    #def __getstate__(self):
-        #''' When saving the document this object gets stored using Python's cPickle module.
-        #Since we have some un-pickable here -- the Coin stuff -- we must define this method
-        #to return a tuple of all pickable objects or None.
-        #'''
-        #return None
-
-    #def __setstate__(self, state):
-        #''' When restoring the pickled object from document we have the chance to set some
-        #internals here. Since no data were pickled nothing needs to be done here.
-        #'''
-        #return None
 #####################################
 #####################################
 #####################################
@@ -1107,13 +922,14 @@ class layerSilkObject(objectWire):
         self.spisObiektowTXT = []
         self.side = 1  # 0-bottom   1-top   2-both
         self.cleanShape = None
+        self.signalsList = {}
         obj.Proxy = self
     
     def __getstate__(self):
         try:
-            return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString()]
+            return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString(), self.signalsList]
         except:
-            return [self.Type, None, self.defHeight, self.side, Part.Shape().exportBrepToString()]
+            return [self.Type, None, self.defHeight, self.side, Part.Shape().exportBrepToString(), self.signalsList]
         
     def __setstate__(self, state):
         self.Type = state[0]
@@ -1123,6 +939,8 @@ class layerSilkObject(objectWire):
         self.cleanShape = Part.Shape()
         self.cleanShape.importBrepFromString(state[4])
         self.spisObiektowTXT = self.cleanShape.Solids
+        
+        self.signalsList = state[5]
     ################
     ################
     
@@ -1206,12 +1024,139 @@ class layerSilkObject(objectWire):
         
         return midpoint
     
-    def setFace(self, extrude=True, height=None):
+    def createFace(self, obj, extrude=True, height=None, signalName=None):
+        if not height:
+            height = self.defHeight
+        
+        return self.makeFace(obj, height, extrude)
+
+    def setFace(self, extrude=True, height=None, signalName=None):
         if not height:
             height = self.defHeight
         
         self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1], height, extrude)
+        #
+        if signalName:
+            shapeID = len(self.spisObiektowTXT) - 1
+            if not shapeID in self.signalsList.keys():
+                self.signalsList[shapeID] = signalName
+                
+    def addNewObject(self, obj, signalName=None):
+        self.spisObiektowTXT.append(obj)
+        #
+        if signalName and not signalName.strip() == "":
+            shapeID = len(self.spisObiektowTXT) - 1
+            if not shapeID in self.signalsList.keys():
+                self.signalsList[shapeID] = signalName
+    
+    def cutOffPaths(self, obj, signalName, isolate=0.406):
+        data = []
+        out = []
+        try:
+            for i in range(0, len(self.spisObiektowTXT)):
+                solid = self.spisObiektowTXT[i]
+                #
+                if i in self.signalsList.keys() and self.signalsList[i] == signalName:
+                    continue
+                else:
+                    if solid.isValid() and obj.distToShape(solid)[0] == 0.0:
+                        try:
+                            a = solid.makeOffsetShape(isolate, 0.01, join=0)
+                            if not a.isNull():
+                                new = obj
+                                data.append(new.cut(a))
+                                #Part.show(new.cut(a))
+                                #obj = obj.cut(a)
+                        except Exception as e:
+                            print(e)
+        except Exception as e:
+            print(e)
         
+        if len(data):
+            for i in range(0, len(data)):
+                a = obj
+                obj = obj.common([data[i]])
+                #Part.show(obj.common([data[i]]))
+                
+                if not len(obj.Solids):
+                    obj = a
+            
+        return obj
+        
+        
+    def resetColors(self, fp):
+        fp.ViewObject.ShapeColor = fp.ViewObject.ShapeColor
+        
+    def colorizePaths(self, fp, colorsList):
+        data = []
+        baseColor = fp.ViewObject.DiffuseColor[0]
+        
+        try:
+            if len(self.signalsList.keys()):
+                for i in range(0, len(fp.Shape.Compounds[0].Solids)):
+                    solid = fp.Shape.Compounds[0].Solids[i]
+                    
+                    if i in self.signalsList.keys():
+                        signal = self.signalsList[i]
+                        
+                        if not signal in colorsList.keys():
+                            colorsList[signal] = (float(random.randrange(0, 255, 1)), float(random.randrange(0, 255, 1)), float(random.randrange(0, 255, 1)), 0.0) # RGB
+                        #
+                        for f in solid.Faces:
+                            data.append(colorsList[signal])
+                    else:
+                        for f in solid.Faces:
+                            data.append(baseColor)
+                #
+                fp.ViewObject.DiffuseColor = data
+        except Exception as e:
+            print(e)
+        
+        return colorsList
+        
+    # def setFace(self, extrude=True, height=None, signalName=None):
+        # if not height:
+            # height = self.defHeight
+        
+        # self.spisObiektowTXT[-1] = self.makeFace(self.spisObiektowTXT[-1], height, extrude)
+        # #
+        # if signalName and not signalName.strip() == "":
+            # if not signalName in self.signalsList.keys():
+                # self.signalsList[signalName] = []
+            # self.signalsList[signalName].append(len(self.spisObiektowTXT) - 1)
+
+    # def colorizePaths(self, fp, colorsList):
+        # solidNum = 0
+        # data = []
+        # baseColor = fp.ViewObject.DiffuseColor[0]
+        
+        # try:
+            # if len(self.signalsList.keys()):
+                # for i in range(0, len(fp.Shape.Compounds[0].Solids)):
+                    # solid = fp.Shape.Compounds[0].Solids[i]
+                    # skipDef = False
+                    # #
+                    # for k in self.signalsList.keys():
+                        # if not k in colorsList.keys():
+                            # colorsList[k] = (float(random.randrange(0, 255, 1)), float(random.randrange(0, 255, 1)), float(random.randrange(0, 255, 1)), 0.0) # RGB
+                        # #
+                        # if solidNum in self.signalsList[k]:
+                            # for i in solid.Faces:
+                                # data.append(colorsList[k])
+                            # skipDef = True
+                    # #
+                    # if not skipDef:
+                        # for i in solid.Faces:
+                            # data.append(baseColor)
+                    # #
+                    # solidNum += 1
+                # #
+                # fp.ViewObject.DiffuseColor = data
+        # except Exception as e:
+            # pass
+        
+        # return colorsList
+
     def setChangeSide(self, xs, ys, layer):
         if layer == 0:
             self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 1, 0), 180)
@@ -1524,7 +1469,7 @@ class layerSilkObject(objectWire):
         self.addLine(x2 - xRD, y2 - yRD, x1 + xRD, y2 + yRD)
         self.addLine(x1 + xRD, y2 + yRD, x1 - xRD, y1 - yRD)
     
-    def addPolygon(self, polygon):
+    def addPolygon(self, polygon, returnObj=False):
         objects = []
         
         for i in polygon:
@@ -1544,7 +1489,10 @@ class layerSilkObject(objectWire):
             
         mainObj = Part.Shape(objects)
         mainObj = Part.Wire(mainObj.Edges)
-        self.spisObiektowTXT.append(mainObj)
+        if returnObj:
+            return mainObj
+        else:
+            self.spisObiektowTXT.append(mainObj)
     
     def addArcWidth(self, p1, p2, curve, width=0.02, cap='round', p3=None):
         try:
@@ -1707,227 +1655,6 @@ class layerSilkObject(objectWire):
         self.addPlacement([x1, y1, 0], kat, [0, 0, 0])
         #return mainObj
 
-    #def addObject(self, mainObj):
-        #self.spisObiektow.append(mainObj)
- 
-    #def makeLine(self, x1, y1, x2, y2):
-        #if not [x1, y1] == [x2, y2]:
-            #return Part.Line(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2, y2, 0)).toShape()
-        #else:
-            #return Part.Line(FreeCAD.Base.Vector(x1, y1, 0), FreeCAD.Base.Vector(x2 + 0.000001, y2 + 0.000001, 0)).toShape()
-
-    #def rotateObj(self, mainObj, rot):
-        #return mainObj.rotate(FreeCAD.Vector(rot[0], rot[1], 0), FreeCAD.Vector(0, 0, 1), rot[2])
-    
-    #def changeSide(self, mainObj, X1, Y1, warst):
-        #if warst == 0:
-            #mainObj.rotate(FreeCAD.Vector(X1, Y1, 0), FreeCAD.Vector(0, 1, 0), 180)
-    
-    #def addElipse(self, center, r1, r2):
-        #if r1 > r2:
-            #mainObj = [Part.Ellipse(FreeCAD.Vector(center[0], center[1], 0), r1, r2).toShape()]
-            
-            #return Part.Wire(mainObj)
-        #else:
-            #mainObj = Part.Wire([Part.Ellipse(FreeCAD.Vector(center[0], center[1], 0), r2, r1).toShape()])
-            #self.rotateObj(mainObj, [center[0], center[1], 90])
-            
-            #return mainObj
-            
-    ##def addCrircle_2(self, x, y, r):
-        ##mainObj = [Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), r).toShape()]
-        
-        ##return Part.Wire(mainObj)
-        
-    #def addCrircle_2(self, x, y, r, w=0):
-        #return self.createCircle(x, y, r, w)
-    
-    #def makePoint(self, x, y):
-        #wir = []
-        #wir.append(Part.Point(FreeCAD.Base.Vector(x, y, 0)))
-        
-        #mainObj = Part.Shape(wir)
-        
-        #return mainObj
-    
-    #def addLine_2(self, x1, y1, x2, y2, width=0.01):
-        #if x1 == x2 and y1 == y2:
-            #return self.makePoint(x1, y1)
-        #else:
-            #return self.createLine(x1, y1, x2, y2, width)
-
-    #def addBSpline(self, points):
-        #spline = Part.BSplineCurve()
-        #spline.interpolate(points, False)
-        #spline = spline.toShape()
-        #return Part.Wire(spline)
-    
-    ##def addArc(self, x, y, r, startAngle, stopAngle, rot2=[], warst=1):
-    #def addArc(self, x, y, r, startAngle, stopAngle):
-        #mainObj = [Part.ArcOfCircle(Part.Circle(FreeCAD.Vector(x, y, 0), FreeCAD.Vector(0, 0, 1), r), startAngle, stopAngle).toShape()]
-        #return Part.Wire(mainObj)
-        
-    #def addArc_2(self, p1, p2, curve):
-        #[x3, y3] = self.arcMidPoint(p2, p1, curve)
-        #mainObj = [Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(x3, y3, 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)).toShape()]
-        #return Part.Wire(mainObj)
-
-    #def addArc_3(self, p1, p2, curve, width=0, cap='round'):
-        #return self.createArc(p1, p2, curve, width, cap)
-
-    #def addRectangle_2(self, x1, y1, x2, y2):
-        #obj = []
-        #obj.append(self.makeLine(x1, y1, x2, y1))
-        #obj.append(self.makeLine(x2, y1, x2, y2))
-        #obj.append(self.makeLine(x2, y2, x1, y2))
-        #obj.append(self.makeLine(x1, y2, x1, y1))
-
-        #return Part.Wire(obj)
-    
-    #def addOctagon_2(self, dane):
-        #punkty = []
-        #for i in dane:
-            #(x1, y1, z1, x2, y2, z2) = i
-            #punkty.append(self.makeLine(x1, y1, x2, y2))
-
-        #return Part.Wire(punkty)
-
-    #def addOffset_2(self, x, y, R, e):
-        #punkty = []
-        
-        #punkty.append(Part.Line(FreeCAD.Base.Vector(x, y + R, 0), FreeCAD.Base.Vector(x + R + e / 2, y + R, 0)))
-        #punkty.append(Part.Line(FreeCAD.Base.Vector(x, y - R, 0), FreeCAD.Base.Vector(x + R + e / 2, y - R, 0)))
-
-        #p1 = [x + R + e / 2, y + R]
-        #p2 = [x + R + e / 2, y - R]
-        #p3 = [x + R + e, y]
-        #punkty.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)))
-
-        #p1 = [x, y + R]
-        #p2 = [x, y - R]
-        #p3 = [x - R, y]
-        #punkty.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)))
-        
-        #mainObj = Part.Shape(punkty)
-        #return Part.Wire(mainObj.Edges)
-    
-    ##def addLong_2(self, x, y, R, e, DD):
-        ##punkty = []
-
-        ##punkty.append(Part.Line(FreeCAD.Base.Vector(x - R + e, y + DD, 0), FreeCAD.Base.Vector(x + R - e, y + DD, 0)))
-        ##punkty.append(Part.Line(FreeCAD.Base.Vector(x - R + e, y - DD, 0), FreeCAD.Base.Vector(x + R - e, y - DD, 0)))
-
-        ##p1 = [x + R - e, y + DD]
-        ##p2 = [x + R - e, y - DD]
-        ##p3 = [x + R + e, y]
-        ##punkty.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)))
-        
-        ##p1 = [x - R + e, y + DD]
-        ##p2 = [x - R + e, y - DD]
-        ##p3 = [x - R - e, y]
-        ##punkty.append(Part.Arc(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)))
-
-        ##mainObj = Part.Shape(punkty)
-        ##return Part.Wire(mainObj.Edges)
-        
-    #def addPadLong(self, x, y, dx, dy, perc, typ=0):
-        #curve = 90.
-        #if typ == 0:  # %
-            #if perc > 100.:
-                #perc == 100.
-            
-            #if dx > dy:
-                #e = dy * perc / 100.
-            #else:
-                #e = dx * perc / 100.
-        #else:  # mm
-            #e = perc
-        
-        #p1 = [x - dx + e, y - dy, 0]
-        #p2 = [x + dx - e, y - dy, 0]
-        #p3 = [x + dx, y - dy + e, 0]
-        #p4 = [x + dx, y + dy - e, 0]
-        #p5 = [x + dx - e, y + dy, 0]
-        #p6 = [x - dx + e, y + dy, 0]
-        #p7 = [x - dx, y + dy - e, 0]
-        #p8 = [x - dx, y - dy + e, 0]
-        ##
-        #punkty = []
-
-        #if p1 != p2:
-            #punkty.append(Part.Line(FreeCAD.Base.Vector(p1[0], p1[1], 0), FreeCAD.Base.Vector(p2[0], p2[1], 0)))
-
-        #if p2 != p3:
-            #p9 = self.arcMidPoint(p2, p3, curve)
-            #punkty.append(Part.Arc(FreeCAD.Base.Vector(p2[0], p2[1], 0), FreeCAD.Base.Vector(p9[0], p9[1], 0), FreeCAD.Base.Vector(p3[0], p3[1], 0)))
-            
-        #if p3 != p4:
-            #punkty.append(Part.Line(FreeCAD.Base.Vector(p3[0], p3[1], 0), FreeCAD.Base.Vector(p4[0], p4[1], 0)))
-
-        #if p4 != p5:
-            #p10 = self.arcMidPoint(p4, p5, curve)
-            #punkty.append(Part.Arc(FreeCAD.Base.Vector(p4[0], p4[1], 0), FreeCAD.Base.Vector(p10[0], p10[1], 0), FreeCAD.Base.Vector(p5[0], p5[1], 0)))
-            
-        #if p5 != p6:
-            #punkty.append(Part.Line(FreeCAD.Base.Vector(p5[0], p5[1], 0), FreeCAD.Base.Vector(p6[0], p6[1], 0)))
-
-        #if p6 != p7:
-            #p11 = self.arcMidPoint(p6, p7, curve)
-            #punkty.append(Part.Arc(FreeCAD.Base.Vector(p6[0], p6[1], 0), FreeCAD.Base.Vector(p11[0], p11[1], 0), FreeCAD.Base.Vector(p7[0], p7[1], 0)))
-
-        #if p7 != p8:
-            #punkty.append(Part.Line(FreeCAD.Base.Vector(p7[0], p7[1], 0), FreeCAD.Base.Vector(p8[0], p8[1], 0)))
-
-        #if p8 != p1:
-            #p12 = self.arcMidPoint(p8, p1, curve)
-            #punkty.append(Part.Arc(FreeCAD.Base.Vector(p8[0], p8[1], 0), FreeCAD.Base.Vector(p12[0], p12[1], 0), FreeCAD.Base.Vector(p1[0], p1[1], 0)))
-        
-        #obj = Part.Shape(punkty)
-        #obj = Part.Wire(obj.Edges)
-        
-        #return obj
-    
-    #def arcMidPoint(self, prev_vertex, vertex, angle):
-        #if len(prev_vertex) == 3:
-            #[x1, y1, z1] = prev_vertex
-        #else:
-            #[x1, y1] = prev_vertex
-            
-        #if len(vertex) == 3:
-            #[x2, y2, z2] = vertex
-        #else:
-            #[x2, y2] = vertex
-        
-        #angle = radians(angle / 2)
-        #basic_angle = atan2(y2 - y1, x2 - x1) - pi / 2
-        #shift = (1 - cos(angle)) * hypot(y2 - y1, x2 - x1) / 2 / sin(angle)
-        #midpoint = [(x2 + x1) / 2 + shift * cos(basic_angle), (y2 + y1) / 2 + shift * sin(basic_angle)]
-        
-        #return midpoint
-    
-    #def addPolygonFull(self, dane, fullMAIN=True):
-        #punkty = []
-        #fullPol = True
-        #for i in dane:
-            #if i[0] == 'Arc':
-                #fullPol = True
-                #[elemType, x1, y1, x2, y2, curve] = i
-                
-                #p1 = [x1, y1]
-                #p3 = [x2, y2]
-                
-                #punkty.append(self.addArc_2(p1, p3, curve))
-            #else:
-                #(elemType, x1, y1, x2, y2) = i
-                #punkty.append(self.makeLine(x1, y1, x2, y2))
-        
-        #if fullPol and fullMAIN:
-            #mainObj = Part.Wire(punkty)
-            #mainObj = Part.Face(mainObj)
-        #else:
-            #mainObj = Part.makeCompound(punkty)
-        #return mainObj
-        
     def updateHoles(self, fp):
         self.generuj(fp)
     
@@ -1948,7 +1675,7 @@ class layerSilkObject(objectWire):
     def onChanged(self, fp, prop):
         if prop == "Cut" or prop == "CutToBoard":
             self.generuj(fp)
-            
+        
     def execute(self, fp):
         pass
         #self.generuj(fp)

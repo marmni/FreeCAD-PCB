@@ -58,8 +58,7 @@ from formats.kicad_v4 import KiCadv4_PCB
 from formats.idf_v2 import IDFv2_PCB
 from formats.idf_v3 import IDFv3_PCB
 # from formats.idf_v4 import IDFv4_PCB
-# from formats.diptrace import DipTrace_PCB
-# from formats.hyp import HYP_PCB
+from formats.hyp import HYP_PCB
 
 
 class mainPCB(partsManaging):
@@ -95,10 +94,8 @@ class mainPCB(partsManaging):
             self.wersjaFormatu = IDFv3_PCB(filename, self)
         # elif wersjaFormatu == "idf_v4":
             # self.wersjaFormatu = IDFv4_PCB(filename, self)
-        # elif wersjaFormatu == "diptrace":
-            # self.wersjaFormatu = DipTrace_PCB(filename)
-        # elif wersjaFormatu == "hyp_v2":
-            # self.wersjaFormatu = HYP_PCB(filename)
+        elif wersjaFormatu == "hyp_v2":
+            self.wersjaFormatu = HYP_PCB(filename, self)
 
         self.setDatabase()
         
@@ -130,6 +127,7 @@ class mainPCB(partsManaging):
         # LAYERS
         grp = createGroup_Layers()
         grp_2 = createGroup_Areas()
+        pathsLayers = []
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
                 ################
@@ -162,6 +160,8 @@ class mainPCB(partsManaging):
                 self.printInfo("\nImporting layer '{0}': ".format(layerName))
                 try:
                     if layerFunction in ["silk", "pads", "paths"]:
+                        if layerFunction == "paths":
+                            pathsLayers.append([doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked()])
                         self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked())
                     elif layerFunction == "measures":
                         self.generateDimensions(doc, grp, layerName, layerColor, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
@@ -175,6 +175,9 @@ class mainPCB(partsManaging):
                     self.printInfo('{0}'.format(e), 'error')
                 else:
                     self.printInfo('\n\tdone')
+        #
+        if self.wersjaFormatu.dialogMAIN.copperImportPolygons.isChecked():
+            self.generatePolygonsOnCopperLayer(pathsLayers)
     
     def importParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
         self.printInfo('\nImporting parts: ')
@@ -225,44 +228,133 @@ class mainPCB(partsManaging):
             glue.generate()
             #glue.recompute()
     
+    # def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
+        # for i in data[0]:
+            # for j in i: # polygons
+                # layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "{0}_{1}".format(layerName, layerNumber))
+                # layerNew = layerPolygonObject(layerS, PCBconf.PCBlayers[PCBconf.softLayers[self.databaseType][layerNumber][1]][3])
+                # layerNew.points = j[3]
+                # layerNew.name = j[2]
+                # layerNew.isolate = j[1]
+                # layerNew.paths = data[1]
+                # layerNew.generuj(layerS)
+                # layerNew.updatePosition_Z(layerS)
+                # viewProviderLayerPolygonObject(layerS.ViewObject)
+                # layerS.ViewObject.ShapeColor = layerColor
+                # group.addObject(layerS)
+            
+    def generatePolygonsOnCopperLayer(self, pathsLayers):
+        for i in pathsLayers: # i = doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers
+            [doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers] = i
+            #
+            layerName = "{0}_{1}".format(layerNameO, layerNumber)
+            layerType = [layerName, "paths", "polygon"]
+            #
+            layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
+            layerNew = layerSilkObject(layerS, layerType)
+            layerNew.holes = self.showHoles()
+            layerNew.side = layerSide
+            layerNew.defHeight = defHeight
+            layerNew.Cut = cutHoles
+            #
+            self.wersjaFormatu.getPolygonsFromCopperLayer(layerNew, [layerNumber, layerNameO], [False, False, False, True])
+            #
+            pcb = getPCBheight()
+            data = []
+            
+            for j in pcb[2].Group:
+                if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and isinstance(j.Proxy.Type, list) and ("paths" in j.Proxy.Type or "pads" in j.Proxy.Type) and not "polygon" in j.Proxy.Type:
+                    pozZ = j.Placement.Base.z
+                    j.Placement.Base.z = 0
+                    try:
+                        for k in range(0, len(j.Shape.Compounds[0].Solids)):
+                            solid = j.Shape.Compounds[0].Solids[k]
+                            #
+                            if k in j.Proxy.signalsList.keys() and j.Proxy.signalsList[k] == layerNew.signalsList[0][0]:
+                                continue
+                            else:
+                                if solid.isValid() and layerNew.spisObiektowTXT[0].distToShape(solid)[0] == 0.0:
+                                    try:
+                                        a = solid.makeOffsetShape(layerNew.signalsList[0][1], 0.01, join=0)
+                                        if not a.isNull():
+                                            new = layerNew.spisObiektowTXT[0]
+                                            data.append(new.cut(a))
+                                    except Exception as e:
+                                        print(e)
+                    except Exception as e:
+                        print(e)
+                    j.Placement.Base.z = pozZ
+            #
+            if len(data):
+                for i in range(0, len(data)):
+                    a = layerNew.spisObiektowTXT[0]
+                    layerNew.spisObiektowTXT[0] = layerNew.spisObiektowTXT[0].common([data[i]])
+                    #Part.show(data[i])
+                    
+                    if not len(layerNew.spisObiektowTXT[0].Solids):
+                        layerNew.spisObiektowTXT[0] = a
+            #
+            if skipEmptyLayers and not(layerS.Proxy.spisObiektowTXT):
+                self.printInfo("\n\tLayer is empty", 'error')
+                FreeCAD.ActiveDocument.removeObject(layerS.Label)
+                return
+            #
+            layerNew.generuj(layerS)
+            layerNew.updatePosition_Z(layerS, pcb[1])
+            viewProviderLayerSilkObject(layerS.ViewObject)
+            layerS.ViewObject.ShapeColor = layerColor
+            #
+            grp.addObject(layerS)
+            #
+            pcb[2].Proxy.addObject(pcb[2], layerS)
+    
     def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers):
-        layerName = "{0}_{1}".format(layerNameO, layerNumber)
-        #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
-        layerType = [layerName]
-        #
-        layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
-        layerNew = layerSilkObject(layerS, layerType)
-        layerNew.holes = self.showHoles()
-        layerNew.side = layerSide
-        layerNew.defHeight = defHeight
-        layerNew.Cut = cutHoles
-        #
-        if layerVariant == "paths":
-            self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
-            self.wersjaFormatu.getPaths(layerNew, [layerNumber, layerNameO], [True, True, True, False])
-        else:
-            if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
-                self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
-                self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
-            if layerVariant == "pads":
-                self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)
-        #
-        pcb = getPCBheight()
-        #
-        if skipEmptyLayers and not(layerS.Proxy.spisObiektowTXT):
-            self.printInfo("\n\tLayer is empty", 'error')
-            FreeCAD.ActiveDocument.removeObject(layerS.Label)
-            return
-        #
-        layerNew.generuj(layerS)
-        layerNew.updatePosition_Z(layerS, pcb[1])
-        viewProviderLayerSilkObject(layerS.ViewObject)
-        layerS.ViewObject.ShapeColor = layerColor
-        #
-        grp.addObject(layerS)
-        #
-        pcb[2].Proxy.addObject(pcb[2], layerS)
-        #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
+        try:
+            layerName = "{0}_{1}".format(layerNameO, layerNumber)
+            #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
+            layerType = [layerName]
+            if layerVariant == "paths":
+                layerType.append("paths")
+            elif layerVariant == "pads":
+                layerType.append("pads")
+            elif layerVariant == "silk":
+                layerType.append("silk")
+            #
+            layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
+            layerNew = layerSilkObject(layerS, layerType)
+            layerNew.holes = self.showHoles()
+            layerNew.side = layerSide
+            layerNew.defHeight = defHeight
+            layerNew.Cut = cutHoles
+            #
+            if layerVariant == "paths":
+                self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
+                self.wersjaFormatu.getPaths(layerNew, [layerNumber, layerNameO], [True, True, True, False])
+            else:
+                if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
+                    self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
+                    self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
+                if layerVariant == "pads":
+                    self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)
+            #
+            pcb = getPCBheight()
+            #
+            if skipEmptyLayers and not(layerS.Proxy.spisObiektowTXT):
+                self.printInfo("\n\tLayer is empty", 'error')
+                FreeCAD.ActiveDocument.removeObject(layerS.Label)
+                return
+            #
+            layerNew.generuj(layerS)
+            layerNew.updatePosition_Z(layerS, pcb[1])
+            viewProviderLayerSilkObject(layerS.ViewObject)
+            layerS.ViewObject.ShapeColor = layerColor
+            #
+            grp.addObject(layerS)
+            #
+            pcb[2].Proxy.addObject(pcb[2], layerS)
+            #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
+        except Exception as e:
+            print(e)
     
     def generateDimensions(self, doc, layerGRP, layerName, layerColor, gruboscPlytki):
         layerName = "{0}".format(layerName)
@@ -416,21 +508,6 @@ class mainPCB(partsManaging):
             createConstraintArea(ser, typeL, height)
             self.updateView()
             #FreeCAD.ActiveDocument.recompute()
-    
-    def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
-        for i in data[0]:
-            for j in i: # polygons
-                layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "{0}_{1}".format(layerName, layerNumber))
-                layerNew = layerPolygonObject(layerS, PCBconf.PCBlayers[PCBconf.softLayers[self.databaseType][layerNumber][1]][3])
-                layerNew.points = j[3]
-                layerNew.name = j[2]
-                layerNew.isolate = j[1]
-                layerNew.paths = data[1]
-                layerNew.generuj(layerS)
-                layerNew.updatePosition_Z(layerS)
-                viewProviderLayerPolygonObject(layerS.ViewObject)
-                layerS.ViewObject.ShapeColor = layerColor
-                group.addObject(layerS)
     
     def generateOctagon(self, x, y, height, width=0):
         if width == 0:

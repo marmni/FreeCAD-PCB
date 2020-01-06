@@ -140,6 +140,20 @@ class pcbToolBarView(pcbToolBarMain):
         groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineON2)
         groupsMenuCTB.addAction(scriptCmd_cutToBoardOutlineOFF)
         scriptCmd_cutToBoardOutlineON.setMenu(groupsMenuCTB)
+        # show signals ON/OFF
+        scriptCmd_showSignals = self.createAction(u"Show signals - ON", u"Show signals ON", ":/data/img/showSignalsON.png")
+        QtCore.QObject.connect(scriptCmd_showSignals, QtCore.SIGNAL("triggered()"), partial(self.showSignals, True))
+        
+        scriptCmd_showSignals2 = self.createAction(u"Show signals - ON", u"Show signals ON", ":/data/img/showSignalsON.png")
+        QtCore.QObject.connect(scriptCmd_showSignals2, QtCore.SIGNAL("triggered()"), partial(self.showSignals, True))
+        
+        scriptCmd_showSignalsOFF = self.createAction(u"Show signals - OFF", u"Show signals OFF", ":/data/img/showSignalsOFF.png")
+        QtCore.QObject.connect(scriptCmd_showSignalsOFF, QtCore.SIGNAL("triggered()"), partial(self.showSignals, False))
+        
+        groupsMenuCTB = QtGui.QMenu(self)
+        groupsMenuCTB.addAction(scriptCmd_showSignals2)
+        groupsMenuCTB.addAction(scriptCmd_showSignalsOFF)
+        scriptCmd_showSignals.setMenu(groupsMenuCTB)
         # Cut holes through all layers ON/OFF
         scriptCmd_cutHolesThroughAllLayersON = self.createAction(u"Cut holes through all layers - ON", u"Cut holes through all layers - ON", ":/data/img/layers_TI_Holes.svg")
         QtCore.QObject.connect(scriptCmd_cutHolesThroughAllLayersON, QtCore.SIGNAL("triggered()"), partial(self.cutHolesThroughAllLayers, True))
@@ -188,8 +202,10 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_viewInternalView)
         self.addSeparator()
         self.addAction(scriptCmd_Layers)
+        self.addSeparator()
         self.addAction(scriptCmd_cutHolesThroughAllLayersON)
         self.addAction(scriptCmd_cutToBoardOutlineON)
+        self.addAction(scriptCmd_showSignals)
         self.addAction(scriptCmd_ungroupParts)
         self.addAction(scriptCmd_groupParts)
         self.addSeparator()
@@ -208,6 +224,18 @@ class pcbToolBarView(pcbToolBarMain):
             for i in pcb[2].Group:
                 if hasattr(i, "Cut") and not i.Cut == value:
                     i.Cut = value
+    
+    def showSignals(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            colorsList = {}
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and isinstance(i.Proxy.Type, list) and "paths" in i.Proxy.Type:
+                    if value:
+                        colorsList = i.Proxy.colorizePaths(i, colorsList)
+                    else:
+                        i.Proxy.resetColors(i)
     
     def cutToBoardOutline(self, value):
         pcb = getPCBheight()

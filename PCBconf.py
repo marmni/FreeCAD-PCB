@@ -70,7 +70,7 @@ partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod\PCB\parts"), os.path.join(
 
 #  default software list
 #defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
-defSoftware = ['Eagle', 'KiCad', 'FreePCB', 'gEDA', 'IDF']  # do not change order!
+defSoftware = ['Eagle', 'KiCad', 'FreePCB', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
 
 #########################
 exportData = {
@@ -81,6 +81,7 @@ exportData = {
         'description': 'Eagle',
         'format': '*.brd',
         'icon': ':/data/img/eagle.png',
+        'export': True,
     },
     "geda" : {
         'name': 'gEDA',
@@ -89,6 +90,7 @@ exportData = {
         'description': 'gEDA',
         'format': '*.pcb',
         'icon': ':/data/img/geda.png',
+        'export': True,
     },
     "idf_v3" : {
         'name': 'IDF v3',
@@ -97,6 +99,7 @@ exportData = {
         'description': 'IDF v3',
         'format': '*.emn',
         'icon': '',
+        'export': True,
     },
     "freepcb" : {
         'name': 'FreePCB',
@@ -105,6 +108,7 @@ exportData = {
         'description': 'FreePCB',
         'format': '*.fpc',
         'icon': ':/data/img/freepcb.png',
+        'export': True,
     },
     "kicad" : {
         'name': 'KiCad v4',
@@ -113,6 +117,16 @@ exportData = {
         'description': 'KiCad',
         'format': '*.kicad_pcb',
         'icon': ':/data/img/kicad.png',
+        'export': True,
+    },
+    "hyp_v2" : {
+        'name': 'HyperLynx',
+        'exportLayers': [],
+        'exportClass': '',
+        'description': 'HyperLynx',
+        'format': '*.HYP',
+        'icon': '',
+        'export': False,
     },
 }
 #########################
@@ -380,7 +394,13 @@ softLayers = {
         903: {"side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('bRouteKeepoutColor', 65535), "ltype": 'bRouteKeepout', "description": "Route Keepout, bottom side", "value": ['int', '%', 50, 0, 100]},
         904: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('vRouteKeepoutColor', 255), "ltype": 'vRouteKeepout', "description": "Via Keepout", "value": ['int', '%', 50, 0, 100]},
         905: {"side": -1, "mirrorLayer": None, "color": getFromSettings_Color_1('AnnotationsColor', 4294967295), "description": "Annotations", "value": None}, 
-    }
+    },
+    "hyp": {
+        1: {"side": 1, "mirrorLayer": 16, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, top side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        16: {"side": 0, "mirrorLayer": 1, "color": getFromSettings_Color_1('PathColor', 7012607), "description": "Tracks, bottom side", "value": ['double', u'μm', 34.6, 0, 350]}, 
+        17: {"name": "tPad", "side": 1, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, top side", "value": ['double', u'μm', 35, 0, 350]}, 
+        18: {"name": "bPad", "side": 0, "mirrorLayer": None, "color": getFromSettings_Color_1('PadColor', 3094557695), "description": "Pads, bottom side", "value": ['double', u'μm', 35, 0, 350]},
+    },
 }
 
 

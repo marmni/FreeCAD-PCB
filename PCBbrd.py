@@ -75,30 +75,27 @@ def wersjaFormatuF(filename):
     ''' '''
     rozsz = os.path.splitext(os.path.basename(filename))[1]
     
-    if rozsz == ".brd":
+    if rozsz.lower() == ".brd":
         try:  # eagle
             projektBRD = minidom.parse(filename)
             programEagle = projektBRD.getElementsByTagName("eagle")[0].getAttribute("version")
             return ["eagle", "Eagle {0}".format(programEagle)]
         except:
             return [False]
-    elif rozsz == ".HYP":
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
+    elif rozsz.lower() == ".hyp":
         try:
             projektBRD = builtins.open(filename, "r").read()
             version = re.findall(r'\{VERSION=(.+?)\}', projektBRD)[0]
             
-            if version == '2.10':
-                return ["hyp_v2", "HyperLynx (version 2.10)"]
+            if float(version) >= 2.10:
+                return ["hyp_v2", "HyperLynx (version {0})".format(version)]
             else:
                 FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
                 return [False]
         except:
             return [False]
         
-    elif rozsz in [".idf", ".brd", ".brd", ".emn", ".bdf", ".idb"]:
+    elif rozsz.lower() in [".idf", ".brd", ".brd", ".emn", ".bdf", ".idb"]:
         try:  # idf v2
             projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
             ver = re.findall(r'board_file\s+(.+?)\s+', projektBRD)[0]
@@ -119,7 +116,7 @@ def wersjaFormatuF(filename):
                     return ["idf_v4", "IDF v4"]
                 except:
                     return [False]
-    elif rozsz == ".kicad_pcb":
+    elif rozsz.lower() == ".kicad_pcb":
         try:  # kicad
             projektBRD = builtins.open(filename, "r").read()
             version = re.findall('^\(kicad_pcb \(version (.+?)\)', projektBRD)[0]
@@ -135,7 +132,7 @@ def wersjaFormatuF(filename):
                 return [False]
         except:
             return [False]
-    elif rozsz == ".fcd":
+    elif rozsz.lower() == ".fcd":
         FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
         return [False]
         
@@ -145,17 +142,7 @@ def wersjaFormatuF(filename):
             return ["fidocadj", "FidoCadJ"]
         except:
             return [False]
-    elif rozsz == ".asc":
-        FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-        return [False]
-        
-        try:  # DipTrace
-            projektBRD = builtins.open(filename, "r").read()
-            version = re.search('^\(Source "DipTrace-PCB"\)', projektBRD).group()
-            return ["diptrace", "DipTrace"]
-        except:
-            return [False] 
-    elif rozsz == ".rzp":
+    elif rozsz.lower() == ".rzp":
         FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
         return [False]
         
@@ -171,7 +158,7 @@ def wersjaFormatuF(filename):
             return ["razen", "Razen {0}".format(wersja)]
         except:
             return [False]
-    elif rozsz == ".fpc":  # freepcb
+    elif rozsz.lower() == ".fpc":  # freepcb
         try:
             projektBRD = builtins.open(filename, "r").read()
             wersjaProgramu = re.search('version: (.*)\r\n', projektBRD).groups()[0]
@@ -187,7 +174,7 @@ def wersjaFormatuF(filename):
                 #return [False]
             except:
                 return [False]
-    elif rozsz == ".pcb":  # geda
+    elif rozsz.lower() == ".pcb":  # geda
         projektBRD = builtins.open(filename, "r").read()
         try:
             wersjaProgramu = re.search(r"# release: pcb (.*)", projektBRD).groups()[0]

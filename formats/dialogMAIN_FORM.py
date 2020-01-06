@@ -41,7 +41,7 @@ import unicodedata
 import PCBconf
 from PCBpartManaging import partsManaging
 from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1
-from PCBobjects import layerPolygonObject, viewProviderLayerPolygonObject, constraintAreaObject, viewProviderConstraintAreaObject
+from PCBobjects import constraintAreaObject, viewProviderConstraintAreaObject
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
@@ -165,6 +165,8 @@ class dialogMAIN_FORM(QtGui.QDialog):
         #
         self.debugImport = QtGui.QCheckBox('Debug import')
         
+        self.copperImportPolygons = QtGui.QCheckBox('Import polygons from copper layers')
+        
         self.skipEmptyLayers = QtGui.QCheckBox('Skip empty layers')
         self.skipEmptyLayers.setChecked(freecadSettings.GetBool("skipEmptyLayers", True))
         #
@@ -249,6 +251,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         #self.layOther.addWidget(QtGui.QLabel(u"Library"), 0, 0, 1, 1) # library
         #self.layOther.addWidget(self.razenBiblioteki, 0, 1, 1, 2) # library
         self.layOther.addWidget(self.debugImport, 1, 0, 1, 3)
+        #self.layOther.addWidget(self.copperImportPolygons, 2, 0, 1, 3)
         ##############################################
         mainWidgetLeftSide = QtGui.QWidget()
         layLeftSide = QtGui.QGridLayout(mainWidgetLeftSide)
