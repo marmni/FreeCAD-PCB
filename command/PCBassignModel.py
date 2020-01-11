@@ -31,6 +31,7 @@ import FreeCAD, FreeCADGui, Part
 import glob
 import sys
 import copy
+import re
 #
 from PCBdataBase import dataBase
 from PCBconf import defSoftware, partPaths
@@ -650,7 +651,7 @@ class modelSettingsTable(QtGui.QTableWidget):
             #
             data = {}
             data['id'] = -1
-            data['name'] = dial.packageName.text().strip()
+            data['name'] = re.sub('[^a-zA-Z0-9 _\+\.\-]+', '', dial.packageName.text().strip())
             data['software'] = dial.supSoftware.currentText()
             data['x'] = dial.pozX.value()
             data['y'] = dial.pozY.value()

@@ -33,12 +33,11 @@ import DraftGeomUtils
 import Draft
 from math import sqrt
 #
-from PCBconf import PCBlayers, softLayers
+from PCBconf import softLayers, eagleColorsDefinition
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
 from PCBfunctions import mathFunctions, filterHoles
-from PCBconf import eagleColorsDefinition
 
 
 def getSettings(projektBRD, paramName, tryb=True):
@@ -267,7 +266,7 @@ class EaglePCB(mathFunctions):
                         y = float(j.getAttribute('y'))
                         curve = j.getAttribute('curve')
                         
-                        pol.append([x, y, curve])
+                        pol.append([x, y, curve, i])
                     data.append(pol)
         return data
     
@@ -310,6 +309,7 @@ class EaglePCB(mathFunctions):
                         'ys': ys,
                         'rot': rot,
                         'layer': lay,
+                        'data': i
                     })
         
         return data
@@ -340,6 +340,7 @@ class EaglePCB(mathFunctions):
                         'r': r,
                         'width': w,
                         'layer': lay,
+                        'data': i
                     })
         
         return data
@@ -392,6 +393,7 @@ class EaglePCB(mathFunctions):
                         'curve': curve,
                         'cap': cap,
                         'layer': lay,
+                        'data': i
                     })
             
         return data
@@ -736,8 +738,11 @@ class EaglePCB(mathFunctions):
         
         #return [signal, wiresDB]
         
+    def getPolygonsFromCopperLayer(self, layerNew, layerNumber, display=[True, True, True, False]):
+        self.addStandardShapes(self.projektBRD.getElementsByTagName("signals")[0], layerNew, [layerNumber[0]], display, getSignals=True)
+        
     def getPaths(self, layerNew, layerNumber, display=[True, True, True, False]):
-        self.addStandardShapes(self.projektBRD.getElementsByTagName("signals")[0], layerNew, [layerNumber[0]], display)
+        self.addStandardShapes(self.projektBRD.getElementsByTagName("signals")[0], layerNew, [layerNumber[0]], display, getSignals=True)
 
     def getSettings(self, paramName):
         for i in self.projektBRD.getElementsByTagName("param"):
@@ -797,7 +802,7 @@ class EaglePCB(mathFunctions):
         #
         return glue
     
-    def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
+    def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None, getSignals=False):
         if parent:
             X = parent['x']
             Y = parent['y']
@@ -813,13 +818,19 @@ class EaglePCB(mathFunctions):
                     if parent:
                         layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
                         layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
-                    layerNew.setFace()
+                    if getSignals:
+                        layerNew.setFace(signalName=i['data'].parentNode.getAttribute('name'))
+                    else:
+                        layerNew.setFace()
                 else:
                     layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'], i['cap'])
                     if parent:
                         layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
                         layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
-                    layerNew.setFace()
+                    if getSignals:
+                        layerNew.setFace(signalName=i['data'].parentNode.getAttribute('name'))
+                    else:
+                        layerNew.setFace()
         # okregi
         if display[1]:
             for i in self.getCircles(dane, layerNumber, [X, Y]):
@@ -845,13 +856,37 @@ class EaglePCB(mathFunctions):
         ## polygon
         if display[3]:
             for i in self.getPolygons(dane, layerNumber):
+                #if getSignals:
+                    #signalName = i[0][-1].parentNode.getAttribute('name')
+                    # pol = self.getPolygon(i)
+                    # polygonN = layerNew.addPolygon(pol, True)
+                    
+                    # if polygonN:
+                
+                        # else:
+                            # isolate = self.getSettings('mdWireWire')
+                        
+                        # polygonN = layerNew.createFace(polygonN)
+                        # #polygonN = layerNew.cutOffPaths(polygonN, signalName, isolate)
+                        # layerNew.addNewObject(polygonN, signalName)
+                        # #Part.show(polygonN)
+                # else:
                 if parent:
                     layerNew.addPolygon(self.getPolygon(i, parent['x'], parent['y']))
                     layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
                     layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 else:
                     layerNew.addPolygon(self.getPolygon(i))
-                layerNew.setFace()
+                
+                if getSignals:
+                    isolate = self.getSettings('mdWireWire')
+                    
+                    if i[0][-1].getAttribute('isolate'):
+                        #if float(i[0][-1].getAttribute('isolate')) > isolate:
+                        isolate = float(i[0][-1].getAttribute('isolate'))
+                    layerNew.setFace(signalName=[i[0][-1].parentNode.getAttribute('name'), isolate])
+                else:
+                    layerNew.setFace()
     
     def getDimensions(self):
         wymiary = []
@@ -1047,8 +1082,6 @@ class EaglePCB(mathFunctions):
                 try:
                     if softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]:
                         szukanaWarstwa = softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]
-                    else:
-                        szukanaWarstwa = layerNumber[0]
                 except:
                     szukanaWarstwa = layerNumber[0]
             else:

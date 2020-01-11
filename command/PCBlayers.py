@@ -30,7 +30,7 @@ from functools import partial
 import FreeCAD
 from collections import OrderedDict
 #
-from PCBconf import PCBlayers, PCBconstraintAreas
+from PCBconf import PCBconstraintAreas
 from PCBboard import getPCBheight
 
 #***********************************************************************

@@ -515,7 +515,7 @@ class partsManaging(mathFunctions):
             annotation.generate(False)
             step_model.PartName = annotation.Annotation
         except Exception as e:
-            pass
+            print(e)
         ##################################################################
         ## part value object
         ##################################################################

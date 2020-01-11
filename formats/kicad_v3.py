@@ -33,46 +33,14 @@ import re
 from math import sqrt
 import os
 #
-from PCBconf import PCBlayers, softLayers
+from PCBconf import softLayers
 from PCBobjects import *
 from formats.PCBmainForms import *
 from command.PCBgroups import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions
+from PCBfunctions import mathFunctions, setProjectFile
 from PCBconf import kicadColorsDefinition
 
-
-def setProjectFile(filename):
-    projektBRD = builtins.open(filename, "r").read()[1:]
-    wynik = ''
-    licznik = 0
-    txt = ''
-    start = 0
-    #
-    txt_1 = 0
-
-    for i in projektBRD:
-        if i in ['"', "'"] and txt_1 == 0:
-            txt_1 = 1
-        elif i in ['"', "'"] and txt_1 == 1:
-            txt_1 = 0
-        
-        if txt_1 == 0:
-            if i == '(':
-                licznik += 1
-                start = 1
-            elif i == ')':
-                licznik -= 1
-        
-        txt += i
-        
-        if licznik == 0 and start == 1:
-            wynik += '[start]' + txt.strip() + '[stop]'
-            txt = ''
-            start = 0
-    
-    return wynik
-    
 
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):

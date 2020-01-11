@@ -385,8 +385,12 @@ def sketcherGetGeometry(sketcherIN):
 #
 ########################################################################
 
-def setProjectFile(filename, char=['(', ')']):
-    projektBRD = builtins.open(filename, "r").read()[1:]
+def setProjectFile(filename, char=['(', ')'], loadFromFile=True):
+    if loadFromFile:
+        projektBRD = builtins.open(filename, "r").read()[1:]
+    else:
+        projektBRD = filename
+    #
     wynik = ''
     licznik = 0
     txt = ''

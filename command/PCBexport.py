@@ -213,9 +213,10 @@ class exportPCB_Gui(QtGui.QWizard):
         #
         self.listaFormatow = QtGui.QListWidget()
         for i, j in exportData.items():
-            a = QtGui.QListWidgetItem(j['name'])
-            a.setData(QtCore.Qt.UserRole, i)
-            self.listaFormatow.addItem(a)
+            if j['export']:
+                a = QtGui.QListWidgetItem(j['name'])
+                a.setData(QtCore.Qt.UserRole, i)
+                self.listaFormatow.addItem(a)
         QtCore.QObject.connect(self.listaFormatow, QtCore.SIGNAL("currentRowChanged (int)"), self.zmianaProgramu)
         #
         lay = QtGui.QGridLayout(page)

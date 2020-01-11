@@ -33,7 +33,7 @@ import FreeCADGui
 import re
 from math import radians
 #
-from PCBconf import supSoftware, PCBlayers, softLayers
+from PCBconf import supSoftware, softLayers
 from PCBobjects import *
 from formats.PCBmainForms import *
 
