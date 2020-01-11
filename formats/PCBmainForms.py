@@ -205,8 +205,6 @@ class mainPCB(partsManaging):
             self.generateErrorReport(errors, self.projektBRDName)
     
     def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
-        FreeCAD.Console.PrintWarning("Glue generator is temporary disabled\n")
-        pass
         for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
             ser.ViewObject.Visibility = False

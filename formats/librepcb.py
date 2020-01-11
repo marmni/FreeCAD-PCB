@@ -604,7 +604,49 @@ class LibrePCB(mathFunctions):
                 self.libraries[value]["footprints"][footprintName] = i
     
     def getGlue(self, layerNumber):
-        pass
+        glue = {}
+        #
+        for i in re.findall(r'\[start\]\(polygon[\s+a-zA-Z0-9\-]*\(layer\s+%s\)(.+?)\[stop\]' % layerNumber[0], self.projektBRD, re.MULTILINE|re.DOTALL):
+            skipLast = False
+            [width, fill] = re.search(r'\(width\s+(.+?)\)\s+\(fill\s+(.+?)\)\s+\(', i).groups()
+            
+            width = float(width)
+            if width == 0:
+                width = 0.1
+            
+            if not width in glue.keys():
+                glue[width] = []
+            #
+            data = re.findall(r'\(vertex\s+\(position\s+(.+?)\s+(.+?)\)\s+\(angle\s+(.+?)\)\)', i)
+            if data[0] == data[1]:
+                data.pop(0)
+            
+            if data[0] == data[-1]:
+                data.pop(-1)
+            else:
+                skipLast = True
+            
+            for j in range(0, len(data)):
+                if j == len(data) - 1 and skipLast:
+                    break
+                #
+                x1 = float(data[j][0])
+                y1 = float(data[j][1])
+                angle = float(data[j][2])
+                
+                if j == len(data) - 1:
+                    x2 = float(data[0][0])
+                    y2 = float(data[0][1])
+                else:
+                    x2 = float(data[j + 1][0])
+                    y2 = float(data[j + 1][1])
+                #
+                if not angle == 0.0:
+                    glue[width].append(['arc', x2, y2, x1, y1, angle])
+                else:
+                    glue[width].append(['line', x1, y1, x2, y2])
+        #
+        return glue
     
     def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
         self.addStandardShapes(self.projektBRD, layerNew, layerNumber[0], [True, True, True, True])
