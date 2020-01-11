@@ -57,6 +57,7 @@ from formats.kicad_v3 import KiCadv3_PCB
 from formats.kicad_v4 import KiCadv4_PCB
 from formats.idf_v2 import IDFv2_PCB
 from formats.idf_v3 import IDFv3_PCB
+from formats.librepcb import LibrePCB
 # from formats.idf_v4 import IDFv4_PCB
 from formats.hyp import HYP_PCB
 
@@ -96,6 +97,8 @@ class mainPCB(partsManaging):
             # self.wersjaFormatu = IDFv4_PCB(filename, self)
         elif wersjaFormatu == "hyp_v2":
             self.wersjaFormatu = HYP_PCB(filename, self)
+        elif wersjaFormatu == "librepcb":
+            self.wersjaFormatu = LibrePCB(filename, self)
 
         self.setDatabase()
         
@@ -131,7 +134,7 @@ class mainPCB(partsManaging):
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
                 ################
-                if self.databaseType in ["geda", "idf"]:
+                if self.databaseType in ["geda", "idf", "librepcb", "librepcb"]:
                     layerNumber = self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text()
                 else:
                     layerNumber = int(self.wersjaFormatu.dialogMAIN.spisWarstw.item(i, 1).text())
@@ -202,6 +205,8 @@ class mainPCB(partsManaging):
             self.generateErrorReport(errors, self.projektBRDName)
     
     def generateGlue(self, doc, grp, layerName, layerColor, layerNumber, layerSide):
+        FreeCAD.Console.PrintWarning("Glue generator is temporary disabled\n")
+        pass
         for i, j in self.wersjaFormatu.getGlue([layerNumber, layerName]).items():
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
             ser.ViewObject.Visibility = False
@@ -227,22 +232,7 @@ class mainPCB(partsManaging):
             glue.color = layerColor
             glue.generate()
             #glue.recompute()
-    
-    # def generatePolygons(self, data, doc, group, layerName, layerColor, layerNumber):
-        # for i in data[0]:
-            # for j in i: # polygons
-                # layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "{0}_{1}".format(layerName, layerNumber))
-                # layerNew = layerPolygonObject(layerS, PCBconf.PCBlayers[PCBconf.softLayers[self.databaseType][layerNumber][1]][3])
-                # layerNew.points = j[3]
-                # layerNew.name = j[2]
-                # layerNew.isolate = j[1]
-                # layerNew.paths = data[1]
-                # layerNew.generuj(layerS)
-                # layerNew.updatePosition_Z(layerS)
-                # viewProviderLayerPolygonObject(layerS.ViewObject)
-                # layerS.ViewObject.ShapeColor = layerColor
-                # group.addObject(layerS)
-            
+
     def generatePolygonsOnCopperLayer(self, pathsLayers):
         for i in pathsLayers: # i = doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers
             [doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers] = i
@@ -261,6 +251,7 @@ class mainPCB(partsManaging):
             #
             pcb = getPCBheight()
             data = []
+            # nS= None
             
             for j in pcb[2].Group:
                 if hasattr(j, "Proxy") and hasattr(j.Proxy, "Type") and isinstance(j.Proxy.Type, list) and ("paths" in j.Proxy.Type or "pads" in j.Proxy.Type) and not "polygon" in j.Proxy.Type:
@@ -277,22 +268,52 @@ class mainPCB(partsManaging):
                                     try:
                                         a = solid.makeOffsetShape(layerNew.signalsList[0][1], 0.01, join=0)
                                         if not a.isNull():
+                                            #######################################################################
+                                            #too slow solution -> testing board 227[s]
+                                            # common = layerNew.spisObiektowTXT[0].common(a)
+                                            # layerNew.spisObiektowTXT[0] = layerNew.spisObiektowTXT[0].cut(common)
+                                            ######################################################################
+                                            #too slow solution -> testing board 183[s]
+                                            # layerNew.spisObiektowTXT[0] = layerNew.spisObiektowTXT[0].cut(a)
+                                            ######################################################################
+                                            # only cutting -> testing board 9[s]
                                             new = layerNew.spisObiektowTXT[0]
                                             data.append(new.cut(a))
+                                            ######################################################################
+                                            #too slow solution -> testing board 160[s]
+                                            # if not nS:
+                                                # nS = a
+                                            # else:
+                                                # nS = nS.fuse(a)
+                                            ######################################################################
                                     except Exception as e:
                                         print(e)
                     except Exception as e:
                         print(e)
                     j.Placement.Base.z = pozZ
             #
+            # layerNew.spisObiektowTXT[0] = layerNew.spisObiektowTXT[0].cut(nS)
             if len(data):
+                pass
+                #######################################################################
+                #too slow solution -> testing board 237[s]
+                # out =[]
+                # for i in range(0, len(data)):
+                    # Part.show(data[i])
+                # for i in FreeCAD.ActiveDocument.Objects:
+                    # if i.Label.startswith("Shape"):
+                        # out.append(i)
+                # a = FreeCAD.ActiveDocument.addObject("Part::MultiCommon","Common")
+                # a.Shapes = out
+                # FreeCAD.ActiveDocument.recompute()
+                #######################################################################
+                #testing board 139[s]
                 for i in range(0, len(data)):
                     a = layerNew.spisObiektowTXT[0]
                     layerNew.spisObiektowTXT[0] = layerNew.spisObiektowTXT[0].common([data[i]])
                     #Part.show(data[i])
-                    
                     if not len(layerNew.spisObiektowTXT[0].Solids):
-                        layerNew.spisObiektowTXT[0] = a
+                       layerNew.spisObiektowTXT[0] = a
             #
             if skipEmptyLayers and not(layerS.Proxy.spisObiektowTXT):
                 self.printInfo("\n\tLayer is empty", 'error')

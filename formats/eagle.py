@@ -33,7 +33,7 @@ import DraftGeomUtils
 import Draft
 from math import sqrt
 #
-from PCBconf import PCBlayers, softLayers, eagleColorsDefinition
+from PCBconf import softLayers, eagleColorsDefinition
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
@@ -1082,8 +1082,6 @@ class EaglePCB(mathFunctions):
                 try:
                     if softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]:
                         szukanaWarstwa = softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]
-                    else:
-                        szukanaWarstwa = layerNumber[0]
                 except:
                     szukanaWarstwa = layerNumber[0]
             else:

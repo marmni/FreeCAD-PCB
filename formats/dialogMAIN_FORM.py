@@ -251,7 +251,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         #self.layOther.addWidget(QtGui.QLabel(u"Library"), 0, 0, 1, 1) # library
         #self.layOther.addWidget(self.razenBiblioteki, 0, 1, 1, 2) # library
         self.layOther.addWidget(self.debugImport, 1, 0, 1, 3)
-        #self.layOther.addWidget(self.copperImportPolygons, 2, 0, 1, 3)
+        self.layOther.addWidget(self.copperImportPolygons, 2, 0, 1, 3)
         ##############################################
         mainWidgetLeftSide = QtGui.QWidget()
         layLeftSide = QtGui.QGridLayout(mainWidgetLeftSide)
@@ -325,7 +325,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
                     layerID += "B"
                 elif "top" in layerName.lower():
                     layerID += "T"
-            elif self.databaseType in ["idf"]:
+            elif self.databaseType in ["idf", "librepcb"]:
                 layerID = i
             else:
                 layerID = int(i)

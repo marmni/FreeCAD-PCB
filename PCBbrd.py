@@ -82,6 +82,17 @@ def wersjaFormatuF(filename):
             return ["eagle", "Eagle {0}".format(programEagle)]
         except:
             return [False]
+    elif rozsz.lower() == ".lpp":
+        try:
+            projektBRD = builtins.open(filename, "r").readlines()
+            
+            if "LIBREPCB-PROJECT" in projektBRD[0]:
+                return ["librepcb", "LibrePCB"]
+            else:
+                FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
+                return [False]
+        except:
+            return [False]
     elif rozsz.lower() == ".hyp":
         try:
             projektBRD = builtins.open(filename, "r").read()
@@ -90,7 +101,6 @@ def wersjaFormatuF(filename):
             if float(version) >= 2.10:
                 return ["hyp_v2", "HyperLynx (version {0})".format(version)]
             else:
-                FreeCAD.Console.PrintWarning(u"Not supported file format: {0}.\n".format(version))
                 return [False]
         except:
             return [False]

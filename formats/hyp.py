@@ -31,7 +31,7 @@ import re
 from math import radians
 import __future__
 
-from PCBconf import PCBlayers, softLayers
+from PCBconf import softLayers
 from PCBobjects import *
 from command.PCBgroups import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
@@ -103,34 +103,36 @@ class HYP_PCB(mathFunctions):
             layer = 'Top'
         else:
             layer = 'Bottom'
-        
-        # lines
-        for i in re.findall(r'\(SEG X1=(.+?) Y1=(.+?) X2=(.+?) Y2=(.+?) W=(.+?) L=%s\)' % layer, self.projektBRD):
-            x1 = self.setUnit(i[0])
-            y1 = self.setUnit(i[1])
-            x2 = self.setUnit(i[2])
-            y2 = self.setUnit(i[3])
-            width = self.setUnit(i[4])
-            
-            if [x1, y1] != [x2, y2]:
-                layerNew.addLineWidth(x1, y1, x2, y2, width)
-                layerNew.setFace()
-        # arcs
-        for i in re.findall(r'\(ARC X1=(.+?) Y1=(.+?) X2=(.+?) Y2=(.+?) XC=(.+?) YC=(.+?) R=.+? W=(.+?) L=%s\)[^ Circle]' % layer, self.projektBRD):
-            x1 = self.setUnit(i[0])
-            y1 = self.setUnit(i[1])
-            
-            x2 = self.setUnit(i[2])
-            y2 = self.setUnit(i[3])
-            
-            xs = self.setUnit(i[4])
-            ys = self.setUnit(i[5])
-            
-            width = self.setUnit(i[6])
-            angle = self.getArcParameters(x1, y1, x2, y2, xs, ys)
-            #
-            layerNew.addArcWidth([x1, y1], [x2, y2],  angle, width)
-            layerNew.setFace()
+        #
+        for j in re.findall(r'{NET=(.*?)\n(.*?)}', self.projektBRD, re.MULTILINE|re.DOTALL):
+            signal = j[0]
+            # lines
+            for i in re.findall(r'\(SEG X1=(.+?) Y1=(.+?) X2=(.+?) Y2=(.+?) W=(.+?) L=%s\)' % layer, j[1]):
+                x1 = self.setUnit(i[0])
+                y1 = self.setUnit(i[1])
+                x2 = self.setUnit(i[2])
+                y2 = self.setUnit(i[3])
+                width = self.setUnit(i[4])
+                
+                if [x1, y1] != [x2, y2]:
+                    layerNew.addLineWidth(x1, y1, x2, y2, width)
+                    layerNew.setFace(signalName=signal)
+            # arcs
+            for i in re.findall(r'\(ARC X1=(.+?) Y1=(.+?) X2=(.+?) Y2=(.+?) XC=(.+?) YC=(.+?) R=.+? W=(.+?) L=%s\)[^ Circle]' % layer, j[1]):
+                x1 = self.setUnit(i[0])
+                y1 = self.setUnit(i[1])
+                
+                x2 = self.setUnit(i[2])
+                y2 = self.setUnit(i[3])
+                
+                xs = self.setUnit(i[4])
+                ys = self.setUnit(i[5])
+                
+                width = self.setUnit(i[6])
+                angle = self.getArcParameters(x1, y1, x2, y2, xs, ys)
+                #
+                layerNew.addArcWidth([x1, y1], [x2, y2],  angle, width)
+                layerNew.setFace(signalName=signal)
     
     def getArcParameters(self, x1, y1, x2, y2, xs, ys):
         angle = degrees(atan2(y2 - ys, x2 - xs) - atan2(y1 - ys, x1 - xs))

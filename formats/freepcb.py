@@ -29,7 +29,7 @@ import FreeCAD
 import builtins
 import re
 
-from PCBconf import PCBlayers, softLayers
+from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from command.PCBgroups import *
@@ -171,32 +171,35 @@ class FreePCB(mathFunctions):
         return parts
 
     def getPaths(self, layerNew, layerNumber, display=[True, True, True, False]):
-        data = self.getSection("nets").split('connect:')
+        section = self.getSection("nets").split("net:")
+        for k in section:
+            if not k.strip() == "":
+                signal = re.search(r'"(.*?)"',  k.strip(), re.DOTALL).groups()[0]
+                #
+                data = k.split('connect:')[1:]
         
-        if len(data) > 1:
-            data = data[1:]
-            for i in data:
-                vtx = re.findall(r'vtx:\s+.*?\s+(.*?)\s+(.*?)\s+.*?\n\s+seg:\s+.*?\s+(.*?)\s+(.*?)\s+', i)
-                lastVTX = re.findall(r'vtx:\s+.*?\s+(.*?)\s+(.*?)\s+.*?\s+.*?\s+.*?\s+.*?', i)[-1]
-                
-                for j in range(len(vtx)):
-                    x1 = float(vtx[j][0]) * self.mnoznik
-                    y1 = float(vtx[j][1]) * self.mnoznik
-                    width = float(vtx[j][3]) * self.mnoznik
+                for i in data:
+                    vtx = re.findall(r'vtx:\s+.*?\s+(.*?)\s+(.*?)\s+.*?\n\s+seg:\s+.*?\s+(.*?)\s+(.*?)\s+', i)
+                    lastVTX = re.findall(r'vtx:\s+.*?\s+(.*?)\s+(.*?)\s+.*?\s+.*?\s+.*?\s+.*?', i)[-1]
                     
-                    if int(vtx[j][2]) != int(layerNumber[0]):
-                        continue
-                    
-                    if j == len(vtx) - 1:
-                        x2 = float(lastVTX[0]) * self.mnoznik
-                        y2 = float(lastVTX[1]) * self.mnoznik
-                    else:
-                        x2 = float(vtx[j + 1][0]) * self.mnoznik
-                        y2 = float(vtx[j + 1][1]) * self.mnoznik
-                    #
-                    if [x1, y1] != [x2, y2]:
-                        layerNew.addLineWidth(x1, y1, x2, y2, width)
-                        layerNew.setFace()
+                    for j in range(len(vtx)):
+                        x1 = float(vtx[j][0]) * self.mnoznik
+                        y1 = float(vtx[j][1]) * self.mnoznik
+                        width = float(vtx[j][3]) * self.mnoznik
+                        
+                        if int(vtx[j][2]) != int(layerNumber[0]):
+                            continue
+                        
+                        if j == len(vtx) - 1:
+                            x2 = float(lastVTX[0]) * self.mnoznik
+                            y2 = float(lastVTX[1]) * self.mnoznik
+                        else:
+                            x2 = float(vtx[j + 1][0]) * self.mnoznik
+                            y2 = float(vtx[j + 1][1]) * self.mnoznik
+                        #
+                        if [x1, y1] != [x2, y2]:
+                            layerNew.addLineWidth(x1, y1, x2, y2, width)
+                            layerNew.setFace(signalName=signal)
 
     def getPads(self, layerNew, layerNumber, layerSide):
         # via

@@ -392,7 +392,7 @@ class createAnnotation_Gui(QtGui.QWidget):
 class PCBannotation(_DraftObject):
     """The ShapeString object"""
     def __init__(self, obj, mode='anno'):
-        self.Type = PCBlayers["Annotations"][0]
+        self.Type = "anno"
         self.mode = mode  # anno/param
         self.przX = 0
         self.przY = 0

@@ -780,7 +780,7 @@ class objectWire(mathFunctions):
         if hole[2] > 0:
             hole = [Part.Circle(FreeCAD.Vector(hole[0], hole[1]), FreeCAD.Vector(0, 0, 1), hole[2]).toShape()]
             hole = Part.Wire(hole)
-            hole = Part.Face(hole)
+            hole = self.makeFace(hole,self.defHeight)
             
             return mainObj.cut(hole)
         return mainObj

@@ -33,7 +33,7 @@ import re
 import os
 from math import sqrt
 
-from PCBconf import PCBlayers, softLayers
+from PCBconf import softLayers
 from PCBobjects import *
 from formats.PCBmainForms import *
 from formats.kicad_v3 import KiCadv3_PCB, setProjectFile

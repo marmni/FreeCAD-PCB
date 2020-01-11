@@ -85,7 +85,7 @@ class createGlueGui(QtGui.QWidget):
         self.side.addItems(['TOP', 'BOTTOM'])
         #
         self.pcbColor = kolorWarstwy()
-        self.pcbColor.setColor(PCBconf.PCBlayers['tGlue'][1])
+        self.pcbColor.setColor(PCBconf.layersList['glueT'][1])
         self.pcbColor.setToolTip(u"Click to change color")
         #
         lay = QtGui.QGridLayout(self)
@@ -150,9 +150,9 @@ class createGlue:
         grp = createGroup_Glue()
         #
         if self.side == 1:  # top
-            typeL = PCBconf.PCBlayers["tGlue"][3]
+            typeL = PCBconf.layersList['glueT'][3]
         else:
-            typeL  = PCBconf.PCBlayers["bGlue"][3]
+            typeL  = PCBconf.layersList['glueB'][3]
         
         a = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Glue_{0}".format(0))
         PCBgluePath(a, typeL)
