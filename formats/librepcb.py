@@ -104,9 +104,10 @@ class modelTypes(QtGui.QDialog):
 
 class LibrePCB(mathFunctions):
     def __init__(self, filename, parent):
+        #
         boardData = builtins.open(os.path.join(os.path.dirname(filename), "boards/boards.lp")).read()
         self.projectPath = os.path.dirname(filename)
-        
+        #
         boards = re.findall(r'\(board "(.+?)"\)', boardData)
         if len(boards) == 1:
             boardData = boards[0]

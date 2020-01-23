@@ -32,6 +32,46 @@ import re
 from PCBobjects import *
 from formats.PCBmainForms import *
 from command.PCBgroups import *
+from formats.dialogMAIN_FORM import dialogMAIN_FORM
+from PCBconf import softLayers
+
+
+
+def parseString(filename, char=['(', ')'], loadFromFile=True):
+    if loadFromFile:
+        projektBRD = builtins.open(filename, "r").read()[1:]
+    else:
+        projektBRD = filename
+    #
+    licznik = 0
+    wynik = ""
+    txt = ""
+    txt_1 = 0
+    start = 0
+
+    for i in projektBRD:
+        if i in ['"', "'"] and txt_1 == 0:
+            txt_1 = 1
+        elif i in ['"', "'"] and txt_1 == 1:
+            txt_1 = 0
+        
+        if txt_1 == 0 and licznik == 0:
+            if i == char[0]:
+                wynik += '[start]'
+        
+        if txt_1 == 0:
+            if i == char[0]:
+                licznik += 1
+            elif i == char[1]:
+                licznik -= 1
+        #
+        wynik += i
+        #
+        if txt_1 == 0 and licznik == 0:
+            if i == char[1]:
+                wynik += '[stop]'
+    
+    return wynik
 
 
 def getUnitsDefinition(projektBRD):
@@ -46,31 +86,13 @@ class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
         dialogMAIN_FORM.__init__(self, parent)
         self.databaseType = "idf_v4"
-        #
-        self.plytkaPCB_grupujElementy.setChecked(False)
-        self.plytkaPCB_grupujElementy.setDisabled(True)
-        
-        self.plytkaPCB_elementy.setChecked(False)
-        self.plytkaPCB_elementy.setDisabled(True)
-        
-        self.plytkaPCB_elementyKolory.setChecked(False)
-        self.plytkaPCB_elementyKolory.setDisabled(True)
-        
-        self.plytkaPCB_plikER.setChecked(False)
-        self.plytkaPCB_plikER.setDisabled(True)
-        
-        self.adjustParts.setChecked(False)
-        self.adjustParts.setDisabled(True)
-        
-        self.partMinX.setDisabled(True)
-        self.partMinY.setDisabled(True)
-        self.partMinZ.setDisabled(True)
         ###
         self.projektBRD = builtins.open(filename, "r").read().replace('\r', '')
+        self.layersNames = self.getLayersNames()
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
         ###
-        self.generateLayers()
+        self.generateLayers([])
         self.spisWarstw.sortItems(1)
     
     def getBoardThickness(self):
@@ -78,18 +100,42 @@ class dialogMAIN(dialogMAIN_FORM):
         Bot_Height = float(re.findall(r'Bot_Height \((.+?)\),', self.projektBRD)[0])
         
         return (Top_Height + Bot_Height) * getUnitsDefinition(self.projektBRD)
-
-
-class IDFv4_PCB(mainPCB):
-    def __init__(self, filename):
-        mainPCB.__init__(self, None)
         
-        self.dialogMAIN = dialogMAIN(filename)
-        self.projectSections = []
-        self.globalMnoznik = 1
-        self.PCBmnoznik = 1
+    def getLayersNames(self):
+        dane = {}
+        # extra layers
+        
+        #
+        return dane
+
+
+class IDFv4_PCB(mathFunctions):
+    def __init__(self, filename, parent):
+        self.fileName = filename
+        self.dialogMAIN = dialogMAIN(self.fileName)
         self.databaseType = "idf_v4"
+        self.parent = parent
+        self.mnoznik = 1
+        self.projectSections = []
     
+    def setProject(self):
+        self.projektBRD = builtins.open(self.fileName, "r").read().replace("\r\n", "\n").replace("\r", "\n")
+        
+        # globalna jednostka dla projektu
+        self.globalMnoznik = getUnitsDefinition(self.projektBRD)
+            
+        # jednostka w jakiej zapisana jest plytka pcb
+        pcbUnit = re.findall(r'Board_Part \(\nEntity_ID.*?Units \("(.*?)"\),', self.projektBRD, re.DOTALL)[0]
+        if pcbUnit == 'Global':
+            self.PCBmnoznik = self.globalMnoznik
+        elif pcbUnit == 'Inch':
+            self.mnoznik = 2.54
+        else:
+            self.mnoznik = 1
+        
+        # wszystkie sekcje wystepujace w projekcie
+        self.projectSections = re.findall(r'"(.*?)"', re.search(r'Board_Part \((.*?)\),', self.projektBRD, re.DOTALL).groups()[0])
+
     def getEntityByID(self, ID):
         return re.findall(r'Entity_ID \({0}\),(.*?)\);'.format(ID), self.projektBRD, re.DOTALL)[0].strip()
         
@@ -127,7 +173,7 @@ class IDFv4_PCB(mainPCB):
         ####
         return holes
     
-    def getPCB(self):
+    def getPCB(self, borderObject):
         PCB = []
         wygenerujPada = True
         #
@@ -158,34 +204,3 @@ class IDFv4_PCB(mainPCB):
                     PCB.append(['Line', x1, y1, x2, y2])
         #
         return [PCB, wygenerujPada]
-   
-    def setProject(self, filename):
-        self.projektBRD = builtins.open(filename, "r").read().replace("\r\n", "\n").replace("\r", "\n")
-        
-        # globalna jednostka dla projektu
-        self.globalMnoznik = getUnitsDefinition(self.projektBRD)
-            
-        # jednostka w jakiej zapisana jest plytka pcb
-        pcbUnit = re.findall(r'Board_Part \(\nEntity_ID.*?Units \("(.*?)"\),', self.projektBRD, re.DOTALL)[0]
-        if pcbUnit == 'Global':
-            self.PCBmnoznik = self.globalMnoznik
-        elif pcbUnit == 'Inch':
-            self.PCBmnoznik = 2.54
-        else:
-            self.PCBmnoznik = 1
-        
-        # wszystkie sekcje wystepujace w projekcie
-        self.projectSections = re.findall(r'"(.*?)"', re.search(r'Board_Part \((.*?)\),', self.projektBRD, re.DOTALL).groups()[0])
-
-    def generate(self, doc, groupBRD, filename):
-        board = self.getPCB()
-        if len(board[0]):
-            self.generatePCB(board, doc, groupBRD, self.dialogMAIN.gruboscPlytki.value())
-        else:
-            FreeCAD.Console.PrintWarning('No PCB border detected!\n')
-            return False
-        # holes/vias/pads
-        types = {'H':self.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.dialogMAIN.plytkaPCB_otworyP.isChecked()}
-        self.generateHoles(self.getHoles(types), doc, self.dialogMAIN.holesMin.value(), self.dialogMAIN.holesMax.value())
-        ##
-        return doc

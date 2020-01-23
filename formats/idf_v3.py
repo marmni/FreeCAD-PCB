@@ -44,8 +44,6 @@ def getUnitsDefinition(projektBRD):
         return 1
 
 
-
-
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
         dialogMAIN_FORM.__init__(self, parent)

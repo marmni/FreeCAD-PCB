@@ -121,6 +121,37 @@ def filterHoles(r, Hmin, Hmax):
 #
 ########################################################################
 
+def edgeGetArcAngle(arcData):
+    x1 = arcData.Vertexes[0].X
+    y1 = arcData.Vertexes[0].Y
+    x2 = arcData.Vertexes[1].X
+    y2 = arcData.Vertexes[1].Y
+    
+    x = arcData.Curve.Center.x
+    y = arcData.Curve.Center.y
+    
+    
+    
+    axisZ = arcData.Curve.Axis.z
+    angleXU = arcData.Curve.AngleXU
+    curve = degrees(arcData.FirstParameter) - degrees(arcData.LastParameter)
+    
+    if axisZ > 0:
+        curve *= -1
+    
+    if curve < 0:
+        #if angleXU < 0:
+        start = degrees(atan2(y2 - y, x2 - x))
+    else:
+        if angleXU < 0:
+            start =  360 + degrees(atan2(y1 - y, x1 - x))
+        else:
+            start =  degrees(atan2(y1 - y, x1 - x))
+
+    stop = abs(curve) + start 
+    
+    return [round(curve, 4), round(start, 4), round(stop, 4)]
+
 def sketcherGetArcAngle(arcData):
     x1 = arcData.StartPoint.x
     y1 = arcData.StartPoint.y
