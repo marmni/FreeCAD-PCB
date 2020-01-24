@@ -130,8 +130,6 @@ def edgeGetArcAngle(arcData):
     x = arcData.Curve.Center.x
     y = arcData.Curve.Center.y
     
-    
-    
     axisZ = arcData.Curve.Axis.z
     angleXU = arcData.Curve.AngleXU
     curve = degrees(arcData.FirstParameter) - degrees(arcData.LastParameter)

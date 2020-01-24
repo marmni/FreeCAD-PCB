@@ -32,9 +32,14 @@ import Part
 from pivy.coin import *
 
 from functools import partial
-import builtins
+import os.path
+import codecs
+from xml.dom import minidom
 
 from PCBfunctions import edgeGetArcAngle
+from PCBconf import exportData
+
+__currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 #***********************************************************************
 #*                             GUI
@@ -45,7 +50,9 @@ class createSectionsGui(QtGui.QWidget):
         
         self.form = self
         self.form.setWindowTitle(u"Create sections from selected models")
-        self.form.setWindowIcon(QtGui.QIcon(":/data/img/gluePath.png"))
+        self.form.setWindowIcon(QtGui.QIcon(":/data/img/Part_CrossSections.svg"))
+        
+        self.exportClass = None
         #
         self.components = []
         for i in FreeCADGui.Selection.getSelection():
@@ -66,26 +73,112 @@ class createSectionsGui(QtGui.QWidget):
         self.guidingPlane.addItems(["XY", "XZ", "YZ"])
         self.guidingPlane.setCurrentIndex(0)
         #
-        addPlane = QtGui.QPushButton('add')
-        self.connect(addPlane, QtCore.SIGNAL("pressed ()"), self.sectionsLisstTable.addSection)
+        addSection = QtGui.QPushButton('')
+        #addSection.setFlat(True)
+        addSection.setIcon(QtGui.QIcon(":/data/img/categoryAdd.png"))
+        addSection.setFixedWidth(24)
+        addSection.setToolTip('Add section')
+        self.connect(addSection, QtCore.SIGNAL("pressed ()"), self.sectionsLisstTable.addSection)
+        #
+        self.listaBibliotek = QtGui.QComboBox()
+        for i in exportData.keys():
+            if exportData[i]["exportComponent"]:
+                self.listaBibliotek.addItem(exportData[i]['name'])
+                self.listaBibliotek.setItemData(self.listaBibliotek.count() - 1, i, QtCore.Qt.UserRole)
+        self.connect(self.listaBibliotek, QtCore.SIGNAL("currentIndexChanged (int)"), self.changeSoftware)
+        #
+        deleteSection = QtGui.QPushButton('')
+        #deleteSection.setFlat(True)
+        deleteSection.setIcon(QtGui.QIcon(":/data/img/categoryDelete.png"))
+        deleteSection.setFixedWidth(24)
+        deleteSection.setToolTip('Delete section')
+        self.connect(deleteSection, QtCore.SIGNAL("pressed ()"), self.sectionsLisstTable.deleteSection)
+        #
+        libraryPathSel = QtGui.QPushButton('...')
+        libraryPathSel.setFixedWidth(24)
+        libraryPathSel.setToolTip('Define file')
+        self.connect(libraryPathSel, QtCore.SIGNAL("clicked ()"), self.changePathF)
+        
+        self.libraryPath = QtGui.QLineEdit('')
+        #
+        self.componentName = QtGui.QLineEdit('')
+        #
+        infoLabel = QtGui.QLabel(u''' 
+If library does not exist  - a new library will be created
+If there is a library and component with the given name - component will be updated
+If library exists but there is no component with the specified name - component will be added
+        ''')
+        infoLabel.setWordWrap(True)
         #
         lay = QtGui.QGridLayout(self)
-        lay.addWidget(QtGui.QLabel(u'Guiding plane:'), 0, 0, 1, 1)
-        lay.addWidget(self.guidingPlane, 0, 1, 1, 1)
-        lay.addWidget(QtGui.QLabel(u'Sections:'), 1, 0, 1, 1)
-        lay.addWidget(self.sectionsLisstTable, 1, 1, 1, 1)
-        lay.addWidget(addPlane, 2, 1, 1, 1)
+        lay.addWidget(QtGui.QLabel(u'Path:'), 0, 0, 1, 1)
+        lay.addWidget(self.libraryPath, 0, 1, 1, 1)
+        lay.addWidget(libraryPathSel, 0, 2, 1, 1)
+        lay.addWidget(QtGui.QLabel(u'Software:'), 1, 0, 1, 1)
+        lay.addWidget(self.listaBibliotek, 1, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Component name:'), 2, 0, 1, 1)
+        lay.addWidget(self.componentName, 2, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Guiding plane:'), 3, 0, 1, 1)
+        lay.addWidget(self.guidingPlane, 3, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Sections:'), 4, 0, 1, 1)
+        lay.addWidget(self.sectionsLisstTable, 4, 1, 3, 1)
+        lay.addWidget(addSection, 4, 2, 1, 1)
+        lay.addWidget(deleteSection, 5, 2, 1, 1)
+        lay.addWidget(infoLabel, 7, 0, 1, 3)
         #
         self.sectionsLisstTable.addSection()
+        self.changeSoftware(0)
+        
+    def changeSoftware(self, index):
+        self.exportClass = eval(exportData[self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)]['exportClass'])
+        
+        if self.libraryPath.text().strip() != "":
+            path = self.libraryPath.text().strip().split('.')
+            self.libraryPath.setText(path[0] + exportData[self.exportClass.programName]['formatLIB'].replace("*", ""))
+        
+    def changePathF(self):
+        path = QtGui.QFileDialog().getSaveFileName(self, u"Save as", os.path.expanduser("~"), exportData[self.exportClass.programName]['formatLIB'])
+        
+        filePath = path[0]
+        if not filePath == "":
+            filename, file_extension = os.path.splitext(filePath)
+            
+            if file_extension == "" or not file_extension == exportData[self.exportClass.programName]['formatLIB'].replace("*", ""):
+                filePath = filename + exportData[self.exportClass.programName]['formatLIB'].replace("*", "")
+            
+            self.libraryPath.setText(filePath)
         
     def reject(self):
         self.sectionsLisstTable.removeRoot()
         return True
     
     def accept(self):
+        if self.sectionsLisstTable.invisibleRootItem().childCount() == 0:
+            FreeCAD.Console.PrintWarning("Add minimum one section.\n")
+            return False
+        elif self.componentName.text().strip() == "":
+            FreeCAD.Console.PrintWarning("Set component name.\n")
+            return False
+        elif self.libraryPath.text().strip() == "":
+            FreeCAD.Console.PrintWarning("Set output file.\n")
+            return False
+        #
         self.sectionsLisstTable.removeRoot()
+        #
+        if not self.libraryPath.text().strip() == "":
+            filename, file_extension = os.path.splitext(self.libraryPath.text().strip())
+            
+            if file_extension == "" or not file_extension == exportData[self.exportClass.programName]['formatLIB'].replace("*", ""):
+                self.libraryPath.setText(filename + exportData[self.exportClass.programName]['formatLIB'].replace("*", ""))
         # generate sections
         if self.components:
+            self.exportClass.libraryPath = self.libraryPath.text().strip()
+            if os.path.exists(self.libraryPath.text().strip()):
+                self.exportClass.addToExistingLibrary()
+            else:
+                self.exportClass.createNewLibrary()
+            self.exportClass.createComponent(self.componentName.text().strip())
+            #
             if self.guidingPlane.currentIndex() == 0: # XY
                 v = FreeCAD.Vector(0, 0, 1)
             elif self.guidingPlane.currentIndex() == 1: # XZ
@@ -135,8 +228,6 @@ class createSectionsGui(QtGui.QWidget):
             dataOut["circles"] = []
             dataOut["arcs"] = []
             
-            fileOut = builtins.open("C:/Users/marmn/Desktop/test.txt", "w")
-           
             for i in comp.Wires:
                 for j in i.Edges:
                     if j.Curve.__class__.__name__ == "Line":
@@ -147,7 +238,7 @@ class createSectionsGui(QtGui.QWidget):
                         
                         if not [x1, y1,x2, y2] in dataOut["lines"] or not [x2, y2,x1, y1] in dataOut["lines"]:
                             dataOut["lines"].append([x1, y1,x2, y2])
-                            fileOut.write('<wire x1="{0}" y1="{1}" x2="{2}" y2="{3}" width="0.127" layer="21"/>\n'.format(x1, y1, x2, y2))
+                            self.exportClass.addLine(x1, y1, x2, y2)
                         else:
                            continue
                     else: # circle/arc
@@ -160,7 +251,7 @@ class createSectionsGui(QtGui.QWidget):
                             
                             if not [x, y, r] in dataOut["circles"]:
                                 dataOut["circles"].append([x, y, r])
-                                fileOut.write('<circle x="{0}" y="{1}" radius="{2}" width="0.127" layer="21"/>\n'.format(x, y, r))
+                                self.exportClass.addCircle(x, y, r)
                         else: # arc
                             x1 = round(j.Vertexes[0].X, 2)
                             y1 = round(j.Vertexes[0].Y, 2)
@@ -172,11 +263,12 @@ class createSectionsGui(QtGui.QWidget):
                             
                             if not [x1, y1, x2, y2, curve] in dataOut["arcs"]:
                                 dataOut["arcs"].append([x1, y1, x2, y2, curve])
-                                fileOut.write('<wire x1="{0}" y1="{1}" x2="{2}" y2="{3}" width="0.127" layer="21" curve="{4}"/>\n'.format(x1, y1, x2, y2, curve))
-            fileOut.close()
+                                self.exportClass.addArc(x1, y1, x2, y2, curve)
+            #
+            self.exportClass.export()
         #
         return True
-    
+
     def showSecton(self, planeID):
         self.sectionsLisstTable.createPlane()
 
@@ -311,6 +403,11 @@ class sectionsLisstTable(QtGui.QTreeWidget):
             #
             FreeCADGui.ActiveDocument.ActiveView.getSceneGraph().addChild(self.root)
     
+    def deleteSection(self):
+        if self.currentItem():
+            self.takeTopLevelItem(self.indexOfTopLevelItem(self.currentItem()))
+            self.createPlane()
+    
     def addSection(self):
         try:
             a = QtGui.QTreeWidgetItem()
@@ -335,3 +432,150 @@ class sectionsLisstTable(QtGui.QTreeWidget):
     
     def shiftSection(self, value):
         self.createPlane()
+
+
+class exportPCB():
+    def __init__(self):
+        self.addHoles = False
+        #self.addAnnotations = False
+        self.addDimensions = False
+    
+    def fileExtension(self, path):
+        extension = exportData[self.programName]['formatLIB'].split('.')[1]
+        if not path.endswith(extension):
+            path += '.{0}'.format(extension)
+        
+        return path
+        
+    def precyzjaLiczb(self, value):
+        return "%.2f" % float(value)
+
+
+class geda(exportPCB):
+    def __init__(self):
+        exportPCB.__init__(self)
+        #
+        self.libraryPath = None
+        self.programName = 'geda'
+        self.mainUnit = 'mm'
+
+
+class eagle(exportPCB):
+    def __init__(self):
+        exportPCB.__init__(self)
+        #
+        self.libraryPath = None
+        self.programName = 'eagle'
+        self.mainUnit = 'mm'
+        
+    def convertValues(self, data):
+        # if self.mainUnit == 'inch':
+            # data /= 25.4
+        # elif self.mainUnit == 'mil':
+            # data /= 0.0254
+            
+        return str(data)
+        
+    def addLine(self, x1, y1, x2, y2):
+        if [x1, y1] != [x2, y2]:
+            x = self.dummyFile.createElement("wire")
+            x.setAttribute('x1', self.convertValues(x1))
+            x.setAttribute('y1', self.convertValues(y1))
+            x.setAttribute('x2', self.convertValues(x2))
+            x.setAttribute('y2', self.convertValues(y2))
+            x.setAttribute('width', self.convertValues(0.127))
+            x.setAttribute('layer', "21")
+            
+            self.package.appendChild(x)
+    
+    def addCircle(self, xs, ys, r):
+        x = self.dummyFile.createElement("circle")
+        x.setAttribute('x', self.convertValues(xs))
+        x.setAttribute('y', self.convertValues(ys))
+        x.setAttribute('radius', self.convertValues(r))
+        x.setAttribute('width', self.convertValues(0.127))
+        x.setAttribute('layer', "21")
+        
+        self.package.appendChild(x)
+    
+    def addArc(self, x1, y1, x2, y2, curve):
+        x = self.dummyFile.createElement("wire")
+        x.setAttribute('x1', self.convertValues(x1))
+        x.setAttribute('y1', self.convertValues(y1))
+        x.setAttribute('x2', self.convertValues(x2))
+        x.setAttribute('y2', self.convertValues(y2))
+        x.setAttribute('curve', str(curve))
+        x.setAttribute('width', "0.127")
+        x.setAttribute('layer', "21")
+        
+        self.package.appendChild(x)
+
+    def createPackage(self, name):
+        packages = self.dummyFile.getElementsByTagName('packages')[0]
+        #
+        for i in packages.getElementsByTagName('package'):
+            if i.getAttribute('name') == name:
+                packages.removeChild(i)
+        #
+        self.package = self.dummyFile.createElement("package")
+        self.package.setAttribute('name', name)
+        #
+        packages.appendChild(self.package)
+        
+    def createDeviceset(self, name):
+        devicesets = self.dummyFile.getElementsByTagName('devicesets')[0]
+        #
+        for i in devicesets.getElementsByTagName('deviceset'):
+            if i.getAttribute('name') == name:
+                devicesets.removeChild(i)
+        #
+        deviceset = self.dummyFile.createElement("deviceset")
+        deviceset.setAttribute('name', name)
+        #
+        gates = self.dummyFile.createElement("gates")
+        
+        deviceset.appendChild(gates)
+        #
+        devices = self.dummyFile.createElement("devices")
+        
+        device = self.dummyFile.createElement("device")
+        device.setAttribute('name', "")
+        device.setAttribute('package', name)
+        
+        technologies = self.dummyFile.createElement("technologies")
+        
+        technology = self.dummyFile.createElement("technology")
+        technology.setAttribute('name', "")
+        technologies.appendChild(technology)
+        
+        device.appendChild(technologies)
+        devices.appendChild(device)
+        deviceset.appendChild(devices)
+        #
+        devicesets.appendChild(deviceset)
+        
+    def createComponent(self, componentName):
+        self.createDeviceset(componentName)
+        self.createPackage(componentName)
+    
+    def addToExistingLibrary(self):
+        self.dummyFile = minidom.parse(self.libraryPath)
+        
+        if self.libraryPath:
+            with codecs.open(self.fileExtension(self.libraryPath) + "_copy", "w", "utf-8") as out:
+                self.dummyFile.writexml(out)
+        
+        #
+        self.mainUnit = self.dummyFile.getElementsByTagName('grid')[0].getAttribute('unit')
+
+    def createNewLibrary(self):
+        self.mainUnit = 'mm'
+        self.dummyFile = minidom.parse(__currentPath__ + "/save/FreeCAD-PCB.lbr")
+    
+    def export(self):
+        if self.libraryPath:
+            fileName = self.fileExtension(self.libraryPath)
+        
+            with codecs.open(fileName, "w", "utf-8") as out:
+                self.dummyFile.writexml(out)
+        
