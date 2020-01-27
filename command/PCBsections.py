@@ -222,7 +222,7 @@ If library exists but there is no component with the specified name - component 
                 comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nX, nZ*-1, 0), FreeCAD.Rotation(FreeCAD.Vector(1,0,0), 90))
             else: # YZ
                 comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nZ, nY, 0), FreeCAD.Rotation(FreeCAD.Vector(0,1,0), 90))
-            # filter
+            # filter / export
             dataOut = {}
             dataOut["lines"] = []
             dataOut["circles"] = []
@@ -244,26 +244,27 @@ If library exists but there is no component with the specified name - component 
                     else: # circle/arc
                         c = j.Curve
                         
-                        if round(j.FirstParameter, 2) == 6.28 or round(j.LastParameter, 2) == 6.28: # circle
-                            x = round(c.Center.x, 2)
-                            y = round(c.Center.y, 2)
-                            r = round(c.Radius, 2)
-                            
-                            if not [x, y, r] in dataOut["circles"]:
-                                dataOut["circles"].append([x, y, r])
-                                self.exportClass.addCircle(x, y, r)
+                        xs = round(c.Center.x, 2)
+                        ys = round(c.Center.y, 2)
+                        r = round(c.Radius, 2)
+                        
+                        if (round(j.FirstParameter, 2) == 6.28 and j.LastParameter == 0) or (j.FirstParameter == 0 and round(j.LastParameter, 2) == 6.28): # circle
+                            if not [xs, ys, r] in dataOut["circles"]:
+                                dataOut["circles"].append([xs, ys, r])
+                                self.exportClass.addCircle(xs, ys, r)
                         else: # arc
                             x1 = round(j.Vertexes[0].X, 2)
                             y1 = round(j.Vertexes[0].Y, 2)
                             x2 = round(j.Vertexes[1].X, 2)
                             y2 = round(j.Vertexes[1].Y, 2)
+                            
                             [curve, start, stop] = edgeGetArcAngle(j)
                             
                             curve = round(curve, 2)
                             
-                            if not [x1, y1, x2, y2, curve] in dataOut["arcs"]:
-                                dataOut["arcs"].append([x1, y1, x2, y2, curve])
-                                self.exportClass.addArc(x1, y1, x2, y2, curve)
+                            if not [x1, y1, x2, y2, curve, xs, ys, r, start, stop] in dataOut["arcs"]:
+                                dataOut["arcs"].append([x1, y1, x2, y2, curve, xs, ys, r, start, stop])
+                                self.exportClass.addArc(x1, y1, x2, y2, curve, xs, ys, r, start, stop)
             #
             self.exportClass.export()
         #
@@ -318,6 +319,14 @@ class sectionsLisstTable(QtGui.QTreeWidget):
         self.removeRoot()
         if self.parent.components:
             self.root = SoSeparator()
+            #
+            redPlastic = SoMaterial()
+            redPlastic.ambientColor = (1.0, 0.0, 0.0)
+            redPlastic.diffuseColor = (1.0, 0.0, 0.0) 
+            redPlastic.specularColor = (0.5, 0.5, 0.5)
+            redPlastic.shininess = 0.1
+            redPlastic.transparency = 0.7
+            self.root.addChild(redPlastic)
             #
             if self.parent.guidingPlane.currentIndex() == 0: # XY
                 myRotation = SoRotationXYZ()
@@ -434,48 +443,75 @@ class sectionsLisstTable(QtGui.QTreeWidget):
         self.createPlane()
 
 
-class exportPCB():
+class exportModel():
     def __init__(self):
-        self.addHoles = False
-        #self.addAnnotations = False
-        self.addDimensions = False
+        self.dummyFile = None
+    
+    def convertValues(self, data):
+        if self.mainUnit == 'inch':
+            data /= 25.4
+        elif self.mainUnit == 'mil':
+            data /= 0.0254
+        
+        data = round(data, 2)
+        
+        return str(data)
     
     def fileExtension(self, path):
-        extension = exportData[self.programName]['formatLIB'].split('.')[1]
-        if not path.endswith(extension):
-            path += '.{0}'.format(extension)
+        if exportData[self.programName]['formatLIB'] != "":
+            extension = exportData[self.programName]['formatLIB'].split('.')[1]
+            if not path.endswith(extension):
+                path += '.{0}'.format(extension)
         
         return path
-        
-    def precyzjaLiczb(self, value):
-        return "%.2f" % float(value)
 
 
-class geda(exportPCB):
+class geda(exportModel):
     def __init__(self):
-        exportPCB.__init__(self)
+        exportModel.__init__(self)
         #
         self.libraryPath = None
         self.programName = 'geda'
-        self.mainUnit = 'mm'
+        self.mainUnit = 'mil'
+    
+    def createComponent(self, componentName):
+        self.dummyFile.write(u'Element(0x00000000 "" "{0}" "" 0 0 0 0 0 40 0x00000000)\n'.format(componentName.replace(" ", "_")))
+        self.dummyFile.write(u'(\n')
+    
+    def addToExistingLibrary(self):
+        if self.libraryPath:
+            self.dummyFile = codecs.open(self.fileExtension(self.libraryPath), mode="w")
+
+    def createNewLibrary(self):
+        if self.libraryPath:
+            self.dummyFile = codecs.open(self.fileExtension(self.libraryPath), mode="w")
+    
+    def export(self):
+        self.dummyFile.write(u')')
+        self.dummyFile.close()
+
+    def addLine(self, x1, y1, x2, y2):
+        if [x1, y1] != [x2, y2]:
+            self.dummyFile.write(u'ElementLine ({0} {1} {2} {3} 10)\n'.format(self.convertValues(x1), self.convertValues(y1), self.convertValues(x2), self.convertValues(y2)))
+    
+    def addArc(self, x1, y1, x2, y2, curve, xs, ys, r, start, stop):
+        if x1 < 0 and y1 > 0 or x1 > 0 and y1< 0:
+            self.dummyFile.write(u'ElementArc({0} {1} {2} {2} {3} {4} 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r), stop - 180, curve))
+        else:
+            self.dummyFile.write(u'ElementArc({0} {1} {2} {2} {3} {4} 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r), stop, curve))
+
+    def addCircle(self, xs, ys, r):
+        self.dummyFile.write(u'ElementArc({0} {1} {2} {2} 0 360 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r)))
 
 
-class eagle(exportPCB):
+class eagle(exportModel):
     def __init__(self):
-        exportPCB.__init__(self)
+        exportModel.__init__(self)
         #
         self.libraryPath = None
         self.programName = 'eagle'
         self.mainUnit = 'mm'
-        
-    def convertValues(self, data):
-        # if self.mainUnit == 'inch':
-            # data /= 25.4
-        # elif self.mainUnit == 'mil':
-            # data /= 0.0254
-            
-        return str(data)
-        
+    
     def addLine(self, x1, y1, x2, y2):
         if [x1, y1] != [x2, y2]:
             x = self.dummyFile.createElement("wire")
@@ -487,6 +523,7 @@ class eagle(exportPCB):
             x.setAttribute('layer', "21")
             
             self.package.appendChild(x)
+            self.package.appendChild(self.dummyFile.createTextNode('\n'))
     
     def addCircle(self, xs, ys, r):
         x = self.dummyFile.createElement("circle")
@@ -497,8 +534,9 @@ class eagle(exportPCB):
         x.setAttribute('layer', "21")
         
         self.package.appendChild(x)
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
     
-    def addArc(self, x1, y1, x2, y2, curve):
+    def addArc(self, x1, y1, x2, y2, curve, xs, ys, r, start, stop):
         x = self.dummyFile.createElement("wire")
         x.setAttribute('x1', self.convertValues(x1))
         x.setAttribute('y1', self.convertValues(y1))
@@ -509,6 +547,7 @@ class eagle(exportPCB):
         x.setAttribute('layer', "21")
         
         self.package.appendChild(x)
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
 
     def createPackage(self, name):
         packages = self.dummyFile.getElementsByTagName('packages')[0]
@@ -519,8 +558,11 @@ class eagle(exportPCB):
         #
         self.package = self.dummyFile.createElement("package")
         self.package.setAttribute('name', name)
+        
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
         #
         packages.appendChild(self.package)
+        packages.appendChild(self.dummyFile.createTextNode('\n'))
         
     def createDeviceset(self, name):
         devicesets = self.dummyFile.getElementsByTagName('devicesets')[0]
@@ -534,7 +576,9 @@ class eagle(exportPCB):
         #
         gates = self.dummyFile.createElement("gates")
         
+        deviceset.appendChild(self.dummyFile.createTextNode('\n'))
         deviceset.appendChild(gates)
+        deviceset.appendChild(self.dummyFile.createTextNode('\n'))
         #
         devices = self.dummyFile.createElement("devices")
         
@@ -546,15 +590,26 @@ class eagle(exportPCB):
         
         technology = self.dummyFile.createElement("technology")
         technology.setAttribute('name', "")
+        technologies.appendChild(self.dummyFile.createTextNode('\n'))
         technologies.appendChild(technology)
+        technologies.appendChild(self.dummyFile.createTextNode('\n'))
         
+        device.appendChild(self.dummyFile.createTextNode('\n'))
         device.appendChild(technologies)
+        device.appendChild(self.dummyFile.createTextNode('\n'))
+        devices.appendChild(self.dummyFile.createTextNode('\n'))
         devices.appendChild(device)
+        devices.appendChild(self.dummyFile.createTextNode('\n'))
         deviceset.appendChild(devices)
+        deviceset.appendChild(self.dummyFile.createTextNode('\n'))
         #
         devicesets.appendChild(deviceset)
+        devicesets.appendChild(self.dummyFile.createTextNode('\n'))
         
     def createComponent(self, componentName):
+        componentName = componentName.upper()
+        componentName = componentName.replace(" ", "_")
+        
         self.createDeviceset(componentName)
         self.createPackage(componentName)
     
@@ -564,12 +619,11 @@ class eagle(exportPCB):
         if self.libraryPath:
             with codecs.open(self.fileExtension(self.libraryPath) + "_copy", "w", "utf-8") as out:
                 self.dummyFile.writexml(out)
-        
         #
-        self.mainUnit = self.dummyFile.getElementsByTagName('grid')[0].getAttribute('unit')
-
+        #self.mainUnit = self.dummyFile.getElementsByTagName('grid')[0].getAttribute('unit')
+        
     def createNewLibrary(self):
-        self.mainUnit = 'mm'
+        #self.mainUnit = 'mm'
         self.dummyFile = minidom.parse(__currentPath__ + "/save/FreeCAD-PCB.lbr")
     
     def export(self):

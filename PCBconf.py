@@ -80,10 +80,10 @@ exportData = {
         'exportClass': 'eagle()',
         'description': 'Eagle',
         'format': '*.brd',
-        'formatLIB': '*.lbr',
         'icon': ':/data/img/eagle.png',
         'export': True,
         'exportComponent': True,
+        'formatLIB': '*.lbr',
     },
     "geda" : {
         'name': 'gEDA',
@@ -93,7 +93,8 @@ exportData = {
         'format': '*.pcb',
         'icon': ':/data/img/geda.png',
         'export': True,
-        'exportComponent': False,
+        'exportComponent': True,
+        'formatLIB': '',
     },
     "idf_v3" : {
         'name': 'IDF v3',

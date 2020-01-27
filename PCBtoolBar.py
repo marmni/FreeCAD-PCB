@@ -754,9 +754,12 @@ class pcbToolBar(pcbToolBarMain):
             FreeCAD.Console.PrintWarning("No PCB found\n")
     
     def createSectionsSelParts(self):
-        if FreeCAD.activeDocument() and len(FreeCADGui.Selection.getSelection()):
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(createSectionsGui())
+        if FreeCAD.activeDocument():
+            if len(FreeCADGui.Selection.getSelection()):
+                if not FreeCADGui.Control.activeDialog():
+                    FreeCADGui.Control.showDialog(createSectionsGui())
+            else:
+                FreeCAD.Console.PrintWarning("Select minimum one object\n")
         
     def createGluePath(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:

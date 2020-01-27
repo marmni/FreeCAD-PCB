@@ -116,6 +116,9 @@ def wersjaFormatuF(filename):
                 return ["idf_v3", "IDF v3"]
             except:
                 try:  # idf v4
+                    FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+                    return [False]
+                    
                     ver = re.findall(r'IDF_Header \(\nVersion \("4.0"\)', projektBRD)[0]
                     if len(re.findall(r'"Board_Part"', re.findall(r'Board_Part \((.*?)\),', projektBRD, re.DOTALL)[0], re.DOTALL)) == 0:
                         FreeCAD.Console.PrintWarning("No PCB board detected in file.\n")
