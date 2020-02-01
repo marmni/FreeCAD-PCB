@@ -35,6 +35,7 @@ from functools import partial
 import os.path
 import codecs
 from xml.dom import minidom
+from math import degrees
 
 from PCBfunctions import edgeGetArcAngle
 from PCBconf import exportData
@@ -258,9 +259,10 @@ If library exists but there is no component with the specified name - component 
                             x2 = round(j.Vertexes[1].X, 2)
                             y2 = round(j.Vertexes[1].Y, 2)
                             
-                            [curve, start, stop] = edgeGetArcAngle(j)
-                            
-                            curve = round(curve, 2)
+                            #[curve, start, stop] = edgeGetArcAngle(j)
+                            start = degrees(j.FirstParameter)
+                            stop = degrees(j.LastParameter)
+                            curve = start - stop
                             
                             if not [x1, y1, x2, y2, curve, xs, ys, r, start, stop] in dataOut["arcs"]:
                                 dataOut["arcs"].append([x1, y1, x2, y2, curve, xs, ys, r, start, stop])
@@ -466,6 +468,59 @@ class exportModel():
         return path
 
 
+class kicad(exportModel):
+    def __init__(self):
+        exportModel.__init__(self)
+        #
+        self.libraryPath = None
+        self.programName = 'kicad'
+        self.mainUnit = 'mm'
+    
+    def createComponent(self, componentName):
+        self.dummyFile.write(u'''(module {0} (layer F.Cu) (tedit 5BC8D926)
+  (descr "DESCRIPTION")
+  (tags "TAGS")
+  (attr smd)
+  (fp_text reference REF** (at 0 -2.7) (layer F.SilkS)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (fp_text value {0} (at 0 2.7) (layer F.Fab)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  '''.format(componentName.replace(" ", "_")))
+    
+    def addToExistingLibrary(self):
+        if self.libraryPath:
+            self.dummyFile = codecs.open(self.fileExtension(self.libraryPath), mode="w")
+
+    def createNewLibrary(self):
+        if self.libraryPath:
+            self.dummyFile = codecs.open(self.fileExtension(self.libraryPath), mode="w")
+    
+    def export(self):
+        self.dummyFile.write(u')')
+        self.dummyFile.close()
+
+    def addLine(self, x1, y1, x2, y2):
+        if [x1, y1] != [x2, y2]:
+            self.dummyFile.write(u'(fp_line (start {0} {1}) (end {2} {3}) (layer F.Fab) (width 0.1))\n'.format(self.convertValues(x1), self.convertValues(y1), self.convertValues(x2), self.convertValues(y2)))
+    
+    def addArc(self, x1, y1, x2, y2, curve, xs, ys, r, start, stop):
+        if curve > 0:
+            curve *= -1
+            x1 = x1
+            y1 = y1
+        else:
+            x1 = x2
+            y1 = y2
+        
+        self.dummyFile.write(u'(fp_arc (start {0} {1}) (end {2} {3}) (angle {4}) (layer F.Fab) (width 0.1))\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(x1), self.convertValues(y1), curve))
+        
+    def addCircle(self, xs, ys, r):
+        x1 = xs + r
+        self.dummyFile.write(u'(fp_circle (center {0} {1}) (end {2} {1}) (layer F.Fab) (width 0.1))\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(x1)))
+
+
 class geda(exportModel):
     def __init__(self):
         exportModel.__init__(self)
@@ -495,8 +550,8 @@ class geda(exportModel):
             self.dummyFile.write(u'ElementLine ({0} {1} {2} {3} 10)\n'.format(self.convertValues(x1), self.convertValues(y1), self.convertValues(x2), self.convertValues(y2)))
     
     def addArc(self, x1, y1, x2, y2, curve, xs, ys, r, start, stop):
-        if x1 < 0 and y1 > 0 or x1 > 0 and y1< 0:
-            self.dummyFile.write(u'ElementArc({0} {1} {2} {2} {3} {4} 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r), stop - 180, curve))
+        if curve > 0:
+            self.dummyFile.write(u'ElementArc({0} {1} {2} {2} {3} {4} 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r), start, curve))
         else:
             self.dummyFile.write(u'ElementArc({0} {1} {2} {2} {3} {4} 10)\n'.format(self.convertValues(xs), self.convertValues(ys), self.convertValues(r), stop, curve))
 
@@ -542,7 +597,7 @@ class eagle(exportModel):
         x.setAttribute('y1', self.convertValues(y1))
         x.setAttribute('x2', self.convertValues(x2))
         x.setAttribute('y2', self.convertValues(y2))
-        x.setAttribute('curve', str(curve))
+        x.setAttribute('curve', str(curve * -1))
         x.setAttribute('width', "0.127")
         x.setAttribute('layer', "21")
         

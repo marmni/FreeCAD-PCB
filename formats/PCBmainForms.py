@@ -51,14 +51,14 @@ from PCBobjects import *
 from formats.eagle import EaglePCB
 from formats.freepcb import FreePCB
 from formats.geda import gEDA_PCB
-#from formats.fidocadj import FidoCadJ_PCB
+# from formats.fidocadj import FidoCadJ_PCB
 # from formats.razen import Razen_PCB
 from formats.kicad_v3 import KiCadv3_PCB
 from formats.kicad_v4 import KiCadv4_PCB
 from formats.idf_v2 import IDFv2_PCB
 from formats.idf_v3 import IDFv3_PCB
 from formats.librepcb import LibrePCB
-from formats.idf_v4 import IDFv4_PCB
+# from formats.idf_v4 import IDFv4_PCB
 from formats.hyp import HYP_PCB
 
 
@@ -93,8 +93,8 @@ class mainPCB(partsManaging):
             self.wersjaFormatu = IDFv2_PCB(filename, self)
         elif wersjaFormatu == "idf_v3":
             self.wersjaFormatu = IDFv3_PCB(filename, self)
-        elif wersjaFormatu == "idf_v4":
-            self.wersjaFormatu = IDFv4_PCB(filename, self)
+        #elif wersjaFormatu == "idf_v4":
+        #    self.wersjaFormatu = IDFv4_PCB(filename, self)
         elif wersjaFormatu == "hyp_v2":
             self.wersjaFormatu = HYP_PCB(filename, self)
         elif wersjaFormatu == "librepcb":

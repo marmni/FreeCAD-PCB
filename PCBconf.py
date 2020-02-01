@@ -124,7 +124,8 @@ exportData = {
         'format': '*.kicad_pcb',
         'icon': ':/data/img/kicad.png',
         'export': True,
-        'exportComponent': False,
+        'exportComponent': True,
+        'formatLIB': '*.kicad_mod',
     },
     "hyp_v2" : {
         'name': 'HyperLynx',

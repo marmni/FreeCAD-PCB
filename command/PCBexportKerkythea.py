@@ -222,7 +222,7 @@ class Camera:
         
         file.write('<Object Identifier="./Cameras/{0}" Label="Pinhole Camera" Name="{0}" Type="Camera">\n'.format(self.name))
         file.write(self.addParameter("Resolution", "String", self.resolution))
-        file.write(self.addParameter("Frame", "Transform", "{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}".format(r[0][0], r[1][0], float(r[2][0]) * -1, x, r[0][1], r[1][1], float(r[2][1]) * -1, y, r[0][2], r[1][2], float(r[2][2]) * -1, z)))
+        file.write(self.addParameter("Frame", "Transform", "{0} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}".format(r[0][0], float(r[1][0]) * -1, float(r[2][0]) * -1 , x, r[0][1], float(r[1][1]) * -1, float(r[2][1]) * -1 , y, r[0][2], float(r[1][2]) * -1, float(r[2][2]) * -1 , z)))
         file.write(self.addParameter("Focus Distance", "Real", self.focusDistance))
         file.write(self.addParameter("f-number", "String", self.f_number))
         file.write(self.addParameter("Lens Samples", "Integer",self.lensSamples ))
@@ -595,7 +595,7 @@ class exportToKerkytheaGui(QtGui.QWidget):
     
     def cameraParam(self):
         cam = FreeCADGui.ActiveDocument.ActiveView.getCameraNode()
-        camPos = cam.position.getValue()
+        camPos = cam.position.getValue().getValue()
         cO = cam.orientation.getValue().getMatrix()
         
         cameraPara = {
@@ -607,7 +607,7 @@ class exportToKerkytheaGui(QtGui.QWidget):
             'diaphragm': self.diaphragm.currentText(),
             'blades': self.blades.value(),
             'orientation': [[cO[0][0], cO[0][1], cO[0][2]], [cO[1][0], cO[1][1], cO[1][2]], [cO[2][0], cO[2][1], cO[2][2]]],
-            'position': (camPos[0], camPos[1], camPos[2]),
+            'position': [camPos[0], camPos[1], camPos[2]],
             'cam': FreeCADGui.ActiveDocument.ActiveView.getCamera(),
         }
         
