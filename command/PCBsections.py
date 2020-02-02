@@ -69,6 +69,9 @@ class createSectionsGui(QtGui.QWidget):
         #
         self.sectionsLisstTable = sectionsLisstTable(self)
         #
+        self.mirrorSections = QtGui.QComboBox()
+        self.mirrorSections.addItems(["False", "True"])
+        #
         self.guidingPlane = QtGui.QComboBox()
         self.connect(self.guidingPlane, QtCore.SIGNAL("currentIndexChanged (int)"), self.showSecton)
         self.guidingPlane.addItems(["XY", "XZ", "YZ"])
@@ -121,11 +124,13 @@ If library exists but there is no component with the specified name - component 
         lay.addWidget(self.componentName, 2, 1, 1, 2)
         lay.addWidget(QtGui.QLabel(u'Guiding plane:'), 3, 0, 1, 1)
         lay.addWidget(self.guidingPlane, 3, 1, 1, 2)
-        lay.addWidget(QtGui.QLabel(u'Sections:'), 4, 0, 1, 1)
-        lay.addWidget(self.sectionsLisstTable, 4, 1, 3, 1)
-        lay.addWidget(addSection, 4, 2, 1, 1)
-        lay.addWidget(deleteSection, 5, 2, 1, 1)
-        lay.addWidget(infoLabel, 7, 0, 1, 3)
+        lay.addWidget(QtGui.QLabel(u'Mirror sections:'), 4, 0, 1, 1)
+        lay.addWidget(self.mirrorSections, 4, 1, 1, 2)
+        lay.addWidget(QtGui.QLabel(u'Sections:'), 5, 0, 1, 1)
+        lay.addWidget(self.sectionsLisstTable, 5, 1, 3, 1)
+        lay.addWidget(addSection, 5, 2, 1, 1)
+        lay.addWidget(deleteSection, 6, 2, 1, 1)
+        lay.addWidget(infoLabel, 8, 0, 1, 3)
         #
         self.sectionsLisstTable.addSection()
         self.changeSoftware(0)
@@ -220,57 +225,76 @@ If library exists but there is no component with the specified name - component 
             if self.guidingPlane.currentIndex() == 0: # XY
                 comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nX, nY, nZ), FreeCAD.Rotation(FreeCAD.Vector(1,0,0), 0))
             elif self.guidingPlane.currentIndex() == 1: # XZ
-                comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nX, nZ*-1, 0), FreeCAD.Rotation(FreeCAD.Vector(1,0,0), 90))
+                if self.mirrorSections.currentIndex() == 1:
+                    comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nX, nZ, 0), FreeCAD.Rotation(FreeCAD.Vector(1,0,0), -90))
+                else:
+                    comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nX, nZ*-1, 0), FreeCAD.Rotation(FreeCAD.Vector(1,0,0), 90))
             else: # YZ
-                comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nZ, nY, 0), FreeCAD.Rotation(FreeCAD.Vector(0,1,0), 90))
+                if self.mirrorSections.currentIndex() == 1:
+                    comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nZ, nY*-1, 0), FreeCAD.Rotation(FreeCAD.Vector(0,1,0), -90))
+                else:
+                    comp.Placement = FreeCAD.Placement(FreeCAD.Vector(nZ, nY, 0), FreeCAD.Rotation(FreeCAD.Vector(0,1,0), 90))
             # filter / export
-            dataOut = {}
-            dataOut["lines"] = []
-            dataOut["circles"] = []
-            dataOut["arcs"] = []
+            self.dataOut = {}
+            self.dataOut["lines"] = []
+            self.dataOut["circles"] = []
+            self.dataOut["arcs"] = []
             
-            for i in comp.Wires:
-                for j in i.Edges:
-                    if j.Curve.__class__.__name__ == "Line":
+            self.loopWires(comp.Wires)
+            #
+            self.exportClass.export()
+        #
+        return True
+    
+    def loopWires(self, wires):
+        for i in wires:
+            for j in i.Edges:
+                if j.Curve.__class__.__name__ == "Line":
+                    x1 = round(j.Vertexes[0].X, 2)
+                    y1 = round(j.Vertexes[0].Y, 2)
+                    x2 = round(j.Vertexes[1].X, 2)
+                    y2 = round(j.Vertexes[1].Y, 2)
+                    
+                    if not [x1, y1,x2, y2] in self.dataOut["lines"] or not [x2, y2,x1, y1] in self.dataOut["lines"]:
+                        self.dataOut["lines"].append([x1, y1,x2, y2])
+                        self.exportClass.addLine(x1, y1, x2, y2)
+                    else:
+                       continue
+                elif j.Curve.__class__.__name__ == "BSplineCurve":
+                    newData = j.Curve.toBiArcs(0.001)
+                    newWires = [Part.Wire([Part.Edge(p) for p in newData])]
+                    self.loopWires(newWires)
+                elif j.Curve.__class__.__name__ in "Hyperbola":
+                    newData = j.toNurbs()
+                    newWires = [Part.Wire([Part.Edge(p) for p in newData.Edges])]
+                    self.loopWires(newWires)
+                else: # circle/arc
+                    c = j.Curve
+                    
+                    xs = round(c.Center.x, 2)
+                    ys = round(c.Center.y, 2)
+                    r = round(c.Radius, 2)
+                    
+                    if (round(j.FirstParameter, 2) == 6.28 and j.LastParameter == 0) or (j.FirstParameter == 0 and round(j.LastParameter, 2) == 6.28): # circle
+                        if not [xs, ys, r] in self.dataOut["circles"]:
+                            self.dataOut["circles"].append([xs, ys, r])
+                            self.exportClass.addCircle(xs, ys, r)
+                    else: # arc
                         x1 = round(j.Vertexes[0].X, 2)
                         y1 = round(j.Vertexes[0].Y, 2)
                         x2 = round(j.Vertexes[1].X, 2)
                         y2 = round(j.Vertexes[1].Y, 2)
                         
-                        if not [x1, y1,x2, y2] in dataOut["lines"] or not [x2, y2,x1, y1] in dataOut["lines"]:
-                            dataOut["lines"].append([x1, y1,x2, y2])
-                            self.exportClass.addLine(x1, y1, x2, y2)
+                        if self.exportClass.programName == 'eagle':
+                            [curve, start, stop] = edgeGetArcAngle(j)
                         else:
-                           continue
-                    else: # circle/arc
-                        c = j.Curve
-                        
-                        xs = round(c.Center.x, 2)
-                        ys = round(c.Center.y, 2)
-                        r = round(c.Radius, 2)
-                        
-                        if (round(j.FirstParameter, 2) == 6.28 and j.LastParameter == 0) or (j.FirstParameter == 0 and round(j.LastParameter, 2) == 6.28): # circle
-                            if not [xs, ys, r] in dataOut["circles"]:
-                                dataOut["circles"].append([xs, ys, r])
-                                self.exportClass.addCircle(xs, ys, r)
-                        else: # arc
-                            x1 = round(j.Vertexes[0].X, 2)
-                            y1 = round(j.Vertexes[0].Y, 2)
-                            x2 = round(j.Vertexes[1].X, 2)
-                            y2 = round(j.Vertexes[1].Y, 2)
-                            
-                            #[curve, start, stop] = edgeGetArcAngle(j)
                             start = degrees(j.FirstParameter)
                             stop = degrees(j.LastParameter)
                             curve = start - stop
-                            
-                            if not [x1, y1, x2, y2, curve, xs, ys, r, start, stop] in dataOut["arcs"]:
-                                dataOut["arcs"].append([x1, y1, x2, y2, curve, xs, ys, r, start, stop])
-                                self.exportClass.addArc(x1, y1, x2, y2, curve, xs, ys, r, start, stop)
-            #
-            self.exportClass.export()
-        #
-        return True
+                        
+                        if not [x1, y1, x2, y2, curve, xs, ys, r, start, stop] in self.dataOut["arcs"]:
+                            self.dataOut["arcs"].append([x1, y1, x2, y2, curve, xs, ys, r, start, stop])
+                            self.exportClass.addArc(x1, y1, x2, y2, curve, xs, ys, r, start, stop)
 
     def showSecton(self, planeID):
         self.sectionsLisstTable.createPlane()
@@ -597,7 +621,7 @@ class eagle(exportModel):
         x.setAttribute('y1', self.convertValues(y1))
         x.setAttribute('x2', self.convertValues(x2))
         x.setAttribute('y2', self.convertValues(y2))
-        x.setAttribute('curve', str(curve * -1))
+        x.setAttribute('curve', str(curve))
         x.setAttribute('width', "0.127")
         x.setAttribute('layer', "21")
         
