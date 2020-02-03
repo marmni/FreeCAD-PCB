@@ -27,7 +27,10 @@
 import os.path
 import shutil
 import copy
-import configparser
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
 import json
 import FreeCAD
 from PySide import QtCore, QtGui

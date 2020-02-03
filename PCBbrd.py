@@ -27,7 +27,10 @@
 
 import FreeCAD
 import os
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import re
 from xml.dom import minidom
 from PySide import QtCore, QtGui

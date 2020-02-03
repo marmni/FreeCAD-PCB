@@ -34,7 +34,10 @@ import DraftGeomUtils
 import Draft
 import Part
 import os
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import importlib
 import unicodedata
 #
@@ -50,7 +53,10 @@ from command.PCBglue import createGlue
 
 class dialogMAIN_FORM(QtGui.QDialog):
     def __init__(self, filename=None, parent=None):
-        importlib.reload(PCBconf)
+        try:
+            importlib.reload(PCBconf)
+        except:
+            builtins.reload(PCBconf)
         
         QtGui.QDialog.__init__(self, parent)
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")

@@ -264,7 +264,7 @@ If library exists but there is no component with the specified name - component 
                     newData = j.Curve.toBiArcs(0.001)
                     newWires = [Part.Wire([Part.Edge(p) for p in newData])]
                     self.loopWires(newWires)
-                elif j.Curve.__class__.__name__ in "Hyperbola":
+                elif j.Curve.__class__.__name__ == "Hyperbola":
                     newData = j.toNurbs()
                     newWires = [Part.Wire([Part.Edge(p) for p in newData.Edges])]
                     self.loopWires(newWires)

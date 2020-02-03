@@ -27,7 +27,10 @@
 
 import FreeCAD
 import Sketcher
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import Part
 import FreeCADGui
 import re

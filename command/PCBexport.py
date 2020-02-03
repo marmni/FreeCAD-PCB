@@ -34,7 +34,10 @@ from math import sin, cos, degrees, atan2, radians, sqrt
 from xml.dom import minidom
 from PySide import QtCore, QtGui
 import json
-import builtins
+# try:
+    # import builtins
+# except:
+    # import __builtin__ as builtins
 from collections import OrderedDict
 import datetime
 #

@@ -30,7 +30,10 @@ import Part
 import OpenSCAD2Dgeom
 import time
 from math import degrees, atan2
-import builtins
+# try:
+    # import builtins
+# except:
+    # import __builtin__ as builtins
 from PCBfunctions import sketcherGetGeometry
 
 

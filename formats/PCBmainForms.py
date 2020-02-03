@@ -34,7 +34,10 @@ import DraftGeomUtils
 import Draft
 import Part
 import os
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import unicodedata
 import time
 #

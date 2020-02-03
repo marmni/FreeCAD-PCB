@@ -43,7 +43,10 @@ __url__ = ["http://www.freecadweb.org"]
 
 import FreeCAD, FreeCADGui
 import random
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import Mesh
 from PySide import QtCore, QtGui
 import os

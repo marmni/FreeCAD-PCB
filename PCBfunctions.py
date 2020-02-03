@@ -27,7 +27,10 @@
 
 import FreeCAD
 import random
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 from PySide import QtCore, QtGui
 import os
 import time

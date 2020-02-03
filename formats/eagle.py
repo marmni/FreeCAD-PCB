@@ -28,7 +28,10 @@
 import FreeCAD
 import re
 from xml.dom import minidom
-import builtins
+# try:
+    # import builtins
+# except:
+    # import __builtin__ as builtins
 import DraftGeomUtils
 import Draft
 from math import sqrt
