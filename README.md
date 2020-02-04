@@ -1,6 +1,6 @@
 <img align="left" width="80" height="80" src="data/FreeCAD-PCB_workbench_icon.svg">
 
-# FreeCAD PCB
+# FreeCAD-PCB
 
 <br>
 Printed Circuit Board (PCB) Workbench for FreeCAD<br>
