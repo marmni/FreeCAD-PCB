@@ -24,8 +24,7 @@ Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu></d
   width="128"
   height="128"
   style="float:left;">
-    Printed Circuit Board (PCB) Workbench for FreeCAD<br>
-Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>
+    # Quite a long title, potentially going over several lines and on and on and on and on and on and on and on and on and on
 
 
 
