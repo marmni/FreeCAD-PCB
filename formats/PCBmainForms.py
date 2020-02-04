@@ -34,7 +34,10 @@ import DraftGeomUtils
 import Draft
 import Part
 import os
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import unicodedata
 import time
 #
@@ -51,7 +54,7 @@ from PCBobjects import *
 from formats.eagle import EaglePCB
 from formats.freepcb import FreePCB
 from formats.geda import gEDA_PCB
-#from formats.fidocadj import FidoCadJ_PCB
+# from formats.fidocadj import FidoCadJ_PCB
 # from formats.razen import Razen_PCB
 from formats.kicad_v3 import KiCadv3_PCB
 from formats.kicad_v4 import KiCadv4_PCB
@@ -93,8 +96,8 @@ class mainPCB(partsManaging):
             self.wersjaFormatu = IDFv2_PCB(filename, self)
         elif wersjaFormatu == "idf_v3":
             self.wersjaFormatu = IDFv3_PCB(filename, self)
-        # elif wersjaFormatu == "idf_v4":
-            # self.wersjaFormatu = IDFv4_PCB(filename, self)
+        #elif wersjaFormatu == "idf_v4":
+        #    self.wersjaFormatu = IDFv4_PCB(filename, self)
         elif wersjaFormatu == "hyp_v2":
             self.wersjaFormatu = HYP_PCB(filename, self)
         elif wersjaFormatu == "librepcb":

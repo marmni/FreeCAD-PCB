@@ -26,7 +26,10 @@
 #****************************************************************************
 
 import FreeCAD
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import re
 #
 from PCBconf import softLayers
@@ -42,8 +45,6 @@ def getUnitsDefinition(projektBRD):
         return 0.0254
     else:
         return 1
-
-
 
 
 class dialogMAIN(dialogMAIN_FORM):

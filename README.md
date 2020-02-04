@@ -1,11 +1,16 @@
-# FreeCAD PCB
-Printed Circuit Board (PCB) Workbench for FreeCAD  
-Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
- 
-![screenshot](https://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/Tube_amplifier_FreeCAD-PCB.png/max/max/1)
+<img align="left" width="80" height="80" src="data/FreeCAD-PCB_workbench_icon.svg">
+
+# FreeCAD-PCB
+
+<br>
+Printed Circuit Board (PCB) Workbench for FreeCAD<br>
+Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>
+<br><br>
+
+<kbd>![screenshot](https://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/Tube_amplifier_FreeCAD-PCB.png/max/max/1)</kbd>
 
 ## Prerequisite
-FreeCAD v0.18
+FreeCAD >= v0.18 and Python >= 2.7
 
 
 ## Installation

@@ -31,7 +31,7 @@ import sys
 __scriptVersion__ = 5.0
 __dataBaseVersion__ = 2.0
 __pythonVersion__ = 3.6
-__requiredFreeCADVersion__ = (0.18, 0.18)  # (min, max)
+__requiredFreeCADVersion__ = (0.18, 0.19)  # (min, max)
 
 
 def currentFreeCADVersion():
@@ -40,23 +40,23 @@ def currentFreeCADVersion():
     return float(data[0] + '.' + (data[1][:data[1].index('.')] if '.' in data[1] else data[1]))
 
 
-def checkPythonVesion():
-    currentVersion = float(sys.version_info[0] + '.' + sys.version_info[1])
-    if currentVersion < __pythonVersion__:
-        return False
-    else:
-        return [True]
+# def checkPythonVesion():
+    # currentVersion = float(sys.version_info[0] + '.' + sys.version_info[1])
+    # if currentVersion < __pythonVersion__:
+        # return False
+    # else:
+        # return [True]
 
 def checkCompatibility():
     ''' InitGui -> Initialize() '''
     currentFCVersion = currentFreeCADVersion()
     
     if currentFCVersion >= __requiredFreeCADVersion__[0] and currentFCVersion <= __requiredFreeCADVersion__[1]:
-        if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
-            FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
-            return [False]
-        else:
-            return [True]
+        # if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
+            # FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
+            # return [False]
+        # else:
+        return [True]
     else:
         FreeCAD.Console.PrintWarning("PCB Workbench: Error. Incompatible FreeCAD version. Supported FreeCAD versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
         return [False]

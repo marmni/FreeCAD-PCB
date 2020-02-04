@@ -59,6 +59,7 @@ from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssembl
 from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
 from command.PCBconstraintAreas import createConstraintArea
+from command.PCBsections import createSectionsGui
 
 
 class pcbToolBarMain(QtGui.QToolBar):
@@ -391,6 +392,18 @@ class pcbToolBar(pcbToolBarMain):
         boundingBoxMenu.addAction(scriptCmd_BoundingBox)
         boundingBoxMenu.addAction(scriptCmd_BoundingBoxSel)
         scriptCmd_BoundingBox_M.setMenu(boundingBoxMenu)
+        # sections
+        scriptCmd_crossSections_M = self.createAction(u"Cross sections", u"Create sections from selected models and export them as library", ":/data/img/Part_CrossSections.svg")
+        QtCore.QObject.connect(scriptCmd_crossSections_M, QtCore.SIGNAL("triggered()"), self.createSectionsSelParts)
+        # scriptCmd_crossSections = self.createAction(u"Cross sections", u"Create sections from selected models and export them as library", ":/data/img/Part_CrossSections.svg")
+        # QtCore.QObject.connect(scriptCmd_crossSections, QtCore.SIGNAL("triggered()"), self.createSectionsSelParts)
+        # scriptCmd_crossSectionsPCB = self.createAction(u"Cross sections from whole PCB", u"Create sections from PCB board (with components) and export them as library", ":/data/img/Part_CrossSections.svg")
+        # QtCore.QObject.connect(scriptCmd_crossSectionsPCB, QtCore.SIGNAL("triggered()"), self.showPCBBoundingBoxSel)
+        
+        # crossSectionsMenu = QtGui.QMenu(self)
+        # crossSectionsMenu.addAction(scriptCmd_crossSections)
+        # crossSectionsMenu.addAction(scriptCmd_crossSectionsPCB)
+        # scriptCmd_crossSections_M.setMenu(crossSectionsMenu)
         # groups
         scriptCmd_addAllGroup = self.createAction(u"Create new project", u"Create new project", ":/data/img/folder_open_22x22.png")
         QtCore.QObject.connect(scriptCmd_addAllGroup, QtCore.SIGNAL("triggered()"), self.addAllGroups)
@@ -559,6 +572,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_Explode)
         self.addAction(self.scriptCmd_constraintsAreas)
         self.addAction(scriptCmd_BoundingBox_M)
+        self.addAction(scriptCmd_crossSections_M)
         #self.addAction(scriptCmd_Convert)
         self.addSeparator()
         self.addAction(scriptCmd_PreviousPackage)
@@ -738,6 +752,14 @@ class pcbToolBar(pcbToolBarMain):
                     #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
         elif not pcb[0]:
             FreeCAD.Console.PrintWarning("No PCB found\n")
+    
+    def createSectionsSelParts(self):
+        if FreeCAD.activeDocument():
+            if len(FreeCADGui.Selection.getSelection()):
+                if not FreeCADGui.Control.activeDialog():
+                    FreeCADGui.Control.showDialog(createSectionsGui())
+            else:
+                FreeCAD.Console.PrintWarning("Select minimum one object\n")
         
     def createGluePath(self):
         if FreeCAD.activeDocument() and getPCBheight()[0]:

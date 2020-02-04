@@ -27,7 +27,10 @@
 
 import FreeCAD
 import os
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import re
 from xml.dom import minidom
 from PySide import QtCore, QtGui
@@ -115,10 +118,10 @@ def wersjaFormatuF(filename):
                 ver = re.findall(r'BOARD_FILE\s+(.+?)\s+', projektBRD)[0]
                 return ["idf_v3", "IDF v3"]
             except:
-                FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
-                return [False]
-                
                 try:  # idf v4
+                    FreeCAD.Console.PrintWarning(u"_________________Temporarily disabled_________________\n")
+                    return [False]
+                    
                     ver = re.findall(r'IDF_Header \(\nVersion \("4.0"\)', projektBRD)[0]
                     if len(re.findall(r'"Board_Part"', re.findall(r'Board_Part \((.*?)\),', projektBRD, re.DOTALL)[0], re.DOTALL)) == 0:
                         FreeCAD.Console.PrintWarning("No PCB board detected in file.\n")

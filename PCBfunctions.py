@@ -27,7 +27,10 @@
 
 import FreeCAD
 import random
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 from PySide import QtCore, QtGui
 import os
 import time
@@ -121,6 +124,35 @@ def filterHoles(r, Hmin, Hmax):
 #
 ########################################################################
 
+def edgeGetArcAngle(arcData):
+    x1 = arcData.Vertexes[0].X
+    y1 = arcData.Vertexes[0].Y
+    x2 = arcData.Vertexes[1].X
+    y2 = arcData.Vertexes[1].Y
+    
+    x = arcData.Curve.Center.x
+    y = arcData.Curve.Center.y
+    
+    axisZ = arcData.Curve.Axis.z
+    angleXU = arcData.Curve.AngleXU
+    curve = degrees(arcData.FirstParameter) - degrees(arcData.LastParameter)
+    
+    if axisZ > 0:
+        curve *= -1
+    
+    if curve < 0:
+        #if angleXU < 0:
+        start = degrees(atan2(y2 - y, x2 - x))
+    else:
+        if angleXU < 0:
+            start =  360 + degrees(atan2(y1 - y, x1 - x))
+        else:
+            start =  degrees(atan2(y1 - y, x1 - x))
+
+    stop = abs(curve) + start 
+    
+    return [round(curve, 4), round(start, 4), round(stop, 4)]
+
 def sketcherGetArcAngle(arcData):
     x1 = arcData.StartPoint.x
     y1 = arcData.StartPoint.y
@@ -188,6 +220,11 @@ def sketcherGetGeometryShapes(sketcherIN):
                     data.pop(i)
                     break
                 ####
+                if type(data[i]).__name__ == "BSplineCurve":
+                    pass
+                elif type(data[i]).__name__ == "ArcOfParabola":
+                    pass
+                #
                 if type(data[i]).__name__ == 'ArcOfCircle':
                     [angle, startAngle, stopAngle] = sketcherGetArcAngle(data[i])
                     
@@ -281,6 +318,54 @@ def sketcherGetGeometryShapes(sketcherIN):
     return [True, outList]
 
 
+def sketcherLoopGeometry(outlineList, geometryList):
+    try:
+        for k in range(len(geometryList)):
+            if geometryList[k].Construction:
+                continue
+            #
+            if type(geometryList[k]).__name__ == 'LineSegment':
+                outlineList.append({
+                    'type': 'line',
+                    'x1': geometryList[k].StartPoint.x,
+                    'y1': geometryList[k].StartPoint.y,
+                    'x2': geometryList[k].EndPoint.x,
+                    'y2': geometryList[k].EndPoint.y
+                })
+            elif type(geometryList[k]).__name__ == "BSplineCurve":
+                outlineList = sketcherLoopGeometry(outlineList, geometryList[k].toBiArcs(0.001))
+            elif type(geometryList[k]).__name__ == "ArcOfParabola":
+                outlineList = sketcherLoopGeometry(outlineList, geometryList[k].toNurbs().toBiArcs(0.001))
+            elif type(geometryList[k]).__name__ == 'Circle':
+                outlineList.append({
+                    'type': 'circle',
+                    'x': geometryList[k].Center.x,
+                    'y': geometryList[k].Center.y,
+                    'r': geometryList[k].Radius,
+                })
+            elif type(geometryList[k]).__name__ == 'ArcOfCircle':
+                [angle, startAngle, stopAngle] = sketcherGetArcAngle(geometryList[k])
+                
+                outlineList.append({
+                    'type': 'arc',
+                    'x': geometryList[k].Center.x,
+                    'y': geometryList[k].Center.y,
+                    'r': geometryList[k].Radius,
+                    'angle': angle,
+                    'x1': geometryList[k].StartPoint.x,
+                    'y1': geometryList[k].StartPoint.y,
+                    'x2': geometryList[k].EndPoint.x,
+                    'y2': geometryList[k].EndPoint.y,
+                    'startAngle': startAngle, 
+                    'stopAngle': stopAngle
+                })
+        
+    except Exception as e:
+        FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    #
+    return outlineList
+
+
 def sketcherGetGeometry(sketcherIN):
     if not sketcherIN.isDerivedFrom("Sketcher::SketchObject"):
         FreeCAD.Console.PrintWarning("Error: Object is not a sketcher.\n")
@@ -292,48 +377,9 @@ def sketcherGetGeometry(sketcherIN):
         FreeCAD.Console.PrintWarning("Error: FreeCAD is not activated.\n")
         return [False]
     #
-    outline = []
-    try:
-        for k in range(len(sketcherIN.Geometry)):
-            if sketcherIN.Geometry[k].Construction:
-                continue
-            
-            if type(sketcherIN.Geometry[k]).__name__ == 'LineSegment':
-                outline.append({
-                    'type': 'line',
-                    'x1': sketcherIN.Geometry[k].StartPoint.x,
-                    'y1': sketcherIN.Geometry[k].StartPoint.y,
-                    'x2': sketcherIN.Geometry[k].EndPoint.x,
-                    'y2': sketcherIN.Geometry[k].EndPoint.y
-                })
-            elif type(sketcherIN.Geometry[k]).__name__ == 'Circle':
-                outline.append({
-                    'type': 'circle',
-                    'x': sketcherIN.Geometry[k].Center.x,
-                    'y': sketcherIN.Geometry[k].Center.y,
-                    'r': sketcherIN.Geometry[k].Radius,
-                })
-            elif type(sketcherIN.Geometry[k]).__name__ == 'ArcOfCircle':
-                [angle, startAngle, stopAngle] = sketcherGetArcAngle(sketcherIN.Geometry[k])
-                
-                outline.append({
-                    'type': 'arc',
-                    'x': sketcherIN.Geometry[k].Center.x,
-                    'y': sketcherIN.Geometry[k].Center.y,
-                    'r': sketcherIN.Geometry[k].Radius,
-                    'angle': angle,
-                    'x1': sketcherIN.Geometry[k].StartPoint.x,
-                    'y1': sketcherIN.Geometry[k].StartPoint.y,
-                    'x2': sketcherIN.Geometry[k].EndPoint.x,
-                    'y2': sketcherIN.Geometry[k].EndPoint.y,
-                    'startAngle': startAngle, 
-                    'stopAngle': stopAngle
-                })
-        
-    except Exception as e:
-        FreeCAD.Console.PrintWarning('1. ' + str(e) + "\n")
+    outlineList = sketcherLoopGeometry([], sketcherIN.Geometry)
     #
-    return [True, outline]
+    return [True, outlineList]
 
 # def sortPointsCounterClockwise(data):
     # result = []
@@ -1234,8 +1280,6 @@ class mathFunctions(object):
     
     def shiftPointOnLine(self, x1, y1, x2, y2, distance):
         if x2 - x1 == 0:  # vertical line
-            
-            
             x_T1 = x1
             y_T1 = y1 - distance
         else:

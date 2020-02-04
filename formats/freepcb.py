@@ -26,7 +26,10 @@
 #****************************************************************************
 
 import FreeCAD
-import builtins
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 import re
 
 from PCBconf import softLayers

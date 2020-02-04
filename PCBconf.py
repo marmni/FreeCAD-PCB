@@ -82,6 +82,8 @@ exportData = {
         'format': '*.brd',
         'icon': ':/data/img/eagle.png',
         'export': True,
+        'exportComponent': True,
+        'formatLIB': '*.lbr',
     },
     "geda" : {
         'name': 'gEDA',
@@ -91,6 +93,8 @@ exportData = {
         'format': '*.pcb',
         'icon': ':/data/img/geda.png',
         'export': True,
+        'exportComponent': True,
+        'formatLIB': '',
     },
     "idf_v3" : {
         'name': 'IDF v3',
@@ -100,6 +104,7 @@ exportData = {
         'format': '*.emn',
         'icon': '',
         'export': True,
+        'exportComponent': False,
     },
     "freepcb" : {
         'name': 'FreePCB',
@@ -109,6 +114,7 @@ exportData = {
         'format': '*.fpc',
         'icon': ':/data/img/freepcb.png',
         'export': True,
+        'exportComponent': False,
     },
     "kicad" : {
         'name': 'KiCad v4',
@@ -118,6 +124,8 @@ exportData = {
         'format': '*.kicad_pcb',
         'icon': ':/data/img/kicad.png',
         'export': True,
+        'exportComponent': True,
+        'formatLIB': '*.kicad_mod',
     },
     "hyp_v2" : {
         'name': 'HyperLynx',
@@ -127,6 +135,7 @@ exportData = {
         'format': '*.HYP',
         'icon': '',
         'export': False,
+        'exportComponent': False,
     },
     "librepcb" : {
         'name': 'LibrePCB',
@@ -136,6 +145,7 @@ exportData = {
         'format': '*.lpp',
         'icon': '',
         'export': False,
+        'exportComponent': False,
     },
 }
 #########################
