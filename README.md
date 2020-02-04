@@ -1,4 +1,4 @@
-<img src="data/FreeCAD-PCB_workbench_icon.svg">
+<img align="left" width="80" height="80" src="data/FreeCAD-PCB_workbench_icon.svg">
 
 # FreeCAD PCB
 
