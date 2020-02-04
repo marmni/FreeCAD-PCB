@@ -1,6 +1,11 @@
+<style>
+.site-main table.no-border td {
+    border: none;
+}
+
 # FreeCAD PCB
 
-<table style="border:none">
+<table class="no-border">
     <tr>
         <td><img style="margin-top:20px" src="data/FreeCAD-PCB_workbench_icon.svg"></td>
         <td>Printed Circuit Board (PCB) Workbench for FreeCAD<br>
