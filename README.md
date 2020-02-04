@@ -14,6 +14,12 @@ Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu> </
     </tr>
 </table>
 
+<div>
+    <div style="float:left"><img style="margin-top:20px" src="data/FreeCAD-PCB_workbench_icon.svg"></div>
+    <div>Printed Circuit Board (PCB) Workbench for FreeCAD<br>
+Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu></div>
+</div>
+
 <kbd>![screenshot](https://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/Tube_amplifier_FreeCAD-PCB.png/max/max/1)</kbd>
 
 ## Prerequisite
