@@ -1,5 +1,5 @@
 # FreeCAD PCB
-![icon](data/FreeCAD-PCB_workbench_icon.svg)
+![icon](data/FreeCAD-PCB_workbench_icon.svg){:align="right"}
 Printed Circuit Board (PCB) Workbench for FreeCAD  
 Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
  
