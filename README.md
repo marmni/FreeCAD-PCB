@@ -16,7 +16,7 @@ Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu> </
 
 <div>
     <div style="float:left;width:100px;display:inline-block"><img style="margin-top:20px" src="data/FreeCAD-PCB_workbench_icon.svg"></div>
-    <div>Printed Circuit Board (PCB) Workbench for FreeCAD<br>
+    <div style="float:left;width:auto;display:inline-block">Printed Circuit Board (PCB) Workbench for FreeCAD<br>
 Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu></div>
 </div>
 
