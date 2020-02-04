@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64"
+   height="64"
+   viewBox="0 0 16.933333 16.933334"
+   version="1.1"
+   id="svg890"
+   inkscape:export-filename="D:\Program Files\FreeCAD 0.18\Mod\PCB\RC_test\img\boundingBox.png"
+   inkscape:export-xdpi="96.000008"
+   inkscape:export-ydpi="96.000008"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   sodipodi:docname="FreeCAD-PCB_WB.svg">
+  <defs
+     id="defs884" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.9999996"
+     inkscape:cx="32.973663"
+     inkscape:cy="29.986241"
+     inkscape:document-units="mm"
+     inkscape:current-layer="g828-4"
+     showgrid="false"
+     units="px"
+     inkscape:snap-global="false"
+     inkscape:window-width="1711"
+     inkscape:window-height="950"
+     inkscape:window-x="720"
+     inkscape:window-y="2"
+     inkscape:window-maximized="0"
+     showguides="true"
+     inkscape:guide-bbox="true" />
+  <metadata
+     id="metadata887">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-280.06665)">
+    <g
+       id="g1539"
+       transform="matrix(1.0403232,0,0,1.0403232,-0.21950155,-11.773209)">
+      <g
+         id="g877">
+        <g
+           style="stroke-width:0.09612397;stroke-miterlimit:4;stroke-dasharray:none"
+           transform="matrix(1.9801492,0,0,1.9801492,-0.15133413,-290.71242)"
+           id="g1098-11">
+          <g
+             id="g828-4"
+             transform="matrix(0.62109002,0,0,0.62109002,-1.0858087,113.19209)">
+            <g
+               id="g841">
+              <rect
+                 ry="0"
+                 rx="0"
+                 y="284.75192"
+                 x="2.6765828"
+                 height="1.9585992"
+                 width="11.860085"
+                 id="rect819-0-8-4-4-65"
+                 style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26441643;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+              <rect
+                 ry="0"
+                 rx="0"
+                 y="288.06186"
+                 x="2.6946797"
+                 height="1.9585992"
+                 width="11.860085"
+                 id="rect819-0-8-4-5"
+                 style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26441643;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+              <rect
+                 ry="0"
+                 rx="0"
+                 y="291.45587"
+                 x="2.6765828"
+                 height="1.9585992"
+                 width="11.860085"
+                 id="rect819-0-8-2"
+                 style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26441643;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+              <rect
+                 ry="0"
+                 rx="0"
+                 y="283.26898"
+                 x="4.6772165"
+                 height="11.626225"
+                 width="7.9846768"
+                 id="rect815-2"
+                 style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:0.59383458;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+              <circle
+                 style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.32808542;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+                 id="path1021-8"
+                 cx="6.5528574"
+                 cy="285.03262"
+                 r="0.88235283" />
+            </g>
+          </g>
+          <g
+             transform="matrix(1.453907,0,0,1.453907,-8.8525455,-137.96257)"
+             id="g967-4-3-0" />
+        </g>
+      </g>
+    </g>
+    <g
+       id="g908"
+       transform="matrix(0.95966616,0,0,0.95966616,0.46175611,12.069681)" />
+  </g>
+</svg>
