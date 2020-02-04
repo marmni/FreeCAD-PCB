@@ -1,7 +1,7 @@
 # FreeCAD PCB
 
-<table style="border:0px">
-    <tr style="border:0px">
+<table style="border:none">
+    <tr>
         <td><img style="margin-top:20px" src="data/FreeCAD-PCB_workbench_icon.svg"></td>
         <td>Printed Circuit Board (PCB) Workbench for FreeCAD<br>
 Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu> </td>
