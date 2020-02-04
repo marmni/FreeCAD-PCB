@@ -1,8 +1,10 @@
 # FreeCAD PCB
 ![icon](data/FreeCAD-PCB_workbench_icon.svg)
-<img style="float: right;" src="data/FreeCAD-PCB_workbench_icon.svg">
+<p>
+<img style="float:right;" src="data/FreeCAD-PCB_workbench_icon.svg">
 Printed Circuit Board (PCB) Workbench for FreeCAD  
 Copyright (c) 2013-2019 [@marmni](https://github.com/marmni) <marmni@onet.eu>  
+</p>
  
 ![screenshot](https://a.fsdn.com/con/app/proj/eaglepcb2freecad/screenshots/Tube_amplifier_FreeCAD-PCB.png/max/max/1)
 
