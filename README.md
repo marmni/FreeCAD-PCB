@@ -1,7 +1,8 @@
 <style>
-.site-main table.no-border td {
+.site-main table.no-border {
     border: none;
 }
+</style>
 
 # FreeCAD PCB
 
