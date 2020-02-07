@@ -60,6 +60,7 @@ from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
 from command.PCBconstraintAreas import createConstraintArea
 from command.PCBsections import createSectionsGui
+from command.PCBgenerateModel import generateModelGui
 
 
 class pcbToolBarMain(QtGui.QToolBar):
@@ -404,6 +405,9 @@ class pcbToolBar(pcbToolBarMain):
         # crossSectionsMenu.addAction(scriptCmd_crossSections)
         # crossSectionsMenu.addAction(scriptCmd_crossSectionsPCB)
         # scriptCmd_crossSections_M.setMenu(crossSectionsMenu)
+        # generate model
+        scriptCmd_generateModel = self.createAction(u"Generate model", u"Generate model", ":/data/img/generateModel.svg")
+        QtCore.QObject.connect(scriptCmd_generateModel, QtCore.SIGNAL("triggered()"), self.generateModelF)
         # groups
         scriptCmd_addAllGroup = self.createAction(u"Create new project", u"Create new project", ":/data/img/folder_open_22x22.png")
         QtCore.QObject.connect(scriptCmd_addAllGroup, QtCore.SIGNAL("triggered()"), self.addAllGroups)
@@ -568,6 +572,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_AddModel)
         self.addAction(scriptCmd_UpdateModels)
         self.addAction(scriptCmd_DownloadModels)
+        self.addAction(scriptCmd_generateModel)
         self.addSeparator()
         self.addAction(scriptCmd_Explode)
         self.addAction(self.scriptCmd_constraintsAreas)
@@ -580,6 +585,10 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_NextPackage)
         #
         self.addToolBar(self)
+    
+    def generateModelF(self):
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(generateModelGui())
     
     def storeNameValueAsParam(self):
         sel = FreeCADGui.Selection.getSelection()
