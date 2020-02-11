@@ -25,32 +25,29 @@
 #*                                                                          *
 #****************************************************************************
 from PySide import QtCore, QtGui
-from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim
+from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
 
 __fcstdFile__ = "connectorMSTBA_V.fcstd"
+__desc__ = "MSTBA"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorMSTBA_V.png", "MSTBA", parent)
+        modelPreviewMain.__init__(self, "connectorMSTBA_V.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
     def __init__(self, parent=None):
-        modelGenerateGUIMain.__init__(self, parent)
+        modelGenerateGUIMain.__init__(self, __desc__, parent)
         #
         self.numberOfPins = QtGui.QSpinBox()
         self.numberOfPins.setValue(2)
         self.numberOfPins.setMinimum(2)
         self.numberOfPins.setSingleStep(1)
         #
-        self.modelRaster = QtGui.QDoubleSpinBox()
-        self.modelRaster.setValue(5)
-        self.modelRaster.setDisabled(True)
-        #
         self.addMainImageDim("connectorMSTBA_VDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
-        self.mainFormLay.addRow(QtGui.QLabel("Raster(a)"), self.modelRaster)
+        self.mainFormLay.addRow(QtGui.QLabel("Number of pins"), self.numberOfPins)
+        self.mainFormLay.addRow(QtGui.QLabel("Raster(r)"), autVariable(5.0))
 
 
 def modelGenerate(doc, widget):

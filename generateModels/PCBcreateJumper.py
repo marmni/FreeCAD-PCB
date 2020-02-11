@@ -25,31 +25,39 @@
 #*                                                                          *
 #****************************************************************************
 from PySide import QtCore, QtGui
-from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
+from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim
 
-__fcstdFile__ = "connectorAmpQuick.fcstd"
-__desc__ = "Amp Quick"
+__fcstdFile__ = "jumper.FCStd"
+__desc__ = "Jumper"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorAmpQuick.png", __desc__, parent)
+        modelPreviewMain.__init__(self, "jumper.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
     def __init__(self, parent=None):
         modelGenerateGUIMain.__init__(self, __desc__, parent)
         #
-        self.numberOfPins = QtGui.QSpinBox()
-        self.numberOfPins.setValue(2)
-        self.numberOfPins.setMinimum(2)
-        self.numberOfPins.setSingleStep(1)
+        self.diameter = QtGui.QDoubleSpinBox()
+        self.diameter.setValue(1)
+        self.diameter.setMinimum(0.5)
+        self.diameter.setSingleStep(0.5)
+        self.diameter.setSuffix("mm")
         #
-        self.addMainImageDim("connectorAmpQuickDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
-        self.mainFormLay.addRow(QtGui.QLabel("Raster(a)"), autVariable(2.54))
+        self.modelRaster = QtGui.QDoubleSpinBox()
+        self.modelRaster.setValue(10)
+        self.modelRaster.setMinimum(0.5)
+        self.modelRaster.setSingleStep(0.5)
+        self.modelRaster.setSuffix("mm")
+        #
+        self.addMainImageDim("jumperDim.png")
+        self.mainFormLay.addRow(QtGui.QLabel("Diameter (a)"), self.diameter)
+        self.mainFormLay.addRow(QtGui.QLabel("Raster (r)"), self.modelRaster)
 
 
 def modelGenerate(doc, widget):
-    doc.Spreadsheet.set('B1', str(widget.numberOfPins.value()))
+    doc.Spreadsheet.set('B1', str(widget.diameter.value()))
+    doc.Spreadsheet.set('B3', str(widget.modelRaster.value()))
     doc.recompute()

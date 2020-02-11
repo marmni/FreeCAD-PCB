@@ -25,19 +25,20 @@
 #*                                                                          *
 #****************************************************************************
 from PySide import QtCore, QtGui
-from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim
+from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
 
 __fcstdFile__ = "connectorDG107V_7_62_01P_14_00AH.fcstd"
+__desc__ = "DG107V-7.62"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorDG107V_7_62-01P_14_00AH.png", "DG107V-7.62", parent)
+        modelPreviewMain.__init__(self, "connectorDG107V_7_62-01P_14_00AH.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
     def __init__(self, parent=None):
-        modelGenerateGUIMain.__init__(self, parent)
+        modelGenerateGUIMain.__init__(self, __desc__, parent)
         #
         self.numberOfPins = QtGui.QSpinBox()
         self.numberOfPins.setValue(2)
@@ -45,14 +46,11 @@ class modelGenerateGUI(modelGenerateGUIMain):
         self.numberOfPins.setSingleStep(1)
         #
         self.addMainImageDim("connectorDG107V_7_62-01P_14_00AHDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
+        self.mainFormLay.addRow(QtGui.QLabel("Number of rows"), self.numberOfPins)
+        self.mainFormLay.addRow(QtGui.QLabel("Raster1 (r1)"), autVariable(7.62))
+        self.mainFormLay.addRow(QtGui.QLabel("Raster2 (r2)"), autVariable(9.5))
 
 
 def modelGenerate(doc, widget):
-    print('jest')
-    try:
-        print(widget.numberOfPins.value())
-        doc.Spreadsheet.set('B1', str(widget.numberOfPins.value()))
-        doc.recompute()
-    except Exception as e:
-        print(e)
+    doc.Spreadsheet.set('B1', str(widget.numberOfPins.value()))
+    doc.recompute()

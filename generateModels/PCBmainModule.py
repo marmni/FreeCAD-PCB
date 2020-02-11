@@ -45,8 +45,9 @@ class modelPreviewMain(QtGui.QToolButton):
 
 
 class modelGenerateGUIMain(QtGui.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, desc, parent=None):
         QtGui.QWidget.__init__(self, parent)
+        self.errors = False
         #
         showMainWidget = flatButton(":/data/img/previous_16x16.png", "Back", self)
         self.connect(showMainWidget, QtCore.SIGNAL("clicked ()"), parent.showMainWidget)
@@ -54,15 +55,30 @@ class modelGenerateGUIMain(QtGui.QWidget):
         line = QtGui.QFrame()
         line.setFrameShape(QtGui.QFrame.HLine)
         line.setFrameShadow(QtGui.QFrame.Sunken)
+        
+        line2 = QtGui.QFrame()
+        line2.setFrameShape(QtGui.QFrame.HLine)
+        line2.setFrameShadow(QtGui.QFrame.Sunken)
         #
         self.mainFormLay = QtGui.QFormLayout()
         #
+        self.modelName = QtGui.QLabel(desc)
+        self.modelName.setStyleSheet("QLabel{font-weight:bold; font-size:15px} ")
+        #
+        self.errorsList = QtGui.QLabel("")
+        self.errorsList.setStyleSheet("QLabel{font-weight:bold; font-size:11px; color:#FF0000} ")
+        #
         self.mainLayout = QtGui.QGridLayout(self)
         self.mainLayout.addWidget(showMainWidget, 0, 0, 1, 1)
+        self.mainLayout.addWidget(self.modelName, 0, 1, 1, 5, QtCore.Qt.AlignHCenter)
         self.mainLayout.addWidget(line, 1, 0, 1, 6)
         # ICON
         self.mainLayout.addItem(QtGui.QSpacerItem(1, 15), 3, 0, 1, 1)
         self.mainLayout.addLayout(self.mainFormLay, 4, 0, 1, 6)
+        self.mainLayout.addItem(QtGui.QSpacerItem(1, 15), 5, 0, 1, 1)
+        self.mainLayout.addWidget(line2, 6, 0, 1, 6)
+        self.mainLayout.addWidget(self.errorsList, 7, 0, 1, 6)
+        # erros
         self.mainLayout.setRowStretch(100, 100)
         self.mainLayout.setColumnStretch(5, 100)
         
@@ -78,8 +94,17 @@ class modelPictureDim(QtGui.QLabel):
         iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..\generateModels\data"), icon)
         #
         img = QtGui.QPixmap(iconDirectory)
-        #
         self.setPixmap(img)
+        
+        
+class autVariable(QtGui.QDoubleSpinBox):
+     def __init__(self, value=0.0, parent=None):
+        QtGui.QDoubleSpinBox.__init__(self)
+        self.setValue(value)
+        #
+        self.setSuffix("mm")
+        self.setDisabled(True)
+
 
 class flatButton(QtGui.QPushButton):
     def __init__(self, icon, tooltip, parent=None):
@@ -91,31 +116,7 @@ class flatButton(QtGui.QPushButton):
         self.setIconSize(QtCore.QSize(32, 32))
         self.setFixedSize(QtCore.QSize(32, 32))
 
-# class modelPreviewMain(QtGui.QWidget):
-    # def __init__(self, icon, tooltip, parent=None):
-        # QtGui.QWidget.__init__(self, parent)
-        
-        # self.setFixedSize(QtCore.QSize(128, 128))
-        # self.setAutoFillBackground(True)
-        # self.setStyleSheet("background-color: #434e52; border:0px solid red")
-        
-        # p = self.palette()
-        # p.setColor(self.backgroundRole(), QtGui.QColor(209, 209, 209))
-        # self.setPalette(p)
-        # #
-        # iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..\generateModels\data"), icon)
-        # #
-        # self.button = QtGui.QPushButton(QtGui.QIcon(iconDirectory), "", self)
-        # self.button.setFlat(True)
-        # self.button.setIconSize(QtCore.QSize(120, 120))
-        # #self.button.setStyleSheet("QPushButton:hover:!pressed{border: 1px solid #808080; background-color: #e6e6e6;} ")
-        # #
-        # desc = QtGui.QLabel(tooltip)
-        # #
-        # self.mainLay = QtGui.QGridLayout(self)
-        # self.mainLay.addWidget(self.button, 0, 0, 1, 1)
-        # self.mainLay.addWidget(desc, 1, 0, 1, 1, QtCore.Qt.AlignHCenter)
-        # self.mainLay.setContentsMargins(5, 5, 5, 5)
-        # self.mainLay.setSpacing(0)
-        
+    
+    
+    
     

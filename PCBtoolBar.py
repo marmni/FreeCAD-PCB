@@ -913,7 +913,7 @@ class pcbToolBar(pcbToolBarMain):
 
     def updateModels(self):
         ''' update 3d models of packages '''
-        if FreeCAD.activeDocument():
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
             if not FreeCADGui.Control.activeDialog():
                 FreeCADGui.Control.showDialog(updateParts())
     

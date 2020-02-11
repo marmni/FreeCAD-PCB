@@ -25,31 +25,57 @@
 #*                                                                          *
 #****************************************************************************
 from PySide import QtCore, QtGui
-from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
+from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim
 
-__fcstdFile__ = "connectorAmpQuick.fcstd"
-__desc__ = "Amp Quick"
+__fcstdFile__ = "hexStandoffFemaleFemale.FCStd"
+__desc__ = "Hex Standoff F/F"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorAmpQuick.png", __desc__, parent)
+        modelPreviewMain.__init__(self, "hexStandoffFemaleFemale.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
     def __init__(self, parent=None):
         modelGenerateGUIMain.__init__(self, __desc__, parent)
         #
-        self.numberOfPins = QtGui.QSpinBox()
-        self.numberOfPins.setValue(2)
-        self.numberOfPins.setMinimum(2)
-        self.numberOfPins.setSingleStep(1)
+        self.diameter1 = QtGui.QDoubleSpinBox()
+        self.diameter1.setValue(5.6)
+        self.diameter1.setMinimum(0.5)
+        self.diameter1.setSingleStep(0.5)
+        self.diameter1.setSuffix("mm")
+        self.connect(self.diameter1, QtCore.SIGNAL("valueChanged (double)"), self.checkParam)
         #
-        self.addMainImageDim("connectorAmpQuickDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
-        self.mainFormLay.addRow(QtGui.QLabel("Raster(a)"), autVariable(2.54))
+        self.diameter2 = QtGui.QDoubleSpinBox()
+        self.diameter2.setMinimum(0.5)
+        self.diameter2.setSingleStep(0.5)
+        self.diameter2.setSuffix("mm")
+        self.connect(self.diameter2, QtCore.SIGNAL("valueChanged (double)"), self.checkParam)
+        self.diameter2.setValue(3)
+        #
+        self.length = QtGui.QDoubleSpinBox()
+        self.length.setValue(10)
+        self.length.setMinimum(0.1)
+        self.length.setSingleStep(0.5)
+        self.length.setSuffix("mm")
+        #
+        self.addMainImageDim("hexStandoffFemaleFemaleDim.png")
+        self.mainFormLay.addRow(QtGui.QLabel("d1"), self.diameter1)
+        self.mainFormLay.addRow(QtGui.QLabel("d2"), self.diameter2)
+        self.mainFormLay.addRow(QtGui.QLabel("l"), self.length)
+    
+    def checkParam(self, dummy):
+        self.errors = False
+        self.errorsList.setText("")
+        #
+        if self.diameter1.value() <= self.diameter2.value():
+            self.errors = True
+            self.errorsList.setText("Error: d1 is smaller (or equal) than d2")
 
 
 def modelGenerate(doc, widget):
-    doc.Spreadsheet.set('B1', str(widget.numberOfPins.value()))
+    doc.Spreadsheet.set('B1', str(widget.diameter1.value()))
+    doc.Spreadsheet.set('B2', str(widget.diameter2.value()))
+    doc.Spreadsheet.set('B3', str(widget.length.value()))
     doc.recompute()

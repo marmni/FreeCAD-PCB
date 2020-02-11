@@ -51,6 +51,10 @@ class generateModelGui(QtGui.QStackedWidget):
     def accept(self):
         if self.currentIndex() > 0:
             try:
+                if self.currentWidget().errors:
+                    print("Fix all errors!")
+                    return False
+                #
                 fcstdFile = importlib.import_module(self.moduleName).__fcstdFile__
                 doc = FreeCAD.open(os.path.join(self.filesDirecory, "data/" + fcstdFile))
                 
@@ -66,6 +70,7 @@ class generateModelGui(QtGui.QStackedWidget):
         return True
     
     def showMainWidget(self):
+        # self.form.setWindowTitle(u"Generate model")
         self.setCurrentIndex(0)
         
     def firstPage(self):
@@ -94,7 +99,7 @@ class generateModelGui(QtGui.QStackedWidget):
                 else:
                     col += 1
             except Exception as e:
-                pass
+                print(e)
         #
         return mainWidget
     
@@ -103,6 +108,7 @@ class generateModelGui(QtGui.QStackedWidget):
             self.removeWidget(self.widget(1))
             self.moduleName = None
         #
+        # self.form.setWindowTitle(u"Generate model: " + importlib.import_module(moduleName).__desc__)
         modelGenerate = importlib.import_module(moduleName).modelGenerateGUI(self)
         self.moduleName = moduleName
         self.addWidget(modelGenerate)

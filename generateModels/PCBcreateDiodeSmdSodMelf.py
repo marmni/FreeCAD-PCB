@@ -27,29 +27,55 @@
 from PySide import QtCore, QtGui
 from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
 
-__fcstdFile__ = "connectorAmpQuick.fcstd"
-__desc__ = "Amp Quick"
+__fcstdFile__ = "diodeSmdSodMelf.FCStd"
+__desc__ = "SOD/MELF"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorAmpQuick.png", __desc__, parent)
+        modelPreviewMain.__init__(self, "diodeSmdSodMelf.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
     def __init__(self, parent=None):
         modelGenerateGUIMain.__init__(self, __desc__, parent)
         #
-        self.numberOfPins = QtGui.QSpinBox()
-        self.numberOfPins.setValue(2)
-        self.numberOfPins.setMinimum(2)
-        self.numberOfPins.setSingleStep(1)
+        self.diameter = QtGui.QDoubleSpinBox()
+        self.diameter.setValue(1.1)
+        self.diameter.setMinimum(0.5)
+        self.diameter.setSingleStep(0.5)
+        self.diameter.setSuffix("mm")
         #
-        self.addMainImageDim("connectorAmpQuickDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
-        self.mainFormLay.addRow(QtGui.QLabel("Raster(a)"), autVariable(2.54))
-
+        self.totalLen = autVariable()
+        #
+        self.len_1 = QtGui.QDoubleSpinBox()
+        self.len_1.setValue(0.4)
+        self.len_1.setSuffix("mm")
+        self.len_1.setMinimum(0.2)
+        self.len_1.setSingleStep(0.2)
+        self.connect(self.len_1, QtCore.SIGNAL("valueChanged (double)"), self.updateTotalLen)
+        #
+        self.len_2 = QtGui.QDoubleSpinBox()
+        self.len_2.setMinimum(0.5)
+        self.len_2.setSuffix("mm")
+        self.len_2.setSingleStep(0.5)
+        self.connect(self.len_2, QtCore.SIGNAL("valueChanged (double)"), self.updateTotalLen)
+        self.len_2.setValue(1.2)
+        #
+        self.addMainImageDim("diodeSmdSodMelfDim.png")
+        self.mainFormLay.addRow(QtGui.QLabel("d"), self.diameter)
+        self.mainFormLay.addRow(QtGui.QLabel("k"), self.len_1)
+        self.mainFormLay.addRow(QtGui.QLabel("l"), self.len_2)
+        self.mainFormLay.addRow(QtGui.QLabel("l1 = l + k * 2      "), self.totalLen)
+    
+    def updateTotalLen(self, dummy):
+        try:
+            self.totalLen.setValue(round(self.len_1.value() * 2. + self.len_2.value(), 2))
+        except Exception as e:
+            print(e)
 
 def modelGenerate(doc, widget):
-    doc.Spreadsheet.set('B1', str(widget.numberOfPins.value()))
+    doc.Spreadsheet.set('B1', str(widget.len_1.value()))
+    doc.Spreadsheet.set('B2', str(widget.diameter.value()))
+    doc.Spreadsheet.set('B3', str(widget.len_2.value()))
     doc.recompute()

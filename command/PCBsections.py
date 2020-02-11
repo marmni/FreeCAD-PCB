@@ -55,17 +55,19 @@ class createSectionsGui(QtGui.QWidget):
         
         self.exportClass = None
         #
+        self.componentsList = []
         self.components = []
         for i in FreeCADGui.Selection.getSelection():
             if  hasattr(i, "Shape") and "Part" in i.TypeId: 
-                self.components.append(i)
+                # i.ViewObject.Transparency = 80
+                self.componentsList.append(i)
         
-        if len(self.components) == 0:
+        if len(self.componentsList) == 0:
             self.components = None
-        elif len(self.components) == 1:
-            self.components = self.components[0].Shape
+        elif len(self.componentsList) == 1:
+            self.components = self.componentsList[0].Shape
         else:
-            self.components = Part.makeCompound([i.Shape for i in self.components])
+            self.components = Part.makeCompound([i.Shape for i in self.componentsList])
         #
         self.sectionsLisstTable = sectionsLisstTable(self)
         #
@@ -156,6 +158,7 @@ If library exists but there is no component with the specified name - component 
         
     def reject(self):
         self.sectionsLisstTable.removeRoot()
+        # self.resetTransparency()
         return True
     
     def accept(self):
@@ -244,8 +247,17 @@ If library exists but there is no component with the specified name - component 
             #
             self.exportClass.export()
         #
+        #self.resetTransparency()
+        #
         return True
-    
+        
+    # def resetTransparency(self):
+        # for i in self.componentsList:
+            # try:
+                # i.ViewObject.Transparency = 80
+            # except Exception as e:
+                # print(e)
+
     def loopWires(self, wires):
         for i in wires:
             for j in i.Edges:
@@ -642,6 +654,34 @@ class eagle(exportModel):
         #
         packages.appendChild(self.package)
         packages.appendChild(self.dummyFile.createTextNode('\n'))
+        # desc
+        description = self.dummyFile.createElement("description")
+        description.appendChild(self.dummyFile.createTextNode("Description"))
+        
+        self.package.appendChild(description)
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
+        # name
+        componentName = self.dummyFile.createElement("text")
+        componentName.setAttribute('x', '0')
+        componentName.setAttribute('y', '2')
+        componentName.setAttribute('size', '1.27')
+        componentName.setAttribute('layer', '25')
+        componentName.setAttribute('ration', '10')
+        componentName.appendChild(self.dummyFile.createTextNode("<NAME"))
+        
+        self.package.appendChild(componentName)
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
+        # value
+        componentValue = self.dummyFile.createElement("text")
+        componentValue.setAttribute('x', '0')
+        componentValue.setAttribute('y', '-2')
+        componentValue.setAttribute('size', '1.27')
+        componentValue.setAttribute('layer', '25')
+        componentValue.setAttribute('ration', '10')
+        componentValue.appendChild(self.dummyFile.createTextNode("<VALUE"))
+        
+        self.package.appendChild(componentValue)
+        self.package.appendChild(self.dummyFile.createTextNode('\n'))
         
     def createDeviceset(self, name):
         devicesets = self.dummyFile.getElementsByTagName('devicesets')[0]

@@ -27,13 +27,13 @@
 from PySide import QtCore, QtGui
 from PCBmainModule import modelPreviewMain, modelGenerateGUIMain, modelPictureDim, autVariable
 
-__fcstdFile__ = "connectorAmpQuick.fcstd"
-__desc__ = "Amp Quick"
+__fcstdFile__ = "connectorPhoenix_508.FCStd"
+__desc__ = "Phoenix 5.08"
 
 
 class modelPreview(modelPreviewMain):
      def __init__(self, parent=None):
-        modelPreviewMain.__init__(self, "connectorAmpQuick.png", __desc__, parent)
+        modelPreviewMain.__init__(self, "connectorPhoenix_508.png", __desc__, parent)
     
 
 class modelGenerateGUI(modelGenerateGUIMain):
@@ -45,9 +45,9 @@ class modelGenerateGUI(modelGenerateGUIMain):
         self.numberOfPins.setMinimum(2)
         self.numberOfPins.setSingleStep(1)
         #
-        self.addMainImageDim("connectorAmpQuickDim.png")
-        self.mainFormLay.addRow(QtGui.QLabel("Number of pins (l)"), self.numberOfPins)
-        self.mainFormLay.addRow(QtGui.QLabel("Raster(a)"), autVariable(2.54))
+        self.addMainImageDim("connectorPhoenix_508Dim.png")
+        self.mainFormLay.addRow(QtGui.QLabel("Number of rows"), self.numberOfPins)
+        self.mainFormLay.addRow(QtGui.QLabel("Raster (r)"), autVariable(5.08))
 
 
 def modelGenerate(doc, widget):
