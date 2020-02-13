@@ -30,7 +30,7 @@ import os
 
 class modelPreviewMain(QtGui.QToolButton):
     def __init__(self, icon, tooltip, parent=None):
-        iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..\generateModels\data"), icon)
+        iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../generateModels/data"), icon)
         #
         QtGui.QToolButton.__init__(self, parent)
         #
@@ -91,7 +91,7 @@ class modelPictureDim(QtGui.QLabel):
      def __init__(self, icon, parent=None):
         QtGui.QLabel.__init__(self, "")
         #
-        iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..\generateModels\data"), icon)
+        iconDirectory = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../generateModels/data"), icon)
         #
         img = QtGui.QPixmap(iconDirectory)
         self.setPixmap(img)

@@ -30,6 +30,10 @@ if FreeCAD.GuiUp:
 import Part
 from math import degrees
 import importlib
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 #
 from PCBobjects import layerSilkObject
 from PCBfunctions import kolorWarstwy, mathFunctions
@@ -44,7 +48,10 @@ from command.PCBgroups import createGroup_Glue
 #***********************************************************************
 class createGlueGui(QtGui.QWidget):
     def __init__(self, parent=None):
-        importlib.reload(PCBconf)
+        try:
+            importlib.reload(PCBconf)
+        except:
+            builtins.reload(PCBconf)
         
         QtGui.QWidget.__init__(self, parent)
         

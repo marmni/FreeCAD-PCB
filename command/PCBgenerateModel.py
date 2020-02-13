@@ -43,7 +43,7 @@ class generateModelGui(QtGui.QStackedWidget):
         self.form.setWindowIcon(QtGui.QIcon(":/data/img/generateModel.svg"))
         self.moduleName = None
         #
-        self.filesDirecory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..\generateModels")
+        self.filesDirecory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../generateModels")
         sys.path.append(self.filesDirecory)
         #
         self.addWidget(self.firstPage())

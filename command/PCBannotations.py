@@ -48,10 +48,12 @@ fonts = ["Vector", "Fixed", "Proportional"]
 mirror = ['None', 'Global Y axis', 'Local Y axis', 'Center']
 #mirror = ['None', 'Global Y axis', 'Local Y axis']
 
+__fontsDirecory__ = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/fonts")
+
 fontFile = {
-    "Vector": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\Hyperspace.ttf"),
-    "Fixed": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\CutiveMono-Regular.ttf"),
-    "Proportional": os.path.join(FreeCAD.getHomePath(), "Mod\PCB\data/fonts\LiberationMono-Regular.ttf")
+    "Vector": os.path.join(__fontsDirecory__, "Hyperspace.ttf"),
+    "Fixed": os.path.join(__fontsDirecory__, "CutiveMono-Regular.ttf"),
+    "Proportional": os.path.join(__fontsDirecory__, "LiberationMono-Regular.ttf")
 }
 
 
@@ -87,7 +89,7 @@ class createAnnotation:
         self.defaultLabel = self.defaultName = value
         
         if isinstance(self.defaultName, str):
-            self.defaultName = unicodedata.normalize('NFKD', self.defaultName).encode('ascii', 'ignore')
+            self.defaultName = unicodedata.normalize('NFKD', u"{0}".format(self.defaultName)).encode('ascii', 'ignore')
         
     def generate(self, addToGroup=True):
         pcb = getPCBheight()
