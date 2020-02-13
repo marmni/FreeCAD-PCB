@@ -29,6 +29,10 @@ import FreeCAD
 import FreeCADGui
 from PySide import QtGui
 import importlib
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 #
 import PCBconf
 from PCBpartManaging import partsManaging
@@ -76,7 +80,10 @@ class pickSketch(QtGui.QPushButton):
 
 class createPCB(QtGui.QWidget, partsManaging):
     def __init__(self, parent=None):
-        importlib.reload(PCBconf)
+        try:
+            importlib.reload(PCBconf)
+        except:
+            builtins.reload(PCBconf)
         
         QtGui.QWidget.__init__(self, parent)
         freecadSettings = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB")
