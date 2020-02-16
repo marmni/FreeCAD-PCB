@@ -36,7 +36,6 @@ from math import sqrt
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from command.PCBgroups import *
 from PCBfunctions import mathFunctions, filterHoles
 
 

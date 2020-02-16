@@ -26,24 +26,13 @@
 #****************************************************************************
 
 import FreeCAD
-import Sketcher
-# try:
-    # import builtins
-# except:
-    # import __builtin__ as builtins
-import Part
 import re
-import os
-from math import sqrt
-
+#
 from PCBconf import softLayers
 from PCBobjects import *
-from formats.PCBmainForms import *
-from formats.kicad_v3 import KiCadv3_PCB, setProjectFile
-from command.PCBgroups import *
+from formats.kicad_v3 import KiCadv3_PCB
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions
-from PCBconf import kicadColorsDefinition
+from PCBfunctions import setProjectFile
 
 
 class dialogMAIN(dialogMAIN_FORM):

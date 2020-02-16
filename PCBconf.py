@@ -33,13 +33,13 @@ from PCBfunctions import getFromSettings_Color_1, getFromSettings_Color
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
 
 
-#****************************************************************************
-#*                                                                          *
-#*                                                                          *
-#*                       You can modify variables below                     *
-#*                                                                          *
-#*                                                                          *
-#****************************************************************************
+# ****************************************************************************
+# *                                                                          *
+# *                                                                          *
+# *                       You can modify variables below                     *
+# *                                                                          *
+# *                                                                          *
+# ****************************************************************************
 spisKolorowSTP = {
     "red": (1.0, 0.0, 0.0),
     "white": (1.0, 1.0, 1.0),
@@ -49,13 +49,13 @@ spisKolorowSTP = {
     "blue": (0.0, 0.0, 1.0)
 }
 
-#****************************************************************************
-#*                                                                          *
-#*                                                                          *
-#*                    Please do not change anything below!                  *
-#*                                                                          *
-#*                                                                          *
-#****************************************************************************
+# ****************************************************************************
+# *                                                                          *
+# *                                                                          *
+# *                    Please do not change anything below!                  *
+# *                                                                          *
+# *                                                                          *
+# ****************************************************************************
 
 #  default pcb color
 #       PCB_COLOR = (R/255., G/255., B/255.)
@@ -66,15 +66,15 @@ PCB_COLOR = getFromSettings_Color('boardColor', 1437204735)
 #  partPaths = [path_1, path_2, etc]
 #       for example: /home/mariusz/.FreeCAD/Mod/EaglePCB_2_FreeCAD/parts/
 #       used in: PCBpartManaging.partExist()
-partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod\PCB\parts"), os.path.join(__currentPath__, "parts")]
+partPaths = [os.path.join(FreeCAD.getHomePath(), "Mod/PCB/parts"), os.path.join(__currentPath__, "parts")]
 
 #  default software list
-#defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
+# defSoftware = ['Eagle', 'KiCad', 'FidoCadJ', 'FreePCB', 'Razen', 'gEDA', 'IDF', 'HyperLynx']  # do not change order!
 defSoftware = ['Eagle', 'KiCad', 'FreePCB', 'gEDA', 'IDF', 'HyperLynx', 'LibrePCB']  # do not change order!
 
 #########################
 exportData = {
-    "eagle" : {
+    "eagle": {
         'name': 'Eagle',
         'exportLayers': ['dim', 'hol', 'anno', 'glue'],
         'exportClass': 'eagle()',
@@ -85,7 +85,7 @@ exportData = {
         'exportComponent': True,
         'formatLIB': '*.lbr',
     },
-    "geda" : {
+    "geda": {
         'name': 'gEDA',
         'exportLayers': ['hol', 'anno'],
         'exportClass': 'geda()',
@@ -96,7 +96,7 @@ exportData = {
         'exportComponent': True,
         'formatLIB': '',
     },
-    "idf_v3" : {
+    "idf_v3": {
         'name': 'IDF v3',
         'exportLayers': ['hol', 'anno'],
         'exportClass': 'idf_v3()',
@@ -106,7 +106,7 @@ exportData = {
         'export': True,
         'exportComponent': False,
     },
-    "freepcb" : {
+    "freepcb": {
         'name': 'FreePCB',
         'exportLayers': ['hol', 'anno'],
         'exportClass': 'freePCB()',
@@ -116,7 +116,7 @@ exportData = {
         'export': True,
         'exportComponent': False,
     },
-    "kicad" : {
+    "kicad": {
         'name': 'KiCad v4',
         'exportLayers': ['dim', 'hol', 'anno', 'glue'],
         'exportClass': 'kicad()',
@@ -127,7 +127,7 @@ exportData = {
         'exportComponent': True,
         'formatLIB': '*.kicad_mod',
     },
-    "hyp_v2" : {
+    "hyp_v2": {
         'name': 'HyperLynx',
         'exportLayers': [],
         'exportClass': '',
@@ -137,7 +137,7 @@ exportData = {
         'export': False,
         'exportComponent': False,
     },
-    "librepcb" : {
+    "librepcb": {
         'name': 'LibrePCB',
         'exportLayers': [],
         'exportClass': '',
@@ -159,7 +159,7 @@ exportData = {
 PCBconstraintAreas = {
     "vPlaceKeepout": ["Place Keepout", ['vPlaceKeepout', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceKeepoutColor', 255), ''],
     "tPlaceKeepout": ['Place Keepout Top', ['tKeepout', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceKeepoutColor', 4278190335), "Restricted areas for components, top side"],
-    "bPlaceKeepout": ['Place Keepout Bottom', ['bKeepout', 'bottomSide'],['int', '%', 50, 0, 100] , getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "Restricted areas for components, bottom side"],
+    "bPlaceKeepout": ['Place Keepout Bottom', ['bKeepout', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceKeepoutColor', 65535), "Restricted areas for components, bottom side"],
     "vPlaceOutline": ["Place Outline", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceOutlineColor', 255), ''],
     "tPlaceOutline": ["Place Outline Top", ['tPlaceOutline', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceOutlineColor', 4278190335), ''],
     "bPlaceOutline": ["Place Outline Bottom", ['bPlaceOutline', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bPlaceOutlineColor', 65535), ''],
@@ -169,7 +169,7 @@ PCBconstraintAreas = {
     "tRouteKeepout": ["Route Keepout Top", ['tRestrict', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tRouteKeepoutColor', 4278190335), "Restricted areas for copper, top side"],
     "bRouteKeepout": ["Route Keepout Bottom", ['bRestrict', 'bottomSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('bRouteKeepoutColor', 65535), "Restricted areas for copper, bottom side"],
     "vRouteKeepout": ["Via Keepout", ['vRestrict', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteKeepoutColor', 255), "Restricted areas for vias"],
-    "routeOutline":["ROUTE_OUTLINE", ["vRouteOutline", 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteOutlineColor', 255), "ROUTE_OUTLINE"],
+    "routeOutline": ["ROUTE_OUTLINE", ["vRouteOutline", 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteOutlineColor', 255), "ROUTE_OUTLINE"],
     "placeOutline": ["PLACE_OUTLINE", ['vPlaceOutline', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vPlaceOutlineColor', 255), "PLACE_OUTLINE"],
     "viaKeepout": ["Via Keepout", ['vRestrict', 'bothSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('vRouteKeepoutColor', 255), "Restricted areas for vias"],
     "tPlaceRegion": ["Place Outline Top", ['tPlaceOutline', 'topSide'], ['int', '%', 50, 0, 100], getFromSettings_Color_1('tPlaceOutlineColor', 4278190335), ''],
@@ -192,9 +192,11 @@ layersList = {
     "placeB": {"side": 0, "mirrorLayer": 21, "color": getFromSettings_Color_1('SilkColor', 4294967295), "description": "Placement, bottom side", "value": ['double', u'μm', 34.8, 0, 350]},
 }
 
+
 def replaceMirrorLayer(data, value):
     data["mirrorLayer"] = value
     return data
+
 
 softLayers = {
     "eagle": {

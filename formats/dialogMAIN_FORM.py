@@ -27,13 +27,7 @@
 
 import FreeCAD
 if FreeCAD.GuiUp:
-    import FreeCADGui
     from PySide import QtCore, QtGui
-from math import sqrt
-import DraftGeomUtils
-import Draft
-import Part
-import os
 try:
     import builtins
 except:
@@ -42,13 +36,7 @@ import importlib
 import unicodedata
 #
 import PCBconf
-from PCBpartManaging import partsManaging
-from PCBfunctions import kolorWarstwy, mathFunctions, getFromSettings_Color_1
-from PCBobjects import constraintAreaObject, viewProviderConstraintAreaObject
-from PCBboard import PCBboardObject, viewProviderPCBboardObject
-from command.PCBgroups import *
-from command.PCBannotations import createAnnotation
-from command.PCBglue import createGlue
+from PCBfunctions import kolorWarstwy, getFromSettings_Color_1
 
 
 class dialogMAIN_FORM(QtGui.QDialog):

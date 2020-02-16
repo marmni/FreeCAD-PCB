@@ -26,23 +26,15 @@
 #****************************************************************************
 
 import FreeCAD
-import Sketcher
-# try:
-    # import builtins
-# except:
-    # import __builtin__ as builtins
 import Part
 import re
 from math import sqrt
-import os
+#import os
 #
 from PCBconf import softLayers
 from PCBobjects import *
-from formats.PCBmainForms import *
-from command.PCBgroups import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from PCBfunctions import mathFunctions, setProjectFile
-from PCBconf import kicadColorsDefinition
 
 
 class dialogMAIN(dialogMAIN_FORM):
