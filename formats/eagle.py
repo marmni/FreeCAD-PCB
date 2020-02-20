@@ -631,6 +631,68 @@ class EaglePCB(mathFunctions):
                     elif attr.getAttribute('name') == "VALUE":
                         i['EL_Value'] = data
                         #i['EL_Value']['rot'] = i['EL_Value']['rot'] - i['rot']
+            #########################
+            if 'EL_Name' not in i:
+                x1 = i['x'] - 0.5
+                y1 = i['y'] - 0.5
+                side = "TOP"
+                
+                if i['side'] == "BOTTOM":
+                    x1 = self.odbijWspolrzedne(x1, i['x'])
+                    side = "BOTTOM"
+                    #j["mirror"] = True
+                    
+                    [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], -i['rot'])
+                else:
+                    [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], i['rot'])
+                #
+                i['EL_Name'] = {
+                    "text": "NAME",
+                    "x": xR,
+                    "y": yR,
+                    "z": 0,
+                    "size": 1.27,
+                    'rot': i['rot'], 
+                    'side': side, 
+                    'align': 'center', 
+                    'spin': True, 
+                    'font': 'Proportional', 
+                    'display': True, 
+                    'distance': 50, 
+                    'tracking': 0, 
+                    'mode': 'param'
+                }
+            #
+            if 'EL_Value' not in i:
+                x1 = i['x'] + 0.5
+                y1 = i['y'] + 0.5
+                side = "TOP"
+                
+                if i['side'] == "BOTTOM":
+                    x1 = self.odbijWspolrzedne(x1, i['x'])
+                    side = "BOTTOM"
+                    #j["mirror"] = True
+                    
+                    [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], -i['rot'])
+                else:
+                    [xR, yR] = self.obrocPunkt2([x1, y1], [i['x'], i['y']], i['rot'])
+                #
+                i['EL_Value'] = {
+                    "text": "VALUE",
+                    "x": xR,
+                    "y": yR,
+                    "z": 0,
+                    "size": 1.27,
+                    'rot': i['rot'], 
+                    'side': side, 
+                    'align': 'center', 
+                    'spin': True, 
+                    'font': 'Proportional', 
+                    'display': True, 
+                    'distance': 50, 
+                    'tracking': 0, 
+                    'mode': 'param'
+                }
             #####################
             # RESULT - EXAMPLE
             #####################

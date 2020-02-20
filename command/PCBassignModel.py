@@ -924,8 +924,9 @@ class dodajElement(QtGui.QDialog, partsManaging):
         
         self.RightSide_tab.setCurrentIndex(0)
         self.pathsList.clear()
-        self.modelPreview.Shape = Part.Shape()
-        self.modelPreview.ViewObject.DiffuseColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]
+        if self.modelPreview is not None:
+            self.modelPreview.Shape = Part.Shape()
+            self.modelPreview.ViewObject.DiffuseColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]
         self.modelAdjust.resetTable()
     
     def readFormData(self):
@@ -1419,7 +1420,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
     def checkSockets(self, tabID):
         if tabID == 1 and self.socketModelName.count() == 0:
             self.boxAddSocket.setDisabled(True)
-        if tabID == 2: # preview
+        if tabID == 2 and self.modelPreview is not None:  # preview
             self.pathsList.clear()
             if len(self.pathToModel.text().split(';')):
                 self.pathsList.addItems(self.pathToModel.text().split(';'))
@@ -1604,43 +1605,47 @@ class dodajElement(QtGui.QDialog, partsManaging):
         if FreeCAD.ActiveDocument:
             active = FreeCAD.ActiveDocument.Name
         #
-        doc = FreeCAD.newDocument('modelPreview')
-        FreeCAD.setActiveDocument('modelPreview')
-        FreeCAD.ActiveDocument = FreeCAD.getDocument('modelPreview')
-        FreeCADGui.ActiveDocument = FreeCADGui.getDocument('modelPreview')
-        
-        step_model = doc.addObject("Part::FeaturePython", "preview")
-        #step_model = self.getPartShape("D:\Program Files\FreeCAD 0.18\Mod\PCB\parts/batteries\CR2032V.stp", step_model, False)
-        self.modelPreview = step_model
-        viewProviderPartObject(step_model.ViewObject)
-        
-        #FreeCADGui.SendMsgToActiveView("ViewFit")
-        FreeCADGui.ActiveDocument.ActiveView.setAxisCross(True)
-        #
-        self.pathsList = QtGui.QComboBox()
-        
-        rightSide_Trash = QtGui.QWidget()
-        layRightSide_Trash = QtGui.QGridLayout(rightSide_Trash)
-        
         rightSide_Preview = QtGui.QWidget()
-        layRightSide_Preview = QtGui.QGridLayout(rightSide_Preview)
-        layRightSide_Preview.addWidget(self.pathsList, 0, 0, 1, 1)
-        
-        wL = FreeCADGui.getMainWindow().findChild(QtGui.QMdiArea).subWindowList()
-        for i in wL:
-            if 'modelPreview' in i.windowTitle():
-                #widget = i.widget()
-                #wL = widget.layout()
-                #wI = wL.itemAt(0).widget().currentWidget()
-                #i.event = self.ppm
-                #FreeCAD.Console.PrintWarning(u"{0}\n".format(wI))
-                #i.widget().mouseMoveEvent = self.ppm
-                
-                layRightSide_Trash.addWidget(i, 0, 0, 1, 1)
-                layRightSide_Preview.addWidget(i.widget(), 1, 0, 10, 1)
-                break
+        try:
+            doc = FreeCAD.newDocument('modelPreview')
+            FreeCAD.setActiveDocument('modelPreview')
+            FreeCAD.ActiveDocument = FreeCAD.getDocument('modelPreview')
+            FreeCADGui.ActiveDocument = FreeCADGui.getDocument('modelPreview')
+            
+            step_model = doc.addObject("Part::FeaturePython", "preview")
+            self.modelPreview = step_model
+            viewProviderPartObject(step_model.ViewObject)
+            
+            #FreeCADGui.SendMsgToActiveView("ViewFit")
+            FreeCADGui.ActiveDocument.ActiveView.setAxisCross(True)
+            #
+            self.pathsList = QtGui.QComboBox()
+            
+            rightSide_Trash = QtGui.QWidget()
+            layRightSide_Trash = QtGui.QGridLayout(rightSide_Trash)
+            
+            
+            layRightSide_Preview = QtGui.QGridLayout(rightSide_Preview)
+            layRightSide_Preview.addWidget(self.pathsList, 0, 0, 1, 1)
+            
+            wL = FreeCADGui.getMainWindow().findChild(QtGui.QMdiArea).subWindowList()
+            for i in wL:
+                if 'modelPreview' in i.windowTitle():
+                    #widget = i.widget()
+                    #wL = widget.layout()
+                    #wI = wL.itemAt(0).widget().currentWidget()
+                    #i.event = self.ppm
+                    #FreeCAD.Console.PrintWarning(u"{0}\n".format(wI))
+                    #i.widget().mouseMoveEvent = self.ppm
+                    
+                    layRightSide_Trash.addWidget(i, 0, 0, 1, 1)
+                    layRightSide_Preview.addWidget(i.widget(), 1, 0, 10, 1)
+                    break
 
-        layRightSide_Preview.setRowStretch(1, 10);
+            layRightSide_Preview.setRowStretch(1, 10)
+        except:
+            self.modelPreview = None
+            print('Error: Model preview will be disabled.')
         #
         if active:
             FreeCAD.setActiveDocument(active)
@@ -1667,6 +1672,9 @@ class dodajElement(QtGui.QDialog, partsManaging):
         #self.RightSide_tab.addTab(rightSide_Trash, u"Trash")
         #self.RightSide_tab.
         self.connect(self.RightSide_tab, QtCore.SIGNAL("currentChanged (int)"), self.checkSockets)
+        
+        if self.modelPreview is None:
+            self.RightSide_tab.setTabEnabled(2, False)
         
         mainWidgetRightSide = QtGui.QWidget()
         mainLayRightSide = QtGui.QGridLayout(mainWidgetRightSide)

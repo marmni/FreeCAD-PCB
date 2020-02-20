@@ -946,7 +946,6 @@ class partsManaging(mathFunctions):
             databaseType = self.databaseType
             if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
-            
             #
             #modelInfo = getExtensionInfo(info, 'model')
             #if modelInfo:  # kicad users

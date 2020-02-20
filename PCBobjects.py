@@ -62,6 +62,8 @@ class partsObject(mathFunctions):
         self.oldROT = 0
         self.offsetZ = 0
         
+        #obj.addExtension('App::OriginGroupExtensionPython', self)
+        
         obj.addProperty("App::PropertyString", "Package", "PCB", "Package").Package = ""
         obj.addProperty("App::PropertyEnumeration", "Side", "PCB", "Side").Side = 0
         obj.addProperty("App::PropertyDistance", "X", "PCB", "X").X = 0
@@ -279,6 +281,7 @@ class partObject_E(partsObject):
 class viewProviderPartObject:
     def __init__(self, obj):
         ''' Set this object to the proxy object of the actual view provider '''
+        #obj.addExtension("Gui::ViewProviderOriginGroupExtensionPython", self)
         obj.Proxy = self
         self.Object = obj.Object
     
