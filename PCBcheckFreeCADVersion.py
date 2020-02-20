@@ -25,8 +25,7 @@
 #*                                                                          *
 #****************************************************************************
 import FreeCAD
-from PySide import QtCore, QtGui
-import sys
+from PySide import QtGui
 
 __scriptVersion__ = 5.0
 __dataBaseVersion__ = 2.0
@@ -40,17 +39,10 @@ def currentFreeCADVersion():
     return float(data[0] + '.' + (data[1][:data[1].index('.')] if '.' in data[1] else data[1]))
 
 
-# def checkPythonVesion():
-    # currentVersion = float(sys.version_info[0] + '.' + sys.version_info[1])
-    # if currentVersion < __pythonVersion__:
-        # return False
-    # else:
-        # return [True]
-
 def checkCompatibility():
     ''' InitGui -> Initialize() '''
     currentFCVersion = currentFreeCADVersion()
-    
+    #
     if currentFCVersion >= __requiredFreeCADVersion__[0] and currentFCVersion <= __requiredFreeCADVersion__[1]:
         # if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
             # FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
@@ -65,7 +57,7 @@ def checkCompatibility():
 def checkdataBaseVersion():
     ''' PCBdataBase -> checkVersion() '''
     version = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetFloat("dataBaseVersion", 0.0)
-        
+    #
     if float(version) < __dataBaseVersion__:
         dial = QtGui.QMessageBox()
         dial.setText(u"Old database format detected - upgrading database format is required. This may take several seconds.")
@@ -73,7 +65,7 @@ def checkdataBaseVersion():
         dial.setIcon(QtGui.QMessageBox.Question)
         rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
         dial.exec_()
-        
+        #
         return False
     else:
         return True
@@ -82,11 +74,10 @@ def checkdataBaseVersion():
 def setDefaultValues():
     ''' InitGui -> Initialize() '''
     data = {
-        "dataBaseVersion" : ['f', __dataBaseVersion__],
-        "scriptVersion" : ['f', __scriptVersion__]
+        "dataBaseVersion": ['f', __dataBaseVersion__],
+        "scriptVersion": ['f', __scriptVersion__]
     }
 
-    for i,j in data.items():
+    for i, j in data.items():
         if j[0] == 'f' and FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetFloat(i, 0.0) == 0.0:
             FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat(i, float(j[1]))
-

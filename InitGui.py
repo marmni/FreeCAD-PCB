@@ -29,7 +29,7 @@
 # gerber
 # paths from image
 
-__title__="FreeCAD Printed Circuit Board Workbench - Init file"
+__title__ = "FreeCAD Printed Circuit Board Workbench - Init file"
 __author__ = "marmni <marmni@onet.eu>"
 __url__ = ["http://www.freecadweb.org"]
 
@@ -122,29 +122,31 @@ static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm
         result = PCBcheckFreeCADVersion.checkCompatibility()
         if result[0]:
             PCBcheckFreeCADVersion.setDefaultValues()
-            
-            import PCBtoolBar, PCBrc, PCBcommands
+            #
+            import PCBtoolBar
+            import PCBrc
+            import PCBcommands
             import SketcherGui
-            
+            #
             FreeCADGui.addIconPath(":/data/img")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui","PCB")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui","PCB")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui","PCB")
-            
+            FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui", "PCB")
+            FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui", "PCB")
+            FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui", "PCB")
+            #
             self.explodeSettings = PCBcommands.listaExplode
             self.parts_E_Settings = PCBcommands.listaPartsE
             self.partsSettings = PCBcommands.listaParts
-            
-            self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch", 
+            #
+            self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch",
                                     "Sketcher_ViewSketch", "Sketcher_MapSketch",
                                     "Separator", "ScriptCmd_OpenSketcherWorkbench",
-                                    "Separator", 
-                                    "Sketcher_CreatePoint", "Sketcher_CreateArc", 
-                                    "Sketcher_Create3PointArc", "Sketcher_CreateCircle", 
-                                    "Sketcher_Create3PointCircle", "Sketcher_CreateLine", 
-                                    "Sketcher_CreatePolyline", "Sketcher_CreateRectangle", 
-                                    "Sketcher_CreateSlot", "Separator", 
-                                    "Sketcher_CreateFillet", "Sketcher_Trimming", 
+                                    "Separator",
+                                    "Sketcher_CreatePoint", "Sketcher_CreateArc",
+                                    "Sketcher_Create3PointArc", "Sketcher_CreateCircle",
+                                    "Sketcher_Create3PointCircle", "Sketcher_CreateLine",
+                                    "Sketcher_CreatePolyline", "Sketcher_CreateRectangle",
+                                    "Sketcher_CreateSlot", "Separator",
+                                    "Sketcher_CreateFillet", "Sketcher_Trimming",
                                     "Sketcher_External", "Sketcher_ToggleConstruction"]
 
             self.appendToolbar("Sketcher", self.sketchertools)
@@ -155,20 +157,20 @@ static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm
             FreeCADGui.pcbToolBar.Activated()
         if hasattr(FreeCADGui, "pcbToolBarView"):
             FreeCADGui.pcbToolBarView.Activated()
-        if hasattr(FreeCADGui,"sketcherToolBar"):
+        if hasattr(FreeCADGui, "sketcherToolBar"):
             FreeCADGui.sketcherToolBar.Activated()
-        
+
     def Deactivated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):
             FreeCADGui.pcbToolBar.Deactivated()
         if hasattr(FreeCADGui, "pcbToolBarView"):
             FreeCADGui.pcbToolBarView.Deactivated()
-        if hasattr(FreeCADGui,"sketcherToolBar"):
+        if hasattr(FreeCADGui, "sketcherToolBar"):
             FreeCADGui.sketcherToolBar.Deactivated()
-    
+
     def GetClassName(self):
         return "Gui::PythonWorkbench"
-        
+
     def ContextMenu(self, recipient):
         elem = FreeCADGui.Selection.getSelection()
         if(elem) and len(elem) == 1:

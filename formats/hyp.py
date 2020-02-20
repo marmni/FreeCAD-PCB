@@ -32,11 +32,10 @@ except:
     import __builtin__ as builtins
 import re
 from math import radians
-import __future__
-
+#import __future__
+#
 from PCBconf import softLayers
 from PCBobjects import *
-from command.PCBgroups import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from PCBfunctions import mathFunctions, filterHoles
 

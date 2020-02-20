@@ -946,7 +946,6 @@ class partsManaging(mathFunctions):
             databaseType = self.databaseType
             if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
-            
             #
             #modelInfo = getExtensionInfo(info, 'model')
             #if modelInfo:  # kicad users
@@ -1059,10 +1058,10 @@ def partExistPath(filePos):
     return [False, False]
 
 
-def getExtensionInfo(info,name):
+def getExtensionInfo(info, name):
     if len(info)==9 and \
-        isinstance(info[8],dict) and \
-        name in info[8] :
+        isinstance(info[8], dict) and \
+        name in info[8]:
         return info[8][name]
     return None
 

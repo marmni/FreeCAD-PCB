@@ -43,7 +43,7 @@ import time
 #
 import PCBconf
 from PCBpartManaging import partsManaging
-from PCBfunctions import kolorWarstwy, mathFunctions
+from PCBfunctions import mathFunctions
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
@@ -121,10 +121,10 @@ class mainPCB(partsManaging):
             #QtGui.qApp.processEvents()
             QtGui.QApplication.processEvents()
     
-    def generate(self, doc, groupBRD):
+    def generate(self, doc):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc, groupBRD, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
+        self.generatePCB(doc, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
         # HOLES
         self.generateHoles(doc, self.wersjaFormatu.dialogMAIN.holesMin.value(), self.wersjaFormatu.dialogMAIN.holesMax.value())
         # PARTS
@@ -405,10 +405,12 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc, groupBRD, gruboscPlytki):
+    def generatePCB(self, doc, gruboscPlytki):
         self.printInfo('\nGenerate board: ')
         
         try:
+            groupBRD = createGroup_PCB()
+            #
             doc.addObject('Sketcher::SketchObject', 'PCB_Border')
             doc.PCB_Border.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 0.0), FreeCAD.Rotation(0.0, 0.0, 0.0, 1.0))
             #

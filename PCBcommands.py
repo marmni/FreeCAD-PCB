@@ -43,11 +43,13 @@ class cmdExplodeEdit:
         panel = explodeEditWizard(FreeCADGui.Selection.getSelection()[0])
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(panel)
-    
+
     def GetResources(self):
-        return {'MenuText': 'Edit', 'ToolTip': 'Edit Explode', 'Pixmap'  : ":/data/img/explode.png"}
+        return {'MenuText': 'Edit', 'ToolTip': 'Edit Explode', 'Pixmap': ":/data/img/explode.png"}
+
 
 FreeCADGui.addCommand('cmdExplodeEdit', cmdExplodeEdit())
+
 ###############################################
 #   ASSIGN 3D MODEL
 ###############################################
@@ -58,67 +60,71 @@ class cmdPartAssignModel:
         dial = dodajElement()
         dial.packageName.setText(FreeCADGui.Selection.getSelection()[0].Package)
         dial.exec_()
-    
+
     def GetResources(self):
-        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model', 'Pixmap'  : ':/data/img/assignModels.png'}
+        return {'MenuText': 'Assign model', 'ToolTip': 'Assign model', 'Pixmap': ':/data/img/assignModels.png'}
+
 
 FreeCADGui.addCommand('cmdPartAssignModel', cmdPartAssignModel())
+
 ###############################################
 #   UPDATE 3D MODEL
 ###############################################
-
-
 class cmdPartUpdateModel:
     def Activated(self):
         panel = updateParts(updateModel=FreeCADGui.Selection.getSelection()[0].Package)
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(panel)
-        
+
     def GetResources(self):
-        return {'MenuText': 'Update model', 'ToolTip': 'Update model', 'Pixmap'  : ":/data/img/updateModels.png"}
+        return {'MenuText': 'Update model', 'ToolTip': 'Update model', 'Pixmap': ":/data/img/updateModels.png"}
+
 
 FreeCADGui.addCommand('cmdPartUpdateModel', cmdPartUpdateModel())
+
 ###############################################
 #   MOVE 3D MODEL
 ###############################################
-
-
 class cmdPartMoveModel:
     def Activated(self):
         panel = moveParts(FreeCADGui.Selection.getSelection()[0].Package)
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(panel)
-        
+
     def GetResources(self):
-        return {'MenuText': 'Placement model', 'ToolTip': 'Placement model', 'Pixmap'  : ":/data/img/centroid.svg"}
-        
+        return {'MenuText': 'Placement model', 'ToolTip': 'Placement model', 'Pixmap': ":/data/img/centroid.svg"}
+
     def IsActive(self):
         return True
 
+
 FreeCADGui.addCommand('cmdPartMoveModel', cmdPartMoveModel())
+
 ###############################################
 #   FIND MODEL ON-LINE
 ###############################################
-
-
 class cmdPartFindModel:
     def Activated(self):
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(downloadModelW(FreeCADGui.Selection.getSelection()[0].Package))
-        
+
     def GetResources(self):
-        return {'MenuText': 'Find model on-line', 'ToolTip': 'Find model on-line', 'Pixmap'  : ":/data/img/downloadModels.png"}
+        return {'MenuText': 'Find model on-line', 'ToolTip': 'Find model on-line', 'Pixmap': ":/data/img/downloadModels.png"}
+
 
 FreeCADGui.addCommand('cmdPartFindModel', cmdPartFindModel())
-################################################
-##   odajElement() -> Assign models
-################################################
+
+# ###############################################
+#    odajElement() -> Assign models
+# ###############################################
 class ScriptCmd_OpenSketcherWorkbench:
     def Activated(self):
         FreeCADGui.activateWorkbench("SketcherWorkbench")
-    
+    #
+
     def GetResources(self):
         return {'Pixmap': ":/data/img/SketcherWorkbech.svg", 'MenuText': 'Open Sketcher Workbench', 'ToolTip': 'Open Sketcher Workbench'}
+
 
 FreeCADGui.addCommand('ScriptCmd_OpenSketcherWorkbench', ScriptCmd_OpenSketcherWorkbench())
 #######
