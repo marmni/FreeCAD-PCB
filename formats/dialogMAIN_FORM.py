@@ -37,9 +37,10 @@ import unicodedata
 #
 import PCBconf
 from PCBfunctions import kolorWarstwy, getFromSettings_Color_1
+from formats.baseModel import baseModel
 
 
-class dialogMAIN_FORM(QtGui.QDialog):
+class dialogMAIN_FORM(QtGui.QDialog, baseModel):
     def __init__(self, filename=None, parent=None):
         try:
             importlib.reload(PCBconf)
@@ -160,6 +161,7 @@ class dialogMAIN_FORM(QtGui.QDialog):
         self.debugImport = QtGui.QCheckBox('Debug import')
         
         self.copperImportPolygons = QtGui.QCheckBox('Import polygons from copper layers')
+        self.copperImportPolygons.setEnabled(False)
         
         self.skipEmptyLayers = QtGui.QCheckBox('Skip empty layers')
         self.skipEmptyLayers.setChecked(freecadSettings.GetBool("skipEmptyLayers", True))
@@ -195,7 +197,6 @@ class dialogMAIN_FORM(QtGui.QDialog):
         layHoles.addWidget(self.plytkaPCB_otworyP, 2, 0, 1, 1)
         layHoles.addWidget(self.plytkaPCB_otworyIH, 3, 0, 1, 1)
         layHoles.addWidget(self.plytkaPCB_cutHolesThroughAllLayers, 4, 0, 1, 1)
-        
         layHoles.addWidget(filterholesBox, 0, 1, 5, 1)
         layHoles.setColumnStretch(0, 60)
         layHoles.setColumnStretch(1, 40)
@@ -240,12 +241,25 @@ class dialogMAIN_FORM(QtGui.QDialog):
         ####################
         self.razenBiblioteki = QtGui.QLineEdit('')
         
+        self.tentedViasLimit = QtGui.QDoubleSpinBox()
+        self.tentedViasLimit.setSingleStep(0.1)
+        self.tentedViasLimit.setValue(0)
+        self.tentedViasLimit.setSuffix(u" mm")
+        
+        tentedViasBox = QtGui.QGroupBox("Tented Vias")
+        tentedViasBox.setFixedWidth(200)
+        tentedViasBoxLay = QtGui.QGridLayout(tentedViasBox)
+        tentedViasBoxLay.addWidget(QtGui.QLabel(u"Limit"), 0, 0, 1, 1)
+        tentedViasBoxLay.addWidget(self.tentedViasLimit, 0, 1, 1, 1)
+        tentedViasBoxLay.addWidget(QtGui.QLabel(u"0mm -> skip parameter/limit"), 3, 0, 1, 2, QtCore.Qt.AlignCenter)
+        
         otherBox = QtGui.QGroupBox("Other settings")
         self.layOther = QtGui.QGridLayout(otherBox)
         #self.layOther.addWidget(QtGui.QLabel(u"Library"), 0, 0, 1, 1) # library
         #self.layOther.addWidget(self.razenBiblioteki, 0, 1, 1, 2) # library
         self.layOther.addWidget(self.debugImport, 1, 0, 1, 3)
         self.layOther.addWidget(self.copperImportPolygons, 2, 0, 1, 3)
+        self.layOther.addWidget(tentedViasBox, 0, 2, 6, 1)
         ##############################################
         mainWidgetLeftSide = QtGui.QWidget()
         layLeftSide = QtGui.QGridLayout(mainWidgetLeftSide)

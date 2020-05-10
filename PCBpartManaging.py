@@ -982,8 +982,11 @@ class partsManaging(mathFunctions):
 
                     #return [True, path, '', modelSoft, -1]; 
             #################
-            package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
-            
+            if databaseType == "idf":
+                package = self.__SQL__.findPackage(package, "IDF")
+            else:
+                package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
+            #
             if package:
                 modelData = self.__SQL__.getModelByID(package.modelID)
                 

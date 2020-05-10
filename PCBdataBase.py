@@ -373,7 +373,10 @@ class dataBase:
         elif "ConvertError()" in str(error):
             return "Problems with converting database"
         else:
-            return error.message
+            if hasattr(error, 'message'):
+                return error.message
+            else:
+                return error
 
     def convertToTable(self, data):
         result = {}

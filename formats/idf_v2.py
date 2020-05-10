@@ -36,7 +36,7 @@ from math import sqrt
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, filterHoles
+from formats.baseModel import baseModel
 
 
 def getUnitsDefinition(projektBRD):
@@ -91,7 +91,7 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class IDFv2_PCB(mathFunctions):
+class IDFv2_PCB(baseModel):
     def __init__(self, filename, parent):
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
@@ -252,24 +252,12 @@ class IDFv2_PCB(mathFunctions):
                 x = float(dane[1]) * self.mnoznik
                 y = float(dane[2]) * self.mnoznik
                 #
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             if dane[4] in ['BOARD', 'NOREFDES'] and types['H'] or not dane[4] in ['BOARD', 'NOREFDES'] and types['P']:
                                 holesList.append([x, y, r])
                                 holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         if dane[4] in ['BOARD', 'NOREFDES'] and types['H'] or not dane[4] in ['BOARD', 'NOREFDES'] and types['P']:
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))

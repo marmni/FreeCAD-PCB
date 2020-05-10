@@ -37,7 +37,7 @@ from PySide import QtCore, QtGui
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, setProjectFile, filterHoles
+from formats.baseModel import baseModel
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -104,7 +104,7 @@ class modelTypes(QtGui.QDialog):
         lay.addWidget(buttons, 2, 1, 1, 1)
 
 
-class LibrePCB(mathFunctions):
+class LibrePCB(baseModel):
     def __init__(self, filename, parent):
         #
         boardData = builtins.open(os.path.join(os.path.dirname(filename), "boards/boards.lp")).read()
@@ -133,7 +133,7 @@ class LibrePCB(mathFunctions):
     
     def setProject(self):
         '''Load project from file'''
-        self.projektBRD = setProjectFile(self.fileName)
+        self.projektBRD = self.setProjectFile(self.fileName)
         self.getNetsegments()
 
     def getNormalAnnotations(self):
@@ -203,7 +203,7 @@ class LibrePCB(mathFunctions):
         try:
             for k in self.elements.keys():
                 elem = self.elements[k]
-                elemData = setProjectFile(elem["data"], loadFromFile=False)
+                elemData = self.setProjectFile(elem["data"], loadFromFile=False)
                 ####################################
                 if elem["freecadPackage"]:
                     FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(elem["name"], elem["freecadPackage"], elem["package"]))
@@ -234,23 +234,11 @@ class LibrePCB(mathFunctions):
                 y = float(i[2])
                 r = float(i[0]) / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # vias
@@ -263,23 +251,11 @@ class LibrePCB(mathFunctions):
                     y = self.netsegments[i]["via"][j]['y']
                     r = self.netsegments[i]["via"][j]['drill'] / 2. + 0.001
                     
-                    if filterHoles(r, Hmin, Hmax):
+                    if self.filterHoles(r, Hmin, Hmax):
                         if types['IH']:  # detecting collisions between holes - intersections
-                            add = True
-                            try:
-                                for k in holesList:
-                                    d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                    if(d < r + k[2]):
-                                        add = False
-                                        break
-                            except Exception as e:
-                                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                            
-                            if (add):
+                            if self.detectIntersectingHoles(holesList, x, y, r):
                                 holesList.append([x, y, r])
                                 holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                            else:
-                                FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                         else:
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         ## pady
@@ -309,26 +285,13 @@ class LibrePCB(mathFunctions):
                             if self.elements[i]['side'] == "BOTTOM":  # odbicie wspolrzednych
                                 xR = self.odbijWspolrzedne(xR, X)
                             
-                            if filterHoles(drill, Hmin, Hmax):
+                            if self.filterHoles(drill, Hmin, Hmax):
                                 if types['IH']:  # detecting collisions between holes - intersections
-                                    add = True
-                                    try:
-                                        for k in holesList:
-                                            d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
-                                            if(d < drill + k[2]):
-                                                add = False
-                                                break
-                                    except Exception as e:
-                                        FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                                    
-                                    if (add):
+                                    if self.detectIntersectingHoles(holesList, xR, yR, drill):
                                         holesList.append([xR, yR, drill])
                                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                                    else:
-                                        FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
                                 else:
                                     holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                    
                     if types['H']:  # holes
                         for j in re.findall(r'\(hole\s+.+?\s+\(diameter\s+(.+?)\)\s+\(position\s+(.+?)\s+(.+?)\)\)', footprint):
                             x = float(j[1])
@@ -340,23 +303,11 @@ class LibrePCB(mathFunctions):
                             if self.elements[i]['side'] == "BOTTOM":  # odbicie wspolrzednych
                                 x = self.odbijWspolrzedne(x, X)
                             
-                            if filterHoles(r, Hmin, Hmax):
+                            if self.filterHoles(r, Hmin, Hmax):
                                 if types['IH']:  # detecting collisions between holes - intersections
-                                    add = True
-                                    try:
-                                        for k in holesList:
-                                            d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                            if(d < r + k[2]):
-                                                add = False
-                                                break
-                                    except Exception as e:
-                                        FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                                    
-                                    if (add):
+                                    if self.detectIntersectingHoles(holesList, x, y, r):
                                         holesList.append([x, y, r])
                                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                    else:
-                                        FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                                 else:
                                     holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         except Exception as e:
@@ -390,7 +341,7 @@ class LibrePCB(mathFunctions):
                     if [x1, y1] != [x2, y2]:
                          borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y2, 0)))
 
-    def getPads(self, layerNew, layerNumber, layerSide):
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         self.getNetsegments()
         self.getElements()
         
@@ -402,6 +353,11 @@ class LibrePCB(mathFunctions):
                 diameter = self.netsegments[i]["via"][j]['size']
                 shape = self.netsegments[i]["via"][j]['shape']
                 
+                ##### ##### ##### 
+                ##### tented dVias
+                if self.filterTentedVias(tentedViasLimit, tentedVias, diameter, False):
+                    continue
+                ##### ##### ##### 
                 if shape == "octagon":
                     layerNew.addOctagon(x, y, diameter)
                     layerNew.setFace()
@@ -417,67 +373,69 @@ class LibrePCB(mathFunctions):
                 else: # round
                     layerNew.addCircle(x, y, diameter / 2.)
                     layerNew.setFace()
-        # pads
-        for i in self.elements.keys():
-            X = self.elements[i]["x"]
-            Y = self.elements[i]["y"]
-            ROT = self.elements[i]["rot"]
-            
-            side = 1
-            if self.elements[i]['side'] == "BOTTOM":
-                side = 0
-            #
-            packageID = self.elements[i]["packageID"]
-            footprintID = self.elements[i]["footprintID"]
-            
-            if packageID in self.libraries.keys() and footprintID in self.libraries[packageID]['footprints'].keys():
-                footprint = self.libraries[packageID]['footprints'][footprintID]
+        
+        if not tentedVias:
+            # pads
+            for i in self.elements.keys():
+                X = self.elements[i]["x"]
+                Y = self.elements[i]["y"]
+                ROT = self.elements[i]["rot"]
+                
+                side = 1
+                if self.elements[i]['side'] == "BOTTOM":
+                    side = 0
                 #
-                for j in re.findall(r'\(pad\s+.+?\(side\s+(.+?)\).+?\(shape\s+(.+?)\).+?\(position\s+(.+?)\s+(.+?)\)\s+\(rotation\s+(.+?)\)\s+\(size\s+(.+?)\s+(.+?)\)', footprint, re.MULTILINE|re.DOTALL):
-                    [padType, shape, xs, ys, rot, sW, sH]= j
-                    
-                    if not padType.strip() == "tht": # SMD PADS
-                        if layerSide == 1:
-                            if side == 0 and padType == "top":
-                                continue
-                            elif side == 1 and padType == "bottom":
-                                continue
-                        elif layerSide == 0:
-                            if side == 1 and padType == "top":
-                                continue
-                            elif side == 0 and padType == "bottom":
-                                continue
+                packageID = self.elements[i]["packageID"]
+                footprintID = self.elements[i]["footprintID"]
+                
+                if packageID in self.libraries.keys() and footprintID in self.libraries[packageID]['footprints'].keys():
+                    footprint = self.libraries[packageID]['footprints'][footprintID]
                     #
-                    shape = shape.strip()
-                    x = float(xs) + X
-                    y = float(ys) + Y
-                    rot = float(rot)
-                    sW = float(sW)
-                    sH = float(sH)
-                    #
-                    if shape == "round":
-                        if sW == sH: # circle
-                            layerNew.addCircle(x, y, sW / 2.)
-                            layerNew.addRotation(X, Y, ROT)
-                            layerNew.setChangeSide(X, Y, side)
-                            layerNew.setFace()
-                        else: # long
-                            layerNew.addPadLong(x, y, sW / 2., sH / 2., 100)
+                    for j in re.findall(r'\(pad\s+.+?\(side\s+(.+?)\).+?\(shape\s+(.+?)\).+?\(position\s+(.+?)\s+(.+?)\)\s+\(rotation\s+(.+?)\)\s+\(size\s+(.+?)\s+(.+?)\)', footprint, re.MULTILINE|re.DOTALL):
+                        [padType, shape, xs, ys, rot, sW, sH]= j
+                        
+                        if not padType.strip() == "tht": # SMD PADS
+                            if layerSide == 1:
+                                if side == 0 and padType == "top":
+                                    continue
+                                elif side == 1 and padType == "bottom":
+                                    continue
+                            elif layerSide == 0:
+                                if side == 1 and padType == "top":
+                                    continue
+                                elif side == 0 and padType == "bottom":
+                                    continue
+                        #
+                        shape = shape.strip()
+                        x = float(xs) + X
+                        y = float(ys) + Y
+                        rot = float(rot)
+                        sW = float(sW)
+                        sH = float(sH)
+                        #
+                        if shape == "round":
+                            if sW == sH: # circle
+                                layerNew.addCircle(x, y, sW / 2.)
+                                layerNew.addRotation(X, Y, ROT)
+                                layerNew.setChangeSide(X, Y, side)
+                                layerNew.setFace()
+                            else: # long
+                                layerNew.addPadLong(x, y, sW / 2., sH / 2., 100)
+                                layerNew.addRotation(x, y, rot)
+                                layerNew.addRotation(X, Y, ROT)
+                                layerNew.setChangeSide(X, Y, side)
+                                layerNew.setFace()
+                        elif shape == "rect":
+                            x1 = x - sW / 2.
+                            y1 = y - sH / 2.
+                            x2 = x + sW / 2.
+                            y2 = y + sH / 2.
+                            
+                            layerNew.addRectangle(x1, y1, x2, y2)
                             layerNew.addRotation(x, y, rot)
                             layerNew.addRotation(X, Y, ROT)
                             layerNew.setChangeSide(X, Y, side)
                             layerNew.setFace()
-                    elif shape == "rect":
-                        x1 = x - sW / 2.
-                        y1 = y - sH / 2.
-                        x2 = x + sW / 2.
-                        y2 = y + sH / 2.
-                        
-                        layerNew.addRectangle(x1, y1, x2, y2)
-                        layerNew.addRotation(x, y, rot)
-                        layerNew.addRotation(X, Y, ROT)
-                        layerNew.setChangeSide(X, Y, side)
-                        layerNew.setFace()
 
     def getNetsegments(self):
         if len(self.netsegments) == 0:
@@ -558,7 +516,7 @@ class LibrePCB(mathFunctions):
                     # name/value
                     if not circuitFile:
                         fileName = os.path.join(self.projectPath, "circuit/circuit.lp")
-                        circuitFile = setProjectFile(''.join(builtins.open(fileName, "r").readlines()[1:-2]), loadFromFile=False)
+                        circuitFile = self.setProjectFile(''.join(builtins.open(fileName, "r").readlines()[1:-2]), loadFromFile=False)
                     
                     component = re.search(r'\[start\]\(component\s+%s(.+?)\[stop\]' % device, circuitFile, re.MULTILINE|re.DOTALL).groups()[0]
                     [name, value]= re.search(r'\(name\s+"(.+?)"\)\s+\(value\s+"(.+?)"\)', component).groups()
@@ -671,7 +629,7 @@ class LibrePCB(mathFunctions):
             footprintID = self.elements[i]["footprintID"]
             #
             if packageID in self.libraries.keys() and footprintID in self.libraries[packageID]['footprints'].keys():
-                footprint = setProjectFile(self.libraries[packageID]['footprints'][footprintID], loadFromFile=False)
+                footprint = self.setProjectFile(self.libraries[packageID]['footprints'][footprintID], loadFromFile=False)
                 #
                 self.addStandardShapes(footprint, layerNew, szukanaWarstwa, parent=self.elements[i])
     

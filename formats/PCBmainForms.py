@@ -43,7 +43,7 @@ import time
 #
 import PCBconf
 from PCBpartManaging import partsManaging
-from PCBfunctions import mathFunctions
+from PCBfunctions import mathFunctions, getFromSettings_Color_1
 from PCBboard import PCBboardObject, viewProviderPCBboardObject
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
@@ -77,6 +77,7 @@ class mainPCB(partsManaging):
         self.projektBRD = None
         self.projektBRDName = None
         self.wersjaFormatu = None
+        self.tentedVias = [False, False]
         
         if wersjaFormatu == "eagle":
             self.wersjaFormatu = EaglePCB(filename, self)
@@ -168,7 +169,44 @@ class mainPCB(partsManaging):
                     if layerFunction in ["silk", "pads", "paths"]:
                         if layerFunction == "paths":
                             pathsLayers.append([doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked()])
-                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked())
+                            ########################
+                            # tented Vias
+                            ########################
+                            if layerSide == 1:
+                                if not self.tentedVias[0]:
+                                    self.tentedVias[0] = layerColor
+                                else:
+                                    self.tentedVias[0].ViewObject.ShapeColor = layerColor
+                            elif layerSide == 0:
+                                if not self.tentedVias[1]:
+                                    self.tentedVias[1] = layerColor
+                                else:
+                                    self.tentedVias[1].ViewObject.ShapeColor = layerColor
+                        #
+                        self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked(), self.wersjaFormatu.dialogMAIN.tentedViasLimit.value(), False)
+                        ########################
+                        # tented Vias
+                        ########################
+                        if layerFunction == "pads" and self.wersjaFormatu.dialogMAIN.tentedViasLimit.value() > 0:
+                            color = getFromSettings_Color_1('PathColor', 7012607)
+                            layerColor = (color[0] / 255., color[1] / 255., color[2] / 255.)
+                            
+                            if layerSide == 1:
+                                if self.tentedVias[0]:
+                                    layerColor = self.tentedVias[0]
+                            elif layerSide == 0:
+                                if self.tentedVias[1]:
+                                   layerColor = self.tentedVias[1]
+                            #
+                            obj = self.generateSilkLayer(doc, layerNumber, grp, layerName + "_tentedVias", layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked(), self.wersjaFormatu.dialogMAIN.tentedViasLimit.value(), True)
+                            #
+                            if layerSide == 1:
+                                if not self.tentedVias[0]:
+                                    self.tentedVias[0] = obj
+                            elif layerSide == 0:
+                                if not self.tentedVias[1]:
+                                   self.tentedVias[1] = obj
+                    #
                     elif layerFunction == "measures":
                         self.generateDimensions(doc, grp, layerName, layerColor, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
                     elif layerFunction == "glue":
@@ -330,7 +368,7 @@ class mainPCB(partsManaging):
             #
             pcb[2].Proxy.addObject(pcb[2], layerS)
     
-    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers):
+    def generateSilkLayer(self, doc, layerNumber, grp, layerNameO, layerColor, defHeight, layerSide, layerVariant, cutHoles, skipEmptyLayers, tentedViasLimit, tentedVias):
         try:
             layerName = "{0}_{1}".format(layerNameO, layerNumber)
             #layerSide = softLayers[self.wersjaFormatu.databaseType][layerNumber]['side']
@@ -344,10 +382,11 @@ class mainPCB(partsManaging):
             #
             layerS = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", layerName)
             layerNew = layerSilkObject(layerS, layerType)
-            layerNew.holes = self.showHoles()
+            
+            #layerNew.holes = self.showHoles()
             layerNew.side = layerSide
             layerNew.defHeight = defHeight
-            layerNew.Cut = cutHoles
+            layerS.Cut = cutHoles
             #
             if layerVariant == "paths":
                 self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
@@ -357,7 +396,7 @@ class mainPCB(partsManaging):
                     self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
                     self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
                 if layerVariant == "pads":
-                    self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide)
+                    self.wersjaFormatu.getPads(layerNew, [layerNumber, layerNameO], layerSide, tentedViasLimit, tentedVias)
             #
             pcb = getPCBheight()
             #
@@ -374,6 +413,7 @@ class mainPCB(partsManaging):
             grp.addObject(layerS)
             #
             pcb[2].Proxy.addObject(pcb[2], layerS)
+            return layerS
             #FreeCADGui.activeDocument().getObject(layerS.Name).DisplayMode = 1
         except Exception as e:
             print(e)

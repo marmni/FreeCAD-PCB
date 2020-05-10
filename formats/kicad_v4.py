@@ -32,7 +32,6 @@ from PCBconf import softLayers
 from PCBobjects import *
 from formats.kicad_v3 import KiCadv3_PCB
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import setProjectFile
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -43,7 +42,7 @@ class dialogMAIN(dialogMAIN_FORM):
         self.plytkaPCB_otworyH.setChecked(False)
         self.plytkaPCB_otworyH.setDisabled(True)
         #
-        self.projektBRD = setProjectFile(filename)
+        self.projektBRD = self.setProjectFile(filename)
         self.layersNames = self.getLayersNames()
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())

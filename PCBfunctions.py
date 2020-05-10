@@ -44,22 +44,6 @@ from PCBdataBase import dataBase
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
 
-
-########################################################################
-########################################################################
-########################################################################
-def filterHoles(r, Hmin, Hmax):
-    if Hmin == 0 and Hmax == 0:
-        return True
-    elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
-        return True
-    elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
-        return True
-    elif Hmin <= r * 2 <= Hmax:
-        return True
-    else:
-        return False
-
 ########################################################################
 #
 ########################################################################
@@ -327,44 +311,6 @@ def sketcherGetGeometry(sketcherIN):
 ########################################################################
 #
 ########################################################################
-
-
-def setProjectFile(filename, char=['(', ')'], loadFromFile=True):
-    if loadFromFile:
-        projektBRD = builtins.open(filename, "r").read()[1:]
-    else:
-        projektBRD = filename
-    #
-    wynik = ''
-    licznik = 0
-    txt = ''
-    start = 0
-    #
-    txt_1 = 0
-
-    for i in projektBRD:
-        if i in ['"', "'"] and txt_1 == 0:
-            txt_1 = 1
-        elif i in ['"', "'"] and txt_1 == 1:
-            txt_1 = 0
-        #
-        if txt_1 == 0:
-            if i == char[0]:
-                licznik += 1
-                start = 1
-            elif i == char[1]:
-                licznik -= 1
-        #
-        txt += i
-        #
-        if licznik == 0 and start == 1:
-            wynik += '[start]' + txt.strip() + '[stop]'
-            txt = ''
-            start = 0
-    #
-    return wynik
-
-
 def wygenerujID(ll, lc):
     ''' generate random section name '''
     numerID = ""

@@ -28,12 +28,11 @@
 import FreeCAD
 import re
 from xml.dom import minidom
-from math import sqrt
 #
 from PCBconf import softLayers, eagleColorsDefinition
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, filterHoles
+from formats.baseModel import baseModel
 
 
 def getSettings(projektBRD, paramName, tryb=True):
@@ -61,10 +60,12 @@ class dialogMAIN(dialogMAIN_FORM):
         self.layersNames = self.getLayersNames()
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
+        
+        self.tentedViasLimit.setValue(getSettings(self.projektBRD, "mlViaStopLimit", True))
         ##
         self.generateLayers([20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 44, 45, 46, 91, 92, 93, 94, 95, 96, 97, 98, 99, 116]) # blocked layers
         self.spisWarstw.sortItems(1)
-        
+    
     def getBoardThickness(self):
         pcbThickness = 0
         layerSetup = getSettings(self.projektBRD, "layerSetup", False)
@@ -125,7 +126,7 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class EaglePCB(mathFunctions):
+class EaglePCB(baseModel):
     def __init__(self, filename, parent):
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
@@ -455,23 +456,11 @@ class EaglePCB(mathFunctions):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # vias
@@ -481,23 +470,11 @@ class EaglePCB(mathFunctions):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         ## pady
@@ -509,61 +486,36 @@ class EaglePCB(mathFunctions):
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("hole"):
                     xs = float(j.getAttribute('x'))
                     ys = float(j.getAttribute('y'))
-                    drill = float(j.getAttribute('drill')) / 2. + 0.001
+                    r = float(j.getAttribute('drill')) / 2. + 0.001
                     
                     [xR, yR] = self.obrocPunkt([xs, ys], [i['x'], i['y']], i['rot'])
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if filterHoles(drill, Hmin, Hmax):
+                    if self.filterHoles(r, Hmin, Hmax):
                         if types['IH']:  # detecting collisions between holes - intersections
-                            add = True
-                            try:
-                                for k in holesList:
-                                    d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
-                                    if(d < drill + k[2]):
-                                        add = False
-                                        break
-                            except Exception as e:
-                                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                            
-                            if (add):
-                                holesList.append([xR, yR, drill])
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                            else:
-                                FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
+                            if self.detectIntersectingHoles(holesList, xR, yR, r):
+                                holesList.append([xR, yR, r])
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
                         else:
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
             if types['P']:  # pads
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
                     xs = float(j.getAttribute('x'))
                     ys = float(j.getAttribute('y'))
-                    drill = float(j.getAttribute('drill')) / 2. + 0.001
+                    r = float(j.getAttribute('drill')) / 2. + 0.001
                     
                     [xR, yR] = self.obrocPunkt([xs, ys], [i['x'], i['y']], i['rot'])
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if filterHoles(drill, Hmin, Hmax):
+                    if self.filterHoles(r, Hmin, Hmax):
                         if types['IH']:  # detecting collisions between holes - intersections
-                            add = True
-                            try:
-                                for k in holesList:
-                                    d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
-                                    if(d < drill + k[2]):
-                                        add = False
-                                        break
-                            except Exception as e:
-                                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                            
-                            if (add):
-                                holesList.append([xR, yR, drill])
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                            else:
-                                FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
+                            if self.detectIntersectingHoles(holesList, xR, yR, r):
+                                holesList.append([xR, yR, r])
+                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
                         else:
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
 
     def getParts(self):
         self.getLibraries()
@@ -956,8 +908,8 @@ class EaglePCB(mathFunctions):
             wymiary.append([x1, y1, x2, y2, x3, y3, dtype])
         
         return wymiary
-        
-    def getPads(self, layerNew, layerNumber, layerSide):
+    
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         MAX_P = self.getSettings('rlMaxPadTop')
         MIN_P = self.getSettings('rlMinPadTop')
         PERC_P = self.getSettings('rvPadTop')
@@ -970,10 +922,14 @@ class EaglePCB(mathFunctions):
             x = float(i.getAttribute('x'))
             y = float(i.getAttribute('y'))
             drill = float(i.getAttribute('drill'))
-            shape = i.getAttribute('shape')
-            #
-            if shape == "":
-                shape = "round"
+            
+            shape = "round"
+            if i.getAttribute('shape'):
+                shape = i.getAttribute('shape')
+            
+            alwaysstop = False
+            if i.getAttribute('alwaysstop'):
+                alwaysstop = True
             #
             if i.getAttribute('diameter') != "":
                 diameter = float(i.getAttribute('diameter'))
@@ -991,7 +947,11 @@ class EaglePCB(mathFunctions):
                     diameter = 2 * MAX_V + drill
                 else:
                     diameter = 2 * diameter + drill
-            #####
+            ##### ##### ##### 
+            ##### tented dVias
+            if self.filterTentedVias(tentedViasLimit, tentedVias, drill, alwaysstop):
+                continue
+            ##### ##### ##### 
             if shape == "round":
                 layerNew.addCircle(x, y, diameter / 2.)
                 layerNew.setFace()
@@ -1008,120 +968,121 @@ class EaglePCB(mathFunctions):
                 layerNew.addOctagon(x, y, diameter)
                 layerNew.setFace()
         #####
-        self.getLibraries()
-        self.getElements()
-        elongationOffset = self.getSettings('psElongationOffset')
-        elongationLong = self.getSettings('psElongationLong')
-        #layerSide = softLayers[self.databaseType][layerNumber]["side"]
-        
-        for i in self.elements:
-            for j in self.libraries[i['library']][i['package']].getElementsByTagName("smd") + self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
-                x = float(j.getAttribute('x')) + i['x']
-                y = float(j.getAttribute('y')) + i['y']
-                
-                if j.getAttribute('rot'):
-                    ROT_2 = float(j.getAttribute('rot')[1:])  # kat o jaki zostana obrocone elementy
-                else:
-                    ROT_2 = 0  # kat o jaki zostana obrocone elementy
-                #####
-                if j.tagName == "pad":
-                    drill = float(j.getAttribute('drill'))
-                    
-                    if j.getAttribute('shape'):
-                        shape = j.getAttribute('shape')
-                    else:
-                        shape = "round"
-                    
-                    if shape == "":
-                        shape = "round"
-                    
-                    if j.getAttribute('diameter'):
-                        diameter = float(j.getAttribute('diameter'))
-                        
-                        if diameter < (2 * MIN_P + drill):
-                            diameter = 2 * MIN_P + drill
-                        elif diameter > (2 * MAX_P + drill):
-                            diameter = 2 * MAX_P + drill
-                    else:
-                        diameter = drill * PERC_P
+        if not tentedVias:
+            self.getLibraries()
+            self.getElements()
+            elongationOffset = self.getSettings('psElongationOffset')
+            elongationLong = self.getSettings('psElongationLong')
+            #layerSide = softLayers[self.databaseType][layerNumber]["side"]
             
-                        if diameter < MIN_P:
-                            diameter = 2 * MIN_P + drill
-                        elif diameter > MAX_P:
-                            diameter = 2 * MAX_P + drill
-                        else:
-                            diameter = 2 * diameter + drill
-                    ####
-                    if shape == "round":  # +
-                        layerNew.addCircle(x, y, diameter / 2.)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    elif shape == "square":  # +
-                        a = diameter / 2.
-                        x1 = x - a
-                        y1 = y - a
-                        x2 = x + a
-                        y2 = y + a
-                        
-                        layerNew.addRectangle(x1, y1, x2, y2)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    elif shape == "long":  # +
-                        e = (elongationLong * diameter) / 200.
-                        
-                        layerNew.addPadLong(x, y, diameter / 2. + e, diameter / 2., 100)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    elif shape == "offset":  # +
-                        e = (elongationOffset * diameter) / 100.
-                        
-                        layerNew.addPadOffset(x, y, diameter / 2., e)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    elif shape == "octagon":  # +
-                        layerNew.addOctagon(x, y, diameter)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                elif j.tagName == "smd" and layerSide == i['side']:  # smd
-                    dx = float(j.getAttribute('dx'))
-                    dy = float(j.getAttribute('dy'))
+            for i in self.elements:
+                for j in self.libraries[i['library']][i['package']].getElementsByTagName("smd") + self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
+                    x = float(j.getAttribute('x')) + i['x']
+                    y = float(j.getAttribute('y')) + i['y']
                     
-                    if j.getAttribute('roundness'):
-                        roundness = float(j.getAttribute('roundness'))
+                    if j.getAttribute('rot'):
+                        ROT_2 = float(j.getAttribute('rot')[1:])  # kat o jaki zostana obrocone elementy
                     else:
-                        roundness = 0
-                    ######
-                    if dx == dy and roundness == 100:  # +
-                        layerNew.addCircle(x, y, dx / 2.)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    elif roundness:  # +
-                        layerNew.addPadLong(x, y, dx / 2., dy / 2., roundness)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
-                    else:  # +
-                        x1 = x - dx / 2.
-                        y1 = y - dy / 2.
-                        x2 = x + dx / 2.
-                        y2 = y + dy / 2.
+                        ROT_2 = 0  # kat o jaki zostana obrocone elementy
+                    #####
+                    if j.tagName == "pad":
+                        drill = float(j.getAttribute('drill'))
                         
-                        layerNew.addRectangle(x1, y1, x2, y2)
-                        layerNew.addRotation(x, y, ROT_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                        layerNew.setFace()
+                        if j.getAttribute('shape'):
+                            shape = j.getAttribute('shape')
+                        else:
+                            shape = "round"
+                        
+                        if shape == "":
+                            shape = "round"
+                        
+                        if j.getAttribute('diameter'):
+                            diameter = float(j.getAttribute('diameter'))
+                            
+                            if diameter < (2 * MIN_P + drill):
+                                diameter = 2 * MIN_P + drill
+                            elif diameter > (2 * MAX_P + drill):
+                                diameter = 2 * MAX_P + drill
+                        else:
+                            diameter = drill * PERC_P
+                
+                            if diameter < MIN_P:
+                                diameter = 2 * MIN_P + drill
+                            elif diameter > MAX_P:
+                                diameter = 2 * MAX_P + drill
+                            else:
+                                diameter = 2 * diameter + drill
+                        ####
+                        if shape == "round":  # +
+                            layerNew.addCircle(x, y, diameter / 2.)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif shape == "square":  # +
+                            a = diameter / 2.
+                            x1 = x - a
+                            y1 = y - a
+                            x2 = x + a
+                            y2 = y + a
+                            
+                            layerNew.addRectangle(x1, y1, x2, y2)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif shape == "long":  # +
+                            e = (elongationLong * diameter) / 200.
+                            
+                            layerNew.addPadLong(x, y, diameter / 2. + e, diameter / 2., 100)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif shape == "offset":  # +
+                            e = (elongationOffset * diameter) / 100.
+                            
+                            layerNew.addPadOffset(x, y, diameter / 2., e)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif shape == "octagon":  # +
+                            layerNew.addOctagon(x, y, diameter)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                    elif j.tagName == "smd" and layerSide == i['side']:  # smd
+                        dx = float(j.getAttribute('dx'))
+                        dy = float(j.getAttribute('dy'))
+                        
+                        if j.getAttribute('roundness'):
+                            roundness = float(j.getAttribute('roundness'))
+                        else:
+                            roundness = 0
+                        ######
+                        if dx == dy and roundness == 100:  # +
+                            layerNew.addCircle(x, y, dx / 2.)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif roundness:  # +
+                            layerNew.addPadLong(x, y, dx / 2., dy / 2., roundness)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        else:  # +
+                            x1 = x - dx / 2.
+                            y1 = y - dy / 2.
+                            x2 = x + dx / 2.
+                            y2 = y + dy / 2.
+                            
+                            layerNew.addRectangle(x1, y1, x2, y2)
+                            layerNew.addRotation(x, y, ROT_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
 
     def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
         self.addStandardShapes(self.projektBRD.getElementsByTagName("plain")[0], layerNew, [layerNumber[0]], display)
