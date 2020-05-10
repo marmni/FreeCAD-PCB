@@ -35,7 +35,7 @@ import re
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, filterHoles
+from formats.baseModel import baseModel
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -65,8 +65,8 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class FreePCB(mathFunctions):
-    '''Board importer for gEDA software'''
+class FreePCB(baseModel):
+    '''Board importer for  FreePCB software'''
     def __init__(self, filename, parent):
         #self.groups = {}  # layers groups
         #
@@ -203,110 +203,117 @@ class FreePCB(mathFunctions):
                             layerNew.addLineWidth(x1, y1, x2, y2, width)
                             layerNew.setFace(signalName=signal)
 
-    def getPads(self, layerNew, layerNumber, layerSide):
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         # via
         for i in re.findall(r'vtx: .+? (.+?) (.+?) .+? .+? ([1-9][0-9]*) ([1-9][0-9]*)', self.projektBRD):
             x = float(i[0]) * self.mnoznik
             y = float(i[1]) * self.mnoznik
             r = float(i[2]) * self.mnoznik / 2.
+            drill = r * 2
             
+            ##### ##### ##### 
+            ##### tented dVias
+            if self.filterTentedVias(tentedViasLimit, tentedVias, drill, False):
+                continue
+            ##### ##### ##### 
             layerNew.addCircle(x, y, r)
             layerNew.setFace()
         #
-        self.getLibraries()
-        self.getElements()
-        
-        try:
-            for i in self.elements:
-                X1 = i['x']
-                Y1 = i['y']
-                ROT = i['rot']
-                
-                if i['side'] == "TOP":
-                    SIDE = 1
-                else:
-                    SIDE = 0
-                #
-                if layerNumber[0] == 98:  # top
-                    if SIDE != 1:
-                        padSide = "bottom"
+        if not tentedVias:
+            self.getLibraries()
+            self.getElements()
+            
+            try:
+                for i in self.elements:
+                    X1 = i['x']
+                    Y1 = i['y']
+                    ROT = i['rot']
+                    
+                    if i['side'] == "TOP":
+                        SIDE = 1
                     else:
-                        padSide = "top"
-                elif layerNumber[0] == 99:  # bottom
-                    if SIDE != 0:
-                        padSide = "bottom"
+                        SIDE = 0
+                    #
+                    if layerNumber[0] == 98:  # top
+                        if SIDE != 1:
+                            padSide = "bottom"
+                        else:
+                            padSide = "top"
+                    elif layerNumber[0] == 99:  # bottom
+                        if SIDE != 0:
+                            padSide = "bottom"
+                        else:
+                            padSide = "top"
                     else:
-                        padSide = "top"
-                else:
-                    continue
-                #
-                if i['package'] in self.libraries.keys():
-                    for j in self.libraries[i['package']]["pins"].keys():
-                        if padSide in self.libraries[i['package']]["pins"][j].keys():
-                            pinData = self.libraries[i['package']]["pins"][j]
-                            padData = self.libraries[i['package']]["pins"][j][padSide]
-                            #
-                            x = pinData["x"] + X1
-                            y = pinData["y"] + Y1
-                            rot = pinData["rot"]
-                            r = padData["width"] / 2.
-                            #
-                            if padData["shape"] == 1: # circle
-                                layerNew.addCircle(x, y, r)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-                            elif padData["shape"] == 2: # square
-                                x1 = x - r
-                                y1 = y - r
-                                x2 = x + r
-                                y2 = y + r
-                            
-                                layerNew.addRectangle(x1, y1, x2, y2)
-                                layerNew.addRotation(x, y, rot)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-                            elif padData["shape"] == 3:  # rectangle
-                                dx = r
-                                dy = padData["len1"]
+                        continue
+                    #
+                    if i['package'] in self.libraries.keys():
+                        for j in self.libraries[i['package']]["pins"].keys():
+                            if padSide in self.libraries[i['package']]["pins"][j].keys():
+                                pinData = self.libraries[i['package']]["pins"][j]
+                                padData = self.libraries[i['package']]["pins"][j][padSide]
+                                #
+                                x = pinData["x"] + X1
+                                y = pinData["y"] + Y1
+                                rot = pinData["rot"]
+                                r = padData["width"] / 2.
+                                #
+                                if padData["shape"] == 1: # circle
+                                    layerNew.addCircle(x, y, r)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+                                elif padData["shape"] == 2: # square
+                                    x1 = x - r
+                                    y1 = y - r
+                                    x2 = x + r
+                                    y2 = y + r
                                 
-                                x1 = x - dy
-                                y1 = y - dx
-                                x2 = x + dy
-                                y2 = y + dx
-                                
-                                layerNew.addRectangle(x1, y1, x2, y2)
-                                layerNew.addRotation(x, y, rot)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-                            elif padData["shape"] == 4:  # round-rect
-                                dx = r
-                                dy = padData["len1"]
-                                
-                                layerNew.addPadLong(x, y, dy, dx, padData["radius"], 1)
-                                layerNew.addRotation(x, y, rot)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-                            elif padData["shape"] == 5:  # oval
-                                dx = r
-                                dy = padData["len1"]
-                                
-                                layerNew.addPadLong(x, y, dy, dx, 100)
-                                layerNew.addRotation(x, y, rot)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-                            elif padData["shape"] == 6:  # octagon
-                                layerNew.addOctagon(x, y, r * 2)
-                                layerNew.addRotation(x, y, rot)
-                                layerNew.addRotation(X1, Y1, ROT)
-                                layerNew.setChangeSide(X1, Y1, SIDE)
-                                layerNew.setFace()
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+                                    layerNew.addRectangle(x1, y1, x2, y2)
+                                    layerNew.addRotation(x, y, rot)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+                                elif padData["shape"] == 3:  # rectangle
+                                    dx = r
+                                    dy = padData["len1"]
+                                    
+                                    x1 = x - dy
+                                    y1 = y - dx
+                                    x2 = x + dy
+                                    y2 = y + dx
+                                    
+                                    layerNew.addRectangle(x1, y1, x2, y2)
+                                    layerNew.addRotation(x, y, rot)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+                                elif padData["shape"] == 4:  # round-rect
+                                    dx = r
+                                    dy = padData["len1"]
+                                    
+                                    layerNew.addPadLong(x, y, dy, dx, padData["radius"], 1)
+                                    layerNew.addRotation(x, y, rot)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+                                elif padData["shape"] == 5:  # oval
+                                    dx = r
+                                    dy = padData["len1"]
+                                    
+                                    layerNew.addPadLong(x, y, dy, dx, 100)
+                                    layerNew.addRotation(x, y, rot)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+                                elif padData["shape"] == 6:  # octagon
+                                    layerNew.addOctagon(x, y, r * 2)
+                                    layerNew.addRotation(x, y, rot)
+                                    layerNew.addRotation(X1, Y1, ROT)
+                                    layerNew.setChangeSide(X1, Y1, SIDE)
+                                    layerNew.setFace()
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
 
     def getNormalAnnotations(self):
         adnotacje = []
@@ -544,23 +551,11 @@ class FreePCB(mathFunctions):
                 y = float(i[1]) * self.mnoznik
                 r = float(i[2]) * self.mnoznik / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         
@@ -591,23 +586,11 @@ class FreePCB(mathFunctions):
                                 if i["side"] == "BOTTOM":
                                     xR = self.odbijWspolrzedne(xR, X1)
                                 
-                                if filterHoles(r, Hmin, Hmax):
+                                if self.filterHoles(r, Hmin, Hmax):
                                     if types['IH']:  # detecting collisions between holes - intersections
-                                        add = True
-                                        try:
-                                            for k in holesList:
-                                                d = sqrt( (xR - k[0]) ** 2 + (yR - k[1]) ** 2)
-                                                if(d < r + k[2]):
-                                                    add = False
-                                                    break
-                                        except Exception as e:
-                                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                                        
-                                        if (add):
+                                        if self.detectIntersectingHoles(holesList, xR, yR, r):
                                             holesList.append([xR, yR, r])
                                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                        else:
-                                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(xR, yR))
                                     else:
                                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
             except Exception as e:

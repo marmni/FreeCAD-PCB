@@ -34,7 +34,7 @@ from math import sqrt
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, setProjectFile
+from formats.baseModel import baseModel
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -45,7 +45,7 @@ class dialogMAIN(dialogMAIN_FORM):
         self.plytkaPCB_otworyH.setChecked(False)
         self.plytkaPCB_otworyH.setDisabled(True)
         #
-        self.projektBRD = setProjectFile(filename)
+        self.projektBRD = self.setProjectFile(filename)
         self.layersNames = self.getLayersNames()
         if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetBool("boardImportThickness", True):
             self.gruboscPlytki.setValue(self.getBoardThickness())
@@ -81,7 +81,7 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class KiCadv3_PCB(mathFunctions):
+class KiCadv3_PCB(baseModel):
     def __init__(self, filename, parent):
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
@@ -94,21 +94,9 @@ class KiCadv3_PCB(mathFunctions):
     
     def Draft2Sketch(self, elem, sketch):
         return (DraftGeomUtils.geom(elem.toShape().Edges[0], sketch.Placement))
-        
-    def filterHoles(self, r, Hmin, Hmax):
-        if Hmin == 0 and Hmax == 0:
-            return True
-        elif Hmin != 0 and Hmax == 0 and Hmin <= r * 2:
-            return True
-        elif Hmax != 0 and Hmin == 0 and r * 2 <= Hmax:
-            return True
-        elif Hmin <= r * 2 <= Hmax:
-            return True
-        else:
-            return False
-    
+
     def setProject(self):
-        self.projektBRD = setProjectFile(self.fileName)
+        self.projektBRD = self.setProjectFile(self.fileName)
         # layers
         layers = re.search(r'\[start\]\(layers(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL).group(0)
         for i in re.findall(r'\((.*?) (.*?) .*?\)', layers):
@@ -162,7 +150,7 @@ class KiCadv3_PCB(mathFunctions):
         ##
         return glue
 
-    def getPads(self, layerNew, layerNumber, layerSide):
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         # via
         via_drill = float(self.getSettings('via_drill'))
 
@@ -176,78 +164,85 @@ class KiCadv3_PCB(mathFunctions):
             else:
                 drill = float(i[4]) / 2.
             
+            ##### ##### ##### 
+            ##### tented dVias
+            if self.filterTentedVias(tentedViasLimit, tentedVias, drill * 2, False):
+                continue
+            ##### ##### ##### 
             layerNew.addCircle(x, y, diameter / 2.)
             layerNew.setFace()
-        # pad
-        self.getElements()
-        #
-        for i in self.elements:
-            for j in self.getPadsList(i['dataElement']):
-                xs = j['x'] + i['x']
-                ys = j['y'] + i['y']
-                numerWarstwy = j['layers'].split(' ')
-                
-                rot_2 = j['rot']
-                if i['rot'] != 0:
-                    rot_2 -= i['rot']
-                
-                # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
-                # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
-                # kicad_pcb v4 TOP:         self.getLayerName(0) in numerWarstwy and layerNumber == 107
-                # kicad_pcb v4 BOTTOM:      self.getLayerName(31) in numerWarstwy and layerNumber == 108
-                dodaj = False
-                if self.databaseType == "kicad" and ((self.getLayerName(15) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(0) in numerWarstwy and layerNumber[0] == 108)):
-                    dodaj = True
-                elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
-                    dodaj = True
-                elif '*.Cu' in numerWarstwy:
-                    dodaj = True
-                #####
-                if dodaj:
-                    if j['padShape'] == 'rect':
-                        x1 = xs - j['dx'] / 2. + j['xOF']
-                        y1 = ys - j['dy'] / 2. + j['yOF']
-                        x2 = xs + j['dx'] / 2. + j['xOF']
-                        y2 = ys + j['dy'] / 2. + j['yOF']
-                        
-                        layerNew.addRectangle(x1, y1, x2, y2)
-                        layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setFace()
-                    elif j['padShape'] == 'circle':
-                        layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
-                        layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setFace()
-                    elif j['padShape'] == 'oval':
-                        if j['dx'] == j['dy']:
+        
+        if not tentedVias:
+            # pad
+            self.getElements()
+            #
+            for i in self.elements:
+                for j in self.getPadsList(i['dataElement']):
+                    xs = j['x'] + i['x']
+                    ys = j['y'] + i['y']
+                    numerWarstwy = j['layers'].split(' ')
+                    
+                    rot_2 = j['rot']
+                    if i['rot'] != 0:
+                        rot_2 -= i['rot']
+                    
+                    # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
+                    # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
+                    # kicad_pcb v4 TOP:         self.getLayerName(0) in numerWarstwy and layerNumber == 107
+                    # kicad_pcb v4 BOTTOM:      self.getLayerName(31) in numerWarstwy and layerNumber == 108
+                    dodaj = False
+                    if self.databaseType == "kicad" and ((self.getLayerName(15) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(0) in numerWarstwy and layerNumber[0] == 108)):
+                        dodaj = True
+                    elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
+                        dodaj = True
+                    elif '*.Cu' in numerWarstwy:
+                        dodaj = True
+                    #####
+                    if dodaj:
+                        if j['padShape'] == 'rect':
+                            x1 = xs - j['dx'] / 2. + j['xOF']
+                            y1 = ys - j['dy'] / 2. + j['yOF']
+                            x2 = xs + j['dx'] / 2. + j['xOF']
+                            y2 = ys + j['dy'] / 2. + j['yOF']
+                            
+                            layerNew.addRectangle(x1, y1, x2, y2)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setFace()
+                        elif j['padShape'] == 'circle':
                             layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
                             layerNew.addRotation(xs, ys, rot_2)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
                             layerNew.setFace()
-                        else:
-                            layerNew.addPadLong(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2., j['dy'] / 2., 100)
+                        elif j['padShape'] == 'oval':
+                            if j['dx'] == j['dy']:
+                                layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
+                                layerNew.addRotation(xs, ys, rot_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setFace()
+                            else:
+                                layerNew.addPadLong(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2., j['dy'] / 2., 100)
+                                layerNew.addRotation(xs, ys, rot_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setFace()
+                        elif j['padShape'] == 'trapezoid':
+                            if j[8].strip() == '':
+                                xRD = 0
+                                yRD = 0
+                            else:
+                                rect_delta = re.findall(r'\(rect_delta ([-0-9\.]*?) ([-0-9\.]*?) \)', j[8].strip())[0]
+                                yRD = float(rect_delta[0]) / 2.
+                                xRD = float(rect_delta[1]) / 2.
+                            
+                            x1 = xs - j['dx'] / 2. + j['xOF']
+                            y1 = ys - j['dy'] / 2. + j['yOF']
+                            x2 = xs + j['dx'] / 2. + j['xOF']
+                            y2 = ys + j['dy'] / 2. + j['yOF']
+                            
+                            layerNew.addTrapeze([x1, y1], [x2, y2], xRD, yRD)
                             layerNew.addRotation(xs, ys, rot_2)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
                             layerNew.setFace()
-                    elif j['padShape'] == 'trapezoid':
-                        if j[8].strip() == '':
-                            xRD = 0
-                            yRD = 0
-                        else:
-                            rect_delta = re.findall(r'\(rect_delta ([-0-9\.]*?) ([-0-9\.]*?) \)', j[8].strip())[0]
-                            yRD = float(rect_delta[0]) / 2.
-                            xRD = float(rect_delta[1]) / 2.
-                        
-                        x1 = xs - j['dx'] / 2. + j['xOF']
-                        y1 = ys - j['dy'] / 2. + j['yOF']
-                        x2 = xs + j['dx'] / 2. + j['xOF']
-                        y2 = ys + j['dy'] / 2. + j['yOF']
-                        
-                        layerNew.addTrapeze([x1, y1], [x2, y2], xRD, yRD)
-                        layerNew.addRotation(xs, ys, rot_2)
-                        layerNew.addRotation(i['x'], i['y'], i['rot'])
-                        layerNew.setFace()
 
     def getPadsList(self, model):
         pads = []
@@ -312,6 +307,9 @@ class KiCadv3_PCB(mathFunctions):
         return pads
 
     def getHoles(self, holesObject, types, Hmin, Hmax):
+        if types['IH']:  # detecting collisions between holes - intersections
+            holesList = []
+        
         # vias
         if types['V']:
             via_drill = float(self.getSettings('via_drill'))
@@ -325,7 +323,12 @@ class KiCadv3_PCB(mathFunctions):
                     r = float(i[3]) / 2.
                 
                 if self.filterHoles(r, Hmin, Hmax):
-                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    if types['IH']:  # detecting collisions between holes - intersections
+                        if self.detectIntersectingHoles(holesList, x, y, r):
+                            holesList.append([x, y, r])
+                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    else:
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # pads
         if types['P']:
             for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -342,9 +345,15 @@ class KiCadv3_PCB(mathFunctions):
                     if j['padType'] != 'smd' and j['r'] != 0.0:
                         if j['holeType'] == "circle":
                             [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
+                            r = j['r'] + 0.001
                             
                             if self.filterHoles(j['r'], Hmin, Hmax):
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), j['r']))
+                                if types['IH']:  # detecting collisions between holes - intersections
+                                    if self.detectIntersectingHoles(holesList, xR, yR, r):
+                                        holesList.append([xR, yR, r])
+                                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
+                                else:
+                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
                         else:
                             dx = float(j['r'].strip().split(' ')[0])
                             dy = float(j['r'].strip().split(' ')[-1])

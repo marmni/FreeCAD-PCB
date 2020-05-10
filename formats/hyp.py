@@ -37,7 +37,7 @@ from math import radians
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, filterHoles
+from formats.baseModel import baseModel
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -70,7 +70,7 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class HYP_PCB(mathFunctions):
+class HYP_PCB(baseModel):
     def __init__(self, filename, parent):
         self.fileName = filename
         self.dialogMAIN = dialogMAIN(self.fileName)
@@ -233,7 +233,7 @@ class HYP_PCB(mathFunctions):
                 layerNew.addRotation(x, y, rot)
                 layerNew.setFace()
     
-    def getPads(self, layerNew, layerNumber, layerSide):
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         if layerSide == 1:
             layer = 'Top'
         else:
@@ -242,57 +242,64 @@ class HYP_PCB(mathFunctions):
         for i in re.findall(r'\(VIA X=(.+?) Y=(.+?) P=(.+?)\) .+?', self.projektBRD):
             x = self.setUnit(i[0])
             y = self.setUnit(i[1])
-            
+           
             data = re.findall(r'{PADSTACK=%s,([\w.]+)\n(.*?)}' % i[2], self.projektBRD, re.MULTILINE|re.DOTALL)[0]
             padData = re.findall(r'\(%s,(.*?),(.*?),(.*?),(.*?)\)' % layer, data[1], re.MULTILINE|re.DOTALL)
-            #
-            self.addPad(layerNew, padData, x, y)
-        # pads
-        for i in re.findall(r'\(PIN X=(.+?) Y=(.+?) R=.+? P=(.+?)\)(| .+?,) Pad Diameter: (.+?)  Drill: (.+?)\n', self.projektBRD):
-            x = self.setUnit(i[0])
-            y = self.setUnit(i[1])
-            #outDiameter = self.setUnit(i[4]) / 2.
-            
-            data = re.findall(r'{PADSTACK=%s,([\w.]+)\n(.*?)}' % i[2], self.projektBRD, re.MULTILINE|re.DOTALL)[0]
-            padData = re.findall(r'\(%s,(.*?),(.*?),(.*?),(.*?)\)' % layer, data[1], re.MULTILINE|re.DOTALL)
-            #
-            self.addPad(layerNew, padData, x, y)
-        # smd
-        for i in re.findall(r'\(PIN X=(.+?) Y=(.+?) R=(.+?) P=(.+?)\)(| .+?,) Smd Dx: (.+?)  Dy: (.+?)\n', self.projektBRD):
-            data = re.findall(r'{PADSTACK=%s\n(.*?)}' % i[3], self.projektBRD, re.MULTILINE|re.DOTALL)
-            padData = re.findall(r'\(%s,(.*?),(.*?),(.*?),(.*?)\)' % layer, data[0], re.MULTILINE|re.DOTALL)
+            ##### ##### ##### 
+            ##### tented dVias
             if len(padData):
-                padData = padData[0]
-                padShape = int(padData[0])  # 0:round, 1:square, 2:long
-                outDiameter = self.setUnit(padData[1])
-                rot = float(padData[3])
+                if self.filterTentedVias(tentedViasLimit, tentedVias, self.setUnit(data[0]), False):
+                    continue
+            ##### ##### ##### 
+            self.addPad(layerNew, padData, x, y)
+        
+        if not tentedVias:
+            # pads
+            for i in re.findall(r'\(PIN X=(.+?) Y=(.+?) R=.+? P=(.+?)\)(| .+?,) Pad Diameter: (.+?)  Drill: (.+?)\n', self.projektBRD):
+                x = self.setUnit(i[0])
+                y = self.setUnit(i[1])
+                #outDiameter = self.setUnit(i[4]) / 2.
+                
+                data = re.findall(r'{PADSTACK=%s,([\w.]+)\n(.*?)}' % i[2], self.projektBRD, re.MULTILINE|re.DOTALL)[0]
+                padData = re.findall(r'\(%s,(.*?),(.*?),(.*?),(.*?)\)' % layer, data[1], re.MULTILINE|re.DOTALL)
                 #
-                xs = self.setUnit(i[0])
-                ys = self.setUnit(i[1])
-                
-                dx = self.setUnit(i[5])
-                dy = self.setUnit(i[6])
-                
-                if padShape in ['0', '2']:
-                    if padShape == '2':
-                        roundness = 50
-                    else:
-                        roundness = 100
+                self.addPad(layerNew, padData, x, y)
+            # smd
+            for i in re.findall(r'\(PIN X=(.+?) Y=(.+?) R=(.+?) P=(.+?)\)(| .+?,) Smd Dx: (.+?)  Dy: (.+?)\n', self.projektBRD):
+                data = re.findall(r'{PADSTACK=%s\n(.*?)}' % i[3], self.projektBRD, re.MULTILINE|re.DOTALL)
+                padData = re.findall(r'\(%s,(.*?),(.*?),(.*?),(.*?)\)' % layer, data[0], re.MULTILINE|re.DOTALL)
+                if len(padData):
+                    padData = padData[0]
+                    padShape = int(padData[0])  # 0:round, 1:square, 2:long
+                    outDiameter = self.setUnit(padData[1])
+                    rot = float(padData[3])
+                    #
+                    xs = self.setUnit(i[0])
+                    ys = self.setUnit(i[1])
                     
-                    e = outDiameter
-                
-                    layerNew.addPadLong(xs, ys, dx / 2., dy / 2., roundness)
-                    layerNew.addRotation(xs, ys, rot)
-                    layerNew.setFace()
-                else:  # roundness = 0
-                    x1 = xs - dx / 2.
-                    y1 = ys - dy / 2.
-                    x2 = xs + dx / 2.
-                    y2 = ys + dy / 2.
+                    dx = self.setUnit(i[5])
+                    dy = self.setUnit(i[6])
                     
-                    layerNew.addRectangle(x1, y1, x2, y2)
-                    layerNew.addRotation(xs, ys, rot)
-                    layerNew.setFace()
+                    if padShape in ['0', '2']:
+                        if padShape == '2':
+                            roundness = 50
+                        else:
+                            roundness = 100
+                        
+                        e = outDiameter
+                    
+                        layerNew.addPadLong(xs, ys, dx / 2., dy / 2., roundness)
+                        layerNew.addRotation(xs, ys, rot)
+                        layerNew.setFace()
+                    else:  # roundness = 0
+                        x1 = xs - dx / 2.
+                        y1 = ys - dy / 2.
+                        x2 = xs + dx / 2.
+                        y2 = ys + dy / 2.
+                        
+                        layerNew.addRectangle(x1, y1, x2, y2)
+                        layerNew.addRotation(xs, ys, rot)
+                        layerNew.setFace()
     
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
@@ -306,23 +313,11 @@ class HYP_PCB(mathFunctions):
                 y = self.setUnit(i[1])
                 r = self.setUnit(i[2])
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # vias
@@ -332,23 +327,11 @@ class HYP_PCB(mathFunctions):
                 y = self.setUnit(i[1])
                 r = self.setUnit(re.search(r'PADSTACK={0},(.+?)\n'.format(i[2]), self.projektBRD).groups()[0]) / 2.
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
         # pads
@@ -358,23 +341,11 @@ class HYP_PCB(mathFunctions):
                 y = self.setUnit(i[1])
                 r = self.setUnit(i[3]) / 2.
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, x, y, r):
                             holesList.append([x, y, r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
 

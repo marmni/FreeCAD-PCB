@@ -36,7 +36,7 @@ from math import radians
 from PCBconf import softLayers
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
-from PCBfunctions import mathFunctions, setProjectFile, filterHoles
+from formats.baseModel import baseModel
 
 
 class dialogMAIN(dialogMAIN_FORM):
@@ -77,7 +77,7 @@ class dialogMAIN(dialogMAIN_FORM):
         return dane
 
 
-class gEDA_PCB(mathFunctions):
+class gEDA_PCB(baseModel):
     '''Board importer for gEDA software'''
     def __init__(self, filename, parent):
         #self.groups = {}  # layers groups
@@ -91,7 +91,7 @@ class gEDA_PCB(mathFunctions):
     def setProject(self):
         '''Load project from file'''
         #self.projektBRD = builtins.open(self.fileName, "r").read().replace('\r\n', '\n')
-        self.projektBRD = setProjectFile(self.fileName)
+        self.projektBRD = self.setProjectFile(self.fileName)
         
         ##############
         try:
@@ -266,26 +266,13 @@ class gEDA_PCB(mathFunctions):
                 
                 r = i["drill"] / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (i["x"] - k[0]) ** 2 + (i["y"] - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, i["x"], i["y"], r):
                             holesList.append([i["x"], i["y"], r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(i["x"], i["y"]))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
-
         # vias
         if types['V']:
             for i in self.getAllVias():
@@ -294,23 +281,11 @@ class gEDA_PCB(mathFunctions):
                 
                 r = i["drill"] / 2. + 0.001
                 
-                if filterHoles(r, Hmin, Hmax):
+                if self.filterHoles(r, Hmin, Hmax):
                     if types['IH']:  # detecting collisions between holes - intersections
-                        add = True
-                        try:
-                            for k in holesList:
-                                d = sqrt( (i["x"] - k[0]) ** 2 + (i["y"] - k[1]) ** 2)
-                                if(d < r + k[2]):
-                                    add = False
-                                    break
-                        except Exception as e:
-                            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                        
-                        if (add):
+                        if self.detectIntersectingHoles(holesList, i["x"], i["y"], r):
                             holesList.append([i["x"], i["y"], r])
                             holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(i["x"], i["y"]))
                     else:
                         holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
         # pads
@@ -329,23 +304,11 @@ class gEDA_PCB(mathFunctions):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if filterHoles(r, Hmin, Hmax):
+                        if self.filterHoles(r, Hmin, Hmax):
                             if types['IH']:  # detecting collisions between holes - intersections
-                                add = True
-                                try:
-                                    for k in holesList:
-                                        d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                        if(d < r + k[2]):
-                                            add = False
-                                            break
-                                except Exception as e:
-                                    FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                                
-                                if (add):
+                                if self.detectIntersectingHoles(holesList, x, y, r):
                                     holesList.append([x, y, r])
                                     holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                else:
-                                    FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                             else:
                                 holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
                 if types['H']:
@@ -357,23 +320,11 @@ class gEDA_PCB(mathFunctions):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if filterHoles(r, Hmin, Hmax):
+                        if self.filterHoles(r, Hmin, Hmax):
                             if types['IH']:  # detecting collisions between holes - intersections
-                                add = True
-                                try:
-                                    for k in holesList:
-                                        d = sqrt( (x - k[0]) ** 2 + (y - k[1]) ** 2)
-                                        if(d < r + k[2]):
-                                            add = False
-                                            break
-                                except Exception as e:
-                                    FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-                                
-                                if (add):
+                                if self.detectIntersectingHoles(holesList, x, y, r):
                                     holesList.append([x, y, r])
                                     holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                else:
-                                    FreeCAD.Console.PrintWarning("Intersection between holes detected. Hole x={:.2f}, y={:.2f} will be omitted.\n".format(x, y))
                             else:
                                 holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
 
@@ -412,69 +363,75 @@ class gEDA_PCB(mathFunctions):
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(self.width, self.height, 0), FreeCAD.Vector(0, self.height, 0)))
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(0, self.height, 0), FreeCAD.Vector(0, 0, 0)))
 
-    def getPads(self, layerNew, layerNumber, layerSide):
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
         # via
         for i in self.getAllVias():
             if "hole" in i["sflags"]:
                 continue
             
+            ##### ##### ##### 
+            ##### tented dVias
+            if self.filterTentedVias(tentedViasLimit, tentedVias, i["drill"], False):
+                continue
+            ##### ##### ##### 
             layerNew.addCircle(i["x"], i["y"], i["thickness"] / 2.)
             layerNew.setFace()
         #
-        self.getElements()
-        for j in self.elements:
-            X1 = j["x"]
-            Y1 = j["y"]
-            
-            # pins
-            for i in self.getAllPins(j["dataElement"]):
-                if "hole" in i["sflags"]:
-                    continue
+        if not tentedVias:
+            self.getElements()
+            for j in self.elements:
+                X1 = j["x"]
+                Y1 = j["y"]
                 
-                if "square" in i["sflags"]:
-                    a = i["thickness"] / 2.
-                    x1 = i["x"] + X1 - a
-                    y1 = i["y"] + Y1 - a
-                    x2 = i["x"] + X1 + a
-                    y2 = i["y"] + Y1 + a
-                    
-                    layerNew.addRectangle(x1, y1, x2, y2)
-                    layerNew.setFace()
-                else: # circle
-                    r = i["thickness"] / 2.
-                    x = i["x"] + X1
-                    y = i["y"] + Y1
-                    
-                    layerNew.addCircle(x, y, r)
-                    layerNew.setFace()
-            # pads
-            if j['side'] == "BOTTOM" and "B" in layerNumber[0] or j['side'] == "TOP" and "T" in layerNumber[0]:
-                for i in self.getAllPads(j["dataElement"]):
-                    a = i["thickness"] / 2.
-                    
-                    if i["x1"] != i["x2"]:
-                        x1 = X1 + i["x1"] - a
-                        y1 = Y1 + i["y1"] - a
-                        x2 = X1 + i["x2"] + a
-                        y2 = Y1 + i["y2"] + a
-
-                    else:
-                        x1 = X1 + i["x1"] + a
-                        y1 = Y1 + i["y1"] + a
-                        x2 = X1 + i["x2"] - a
-                        y2 = Y1 + i["y2"] - a
+                # pins
+                for i in self.getAllPins(j["dataElement"]):
+                    if "hole" in i["sflags"]:
+                        continue
                     
                     if "square" in i["sflags"]:
+                        a = i["thickness"] / 2.
+                        x1 = i["x"] + X1 - a
+                        y1 = i["y"] + Y1 - a
+                        x2 = i["x"] + X1 + a
+                        y2 = i["y"] + Y1 + a
+                        
                         layerNew.addRectangle(x1, y1, x2, y2)
                         layerNew.setFace()
-                    else: # long pad
-                        xs = x1 - (x1 - x2) / 2.
-                        ys = y1 - (y1 - y2) / 2.
-                        dx = abs((x1 - x2) / 2.)
-                        dy = abs((y1 - y2) / 2.)
+                    else: # circle
+                        r = i["thickness"] / 2.
+                        x = i["x"] + X1
+                        y = i["y"] + Y1
                         
-                        layerNew.addPadLong(xs, ys, dx, dy, 100)
+                        layerNew.addCircle(x, y, r)
                         layerNew.setFace()
+                # pads
+                if j['side'] == "BOTTOM" and "B" in layerNumber[0] or j['side'] == "TOP" and "T" in layerNumber[0]:
+                    for i in self.getAllPads(j["dataElement"]):
+                        a = i["thickness"] / 2.
+                        
+                        if i["x1"] != i["x2"]:
+                            x1 = X1 + i["x1"] - a
+                            y1 = Y1 + i["y1"] - a
+                            x2 = X1 + i["x2"] + a
+                            y2 = Y1 + i["y2"] + a
+
+                        else:
+                            x1 = X1 + i["x1"] + a
+                            y1 = Y1 + i["y1"] + a
+                            x2 = X1 + i["x2"] - a
+                            y2 = Y1 + i["y2"] - a
+                        
+                        if "square" in i["sflags"]:
+                            layerNew.addRectangle(x1, y1, x2, y2)
+                            layerNew.setFace()
+                        else: # long pad
+                            xs = x1 - (x1 - x2) / 2.
+                            ys = y1 - (y1 - y2) / 2.
+                            dx = abs((x1 - x2) / 2.)
+                            dy = abs((y1 - y2) / 2.)
+                            
+                            layerNew.addPadLong(xs, ys, dx, dy, 100)
+                            layerNew.setFace()
 
     def getElementArcParameters(self, arc):
         return self.getArcParameters([arc[0], arc[1], arc[2], arc[3], arc[6], arc[4], arc[5]])
@@ -507,7 +464,7 @@ class gEDA_PCB(mathFunctions):
     def getAllPads(self, baseData):
         data = []
         # Pad [rX1 rY1 rX2 rY2 Thickness Clearance Mask "Name" "Number" SFlags]
-        for i in re.findall(r'Pad\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)', baseData):
+        for i in re.findall(r'Pad\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-\\,\\"]+)\s+([\S"]+)\s+([\S"]+)\s+([\S"]+)', baseData):
             data.append({
                 "x1": self.setUnit(i[0]),
                 "y1": 0 - self.setUnit(i[1]),
@@ -524,7 +481,7 @@ class gEDA_PCB(mathFunctions):
     def getAllPins(self, baseData):
         data = []
         # Pin [rX rY Thickness Clearance Mask Drill "Name" "Number" SFlags]
-        for i in re.findall(r'Pin\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)\s+([\w.-\\,\\"]+)', baseData):
+        for i in re.findall(r'Pin\s*\[([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\w.-]+)\s+([\S"]+)\s+([\S"]+)\s+([\S"]+)', baseData):
             data.append({
                 "x": self.setUnit(i[0]),
                 "y": 0 - self.setUnit(i[1]),
@@ -541,7 +498,7 @@ class gEDA_PCB(mathFunctions):
         data = []
         # Via [X Y Thickness Clearance Mask Drill BuriedFrom BuriedTo "Name" SFlags]
         # Via [X Y Thickness Clearance Mask Drill "Name" SFlags]
-        for i in re.findall(r'Via\s*\[([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)(\s+[\w.]+|)(\s+[\w.]+|)(\s+[\w."]+|)(\s+[\w."]+|)', self.projektBRD):
+        for i in re.findall(r'Via\s*\[([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)\s+([\w.]+)(\s+[\w.]+|)(\s+[\w.]+|)(\s+[\S"]+|)(\s+[\w."]+|)', self.projektBRD):
             through = True
 
             if i[6].strip() != "":
