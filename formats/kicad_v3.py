@@ -307,8 +307,7 @@ class KiCadv3_PCB(baseModel):
         return pads
 
     def getHoles(self, holesObject, types, Hmin, Hmax):
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
+        holesList = []
         
         # vias
         if types['V']:
@@ -322,13 +321,7 @@ class KiCadv3_PCB(baseModel):
                 else:
                     r = float(i[3]) / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # pads
         if types['P']:
             for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -347,13 +340,7 @@ class KiCadv3_PCB(baseModel):
                             [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
                             r = j['r'] + 0.001
                             
-                            if self.filterHoles(j['r'], Hmin, Hmax):
-                                if types['IH']:  # detecting collisions between holes - intersections
-                                    if self.detectIntersectingHoles(holesList, xR, yR, r):
-                                        holesList.append([xR, yR, r])
-                                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                else:
-                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
+                            holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], xR, yR, r, holesList)
                         else:
                             dx = float(j['r'].strip().split(' ')[0])
                             dy = float(j['r'].strip().split(' ')[-1])

@@ -144,7 +144,10 @@ class FreePCB(baseModel):
                 "mode": 'param'
             }
             ##############################
-            valueData = re.search(r'value:\s+".*?"\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\n', k['dataElement']).groups()
+            try:
+                valueData = re.search(r'value:\s+".*?"\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\n', k['dataElement']).groups()
+            except:
+                valueData = [0, 0, 0, 0, 0, 1]
             
             if float(valueData[2]) == 0:
                 rotN = 0
@@ -313,7 +316,7 @@ class FreePCB(baseModel):
                                     layerNew.setChangeSide(X1, Y1, SIDE)
                                     layerNew.setFace()
             except Exception as e:
-                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+                FreeCAD.Console.PrintWarning("getPads() error: {0}\n".format(e))
 
     def getNormalAnnotations(self):
         adnotacje = []
@@ -480,12 +483,16 @@ class FreePCB(baseModel):
                         side = "BOTTOM"
                         rot = float(partPos[3])
                     #
+                    try:
+                        value = re.search(r'value:\s+"(.*?)"', i[1]).groups()[0]
+                    except:
+                        value = ""
                     
                     self.elements.append({
                         'name': i[0], 
                         'library': "", 
                         'package': re.search(r'shape:\s+"(.*?)"', i[1]).groups()[0], 
-                        'value': re.search(r'value:\s+"(.*?)"', i[1]).groups()[0], 
+                        'value': value, 
                         'x': float(partPos[0]) * mnoznik, 
                         'y': float(partPos[1]) * mnoznik, 
                         'locked': locked,
@@ -496,7 +503,7 @@ class FreePCB(baseModel):
                         'dataElement': i[1]
                     })
         except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            FreeCAD.Console.PrintWarning("getElements() error: {0}\n".format(e))
     
     def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
         pass
@@ -537,12 +544,11 @@ class FreePCB(baseModel):
                             layerNew.setChangeSide(X1, Y1, SIDE)
                             layerNew.setFace()
         except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            FreeCAD.Console.PrintWarning("getSilkLayerModels() error: {0}\n".format(e))
     
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
+        holesList = []
         
         # vias
         if types['V']:
@@ -551,14 +557,7 @@ class FreePCB(baseModel):
                 y = float(i[1]) * self.mnoznik
                 r = float(i[2]) * self.mnoznik / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-        
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         ## pads / holes
         if types['P'] or types['H']:
             self.getLibraries()
@@ -586,15 +585,9 @@ class FreePCB(baseModel):
                                 if i["side"] == "BOTTOM":
                                     xR = self.odbijWspolrzedne(xR, X1)
                                 
-                                if self.filterHoles(r, Hmin, Hmax):
-                                    if types['IH']:  # detecting collisions between holes - intersections
-                                        if self.detectIntersectingHoles(holesList, xR, yR, r):
-                                            holesList.append([xR, yR, r])
-                                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                    else:
-                                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
+                                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], xR, yR, r, holesList)
             except Exception as e:
-                FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+                FreeCAD.Console.PrintWarning("getHoles() error. {0}\n".format(e))
         
     def getCornsers(self, data):
         result = []
@@ -624,7 +617,7 @@ class FreePCB(baseModel):
                 else:
                     result.append(['Arc', x1, y1, x2, y2, 90])
         except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            FreeCAD.Console.PrintWarning("getCornsers() error: {0}\n".format(e))
         #
         return result
 
@@ -639,4 +632,4 @@ class FreePCB(baseModel):
                         arc = Part.ArcOfCircle(FreeCAD.Vector(j[1], j[2], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(j[3], j[4], 0.0))
                         borderObject.addGeometry(arc)
         except Exception as e:
-            FreeCAD.Console.PrintWarning("3. {0}\n".format(e))
+            FreeCAD.Console.PrintWarning("getPCB() error: {0}\n".format(e))

@@ -26,6 +26,7 @@
 #****************************************************************************
 
 import FreeCAD
+import Part
 try:
     import builtins
 except:
@@ -47,6 +48,20 @@ class baseModel(mathFunctions):
             return True
         else:
             return False
+    
+    def addHoleToObject(self, holesObject, Hmin, Hmax, iH, x, y, r, holesList):
+        try:
+            if self.filterHoles(r, Hmin, Hmax):
+                if iH:  # detecting collisions between holes - intersections
+                    if self.detectIntersectingHoles(holesList, x, y, r):
+                        holesList.append([x, y, r])
+                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                else:
+                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+        except Exception as e:
+            print("Error in addHoleToObject(): " + e)
+        
+        return holesList
     
     def detectIntersectingHoles(self, holesList, x, y, r):
         add = True

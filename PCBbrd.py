@@ -202,7 +202,7 @@ def wersjaFormatuF(filename):
         except:
             pass
         #
-        if int(fileVersion) < 20170218:
+        if int(fileVersion) < 20091103:
             FreeCAD.Console.PrintError("File version is too old - min. required version is 20170218. Save file in newer gEDA version. ")
             return [False]
         ##########################
