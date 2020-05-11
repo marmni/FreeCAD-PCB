@@ -57,17 +57,58 @@ class dialogMAIN(dialogMAIN_FORM):
         return pcbThickness
     
     def getLayersNames(self):
+        # ##############
+        # # layers groups
+        # # c: top
+        # # s: bottom
+        layersGroups = {}
+        data = re.search('Groups\("(.*?)"\)', self.projektBRD).groups()[0]
+        data = data.split(":")
+        for i in data:
+            j = i.split(",")
+            
+            if len(j) > 1:
+                if j[-1] == 'c':
+                    for k in range(len(j) - 1):
+                        layersGroups[j[k]] = "TOP"
+                elif j[-1] == 's':
+                    for k in range(len(j) - 1):
+                        layersGroups[j[k]] = "BOTTOM"
+                else:
+                    layersGroups[j[0]] = "TOP"
+            else:
+                layersGroups[j[0]] = "TOP"
+        # ##############
+        gEDAColors = ""
+        if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("gEDAColors", "").strip() != '':
+            gEDAColors = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("gEDAColors", "")
+            if os.path.isfile(gEDAColors):
+                gEDAColors = builtins.open(gEDAColors, "r").read()
+        # ##############
         dane = {}
         for i in re.findall("Layer\((.+?) \"(.+?)\" \"(.+?)\"\)", self.projektBRD):
             layerNumber = i[0]
             layerName = i[1]
             layerType = i[2]
+            
             layerColor = None
+            if gEDAColors.strip() != "":
+                try:
+                    layerColor = re.search('layer-color-'+layerNumber+'\s=\s(.+?)\n', gEDAColors).groups()[0].lstrip('#')
+                    ###############################################################################################################
+                    # https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python?answertab=active#tab-top 
+                    layerColor = tuple(int(layerColor[i:i+2], 16) for i in (0, 2, 4))
+                    ###############################################################################################################
+                except:
+                    pass
             
             if layerName == "outline":
                 continue
             
-            dane[layerNumber] = {"name": layerName, "color": layerColor, "type": layerType, "number": layerNumber}
+            if layerNumber in layersGroups.keys():
+                dane[layerNumber] = {"name": layerName, "color": layerColor, "type": layerType, "number": layerNumber, "side": layersGroups[layerNumber]}
+            else:
+                dane[layerNumber] = {"name": layerName, "color": layerColor, "type": layerType, "number": layerNumber}
         
         # extra layers
         dane[0] = {"name": softLayers[self.databaseType]["anno"]["description"], "color": softLayers[self.databaseType]["anno"]["color"], "type": "anno", "number": 0}  # annotations
@@ -255,8 +296,7 @@ class gEDA_PCB(baseModel):
     
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
+        holesList = []
 
         # holes
         if types['H']:
@@ -266,13 +306,7 @@ class gEDA_PCB(baseModel):
                 
                 r = i["drill"] / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, i["x"], i["y"], r):
-                            holesList.append([i["x"], i["y"], r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], i["x"], i["y"], r, holesList)
         # vias
         if types['V']:
             for i in self.getAllVias():
@@ -281,13 +315,7 @@ class gEDA_PCB(baseModel):
                 
                 r = i["drill"] / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, i["x"], i["y"], r):
-                            holesList.append([i["x"], i["y"], r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(i["x"], i["y"], 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], i["x"], i["y"], r, holesList)
         # pads
         if types['P'] or types['H']:
             self.getElements()
@@ -304,13 +332,7 @@ class gEDA_PCB(baseModel):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if self.filterHoles(r, Hmin, Hmax):
-                            if types['IH']:  # detecting collisions between holes - intersections
-                                if self.detectIntersectingHoles(holesList, x, y, r):
-                                    holesList.append([x, y, r])
-                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                            else:
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                        holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
                 if types['H']:
                     for i in self.getAllPins(j["dataElement"]):
                         if not "hole" in i["sflags"]:
@@ -320,13 +342,7 @@ class gEDA_PCB(baseModel):
                         x = i["x"] + X1
                         y = i["y"] + Y1
                         
-                        if self.filterHoles(r, Hmin, Hmax):
-                            if types['IH']:  # detecting collisions between holes - intersections
-                                if self.detectIntersectingHoles(holesList, x, y, r):
-                                    holesList.append([x, y, r])
-                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                            else:
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                        holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
 
     def getPCB(self, borderObject):
         # checking if there is a layer "outline" (prio layer as PCB aoutline)

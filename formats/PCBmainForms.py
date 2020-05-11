@@ -172,16 +172,19 @@ class mainPCB(partsManaging):
                             ########################
                             # tented Vias
                             ########################
-                            if layerSide == 1:
-                                if not self.tentedVias[0]:
-                                    self.tentedVias[0] = layerColor
-                                else:
-                                    self.tentedVias[0].ViewObject.ShapeColor = layerColor
-                            elif layerSide == 0:
-                                if not self.tentedVias[1]:
-                                    self.tentedVias[1] = layerColor
-                                else:
-                                    self.tentedVias[1].ViewObject.ShapeColor = layerColor
+                            try:
+                                if layerSide == 1:
+                                    if not self.tentedVias[0]:
+                                        self.tentedVias[0] = layerColor
+                                    else:
+                                        self.tentedVias[0].ViewObject.ShapeColor = layerColor
+                                elif layerSide == 0:
+                                    if not self.tentedVias[1]:
+                                        self.tentedVias[1] = layerColor
+                                    else:
+                                        self.tentedVias[1].ViewObject.ShapeColor = layerColor
+                            except:
+                                pass
                         #
                         self.generateSilkLayer(doc, layerNumber, grp, layerName, layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked(), self.wersjaFormatu.dialogMAIN.tentedViasLimit.value(), False)
                         ########################
@@ -191,21 +194,27 @@ class mainPCB(partsManaging):
                             color = getFromSettings_Color_1('PathColor', 7012607)
                             layerColor = (color[0] / 255., color[1] / 255., color[2] / 255.)
                             
-                            if layerSide == 1:
-                                if self.tentedVias[0]:
-                                    layerColor = self.tentedVias[0]
-                            elif layerSide == 0:
-                                if self.tentedVias[1]:
-                                   layerColor = self.tentedVias[1]
+                            try:
+                                if layerSide == 1:
+                                    if self.tentedVias[0]:
+                                        layerColor = self.tentedVias[0]
+                                elif layerSide == 0:
+                                    if self.tentedVias[1]:
+                                       layerColor = self.tentedVias[1]
+                            except:
+                                pass
                             #
                             obj = self.generateSilkLayer(doc, layerNumber, grp, layerName + "_tentedVias", layerColor, layerTransp, layerSide, layerFunction, self.wersjaFormatu.dialogMAIN.plytkaPCB_cutHolesThroughAllLayers.isChecked(), self.wersjaFormatu.dialogMAIN.skipEmptyLayers.isChecked(), self.wersjaFormatu.dialogMAIN.tentedViasLimit.value(), True)
                             #
-                            if layerSide == 1:
-                                if not self.tentedVias[0]:
-                                    self.tentedVias[0] = obj
-                            elif layerSide == 0:
-                                if not self.tentedVias[1]:
-                                   self.tentedVias[1] = obj
+                            try:
+                                if layerSide == 1:
+                                    if not self.tentedVias[0]:
+                                        self.tentedVias[0] = obj
+                                elif layerSide == 0:
+                                    if not self.tentedVias[1]:
+                                       self.tentedVias[1] = obj
+                            except:
+                                pass
                     #
                     elif layerFunction == "measures":
                         self.generateDimensions(doc, grp, layerName, layerColor, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())

@@ -63,6 +63,9 @@ from command.PCBsections import createSectionsGui
 from command.PCBgenerateModel import generateModelGui
 
 
+__currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
+
+
 class pcbToolBarMain(QtGui.QToolBar):
     def __init__(self, text, parent=None):
         QtGui.QToolBar.__init__(self, text, parent)
@@ -197,6 +200,21 @@ class pcbToolBarView(pcbToolBarMain):
         scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/group.svg")
         QtCore.QObject.connect(scriptCmd_groupParts, QtCore.SIGNAL("triggered()"), self.groupParts)
         
+        # instructions
+        scriptCmd_openInstruction_0 = self.createAction(u"Open instruction (FC0.18 in progress)", u"Open instruction (FC0.18 in progress)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_0, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC018_inProgress_DUMMY.pdf"))
+        
+        scriptCmd_openInstruction_1 = self.createAction(u"Open instruction (FC0.18 in progress)", u"Open instruction (FC0.18 in progress)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_1, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC018_inProgress_DUMMY.pdf"))
+        
+        
+        scriptCmd_openInstruction_2 = self.createAction(u"Open instruction (FC0.16)", u"Open instruction (FC0.16)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_2, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC016.pdf"))
+        
+        groupsMenuI = QtGui.QMenu(self)
+        groupsMenuI.addAction(scriptCmd_openInstruction_1)
+        groupsMenuI.addAction(scriptCmd_openInstruction_2)
+        scriptCmd_openInstruction_0.setMenu(groupsMenuI)
         ##########
         self.addAction(scriptCmd_viewShaded)
         self.addAction(scriptCmd_viewFlatLines)
@@ -213,12 +231,18 @@ class pcbToolBarView(pcbToolBarMain):
         self.addSeparator()
         self.addAction(scriptCmd_ExportToKerkythea)
         self.addAction(scriptCmd_ExportObjectToPovRay)
-        #self.addSeparator()
+        self.addSeparator()
+        self.addAction(scriptCmd_openInstruction_0)
         #self.addAction(scriptCmd_QuickAssembly)
         #self.addAction(scriptCmd_QuickAssembly2)
         #self.addAction(scriptCmd_exportAssembly)
         #self.addAction(scriptCmd_CheckForCollisions)
         self.addToolBar(self)
+    
+    def openInstruction(self, fileName):
+        path = os.path.join(__currentPath__, "instructions", fileName)
+        if os.path.isfile(path):
+            os.startfile(path)
     
     def cutHolesThroughAllLayers(self, value):
         pcb = getPCBheight()

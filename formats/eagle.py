@@ -446,8 +446,7 @@ class EaglePCB(baseModel):
 
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
+        holesList = []
         
         # holes
         if types['H']:
@@ -456,13 +455,7 @@ class EaglePCB(baseModel):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # vias
         if types['V']:
             for i in self.projektBRD.getElementsByTagName("signals")[0].getElementsByTagName("via"):
@@ -470,13 +463,7 @@ class EaglePCB(baseModel):
                 y = float(i.getAttribute('y'))
                 r = float(i.getAttribute('drill')) / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         ## pady
         self.getLibraries()
         self.getElements()
@@ -492,13 +479,7 @@ class EaglePCB(baseModel):
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if self.filterHoles(r, Hmin, Hmax):
-                        if types['IH']:  # detecting collisions between holes - intersections
-                            if self.detectIntersectingHoles(holesList, xR, yR, r):
-                                holesList.append([xR, yR, r])
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], xR, yR, r, holesList)
             if types['P']:  # pads
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
                     xs = float(j.getAttribute('x'))
@@ -509,13 +490,7 @@ class EaglePCB(baseModel):
                     if i['side'] == 0:  # odbicie wspolrzednych
                         xR = self.odbijWspolrzedne(xR, i['x'])
                     
-                    if self.filterHoles(r, Hmin, Hmax):
-                        if types['IH']:  # detecting collisions between holes - intersections
-                            if self.detectIntersectingHoles(holesList, xR, yR, r):
-                                holesList.append([xR, yR, r])
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], xR, yR, r, holesList)
 
     def getParts(self):
         self.getLibraries()

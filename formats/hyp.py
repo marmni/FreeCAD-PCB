@@ -303,8 +303,7 @@ class HYP_PCB(baseModel):
     
     def getHoles(self, holesObject, types, Hmin, Hmax):
         ''' holes/vias '''
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
+        holesList = []
         
         # holes
         if types['H']:
@@ -313,13 +312,7 @@ class HYP_PCB(baseModel):
                 y = self.setUnit(i[1])
                 r = self.setUnit(i[2])
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # vias
         if types['V']:
             for i in re.findall(r'\(VIA X=(.+?) Y=(.+?) P=(.+?)\) .+?', self.projektBRD):
@@ -327,13 +320,7 @@ class HYP_PCB(baseModel):
                 y = self.setUnit(i[1])
                 r = self.setUnit(re.search(r'PADSTACK={0},(.+?)\n'.format(i[2]), self.projektBRD).groups()[0]) / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # pads
         if types['P']:  # pads
             for i in re.findall(r'\(PIN X=(.+?) Y=(.+?) R=.+? P=.+?\)(| .+?,) Pad Diameter: .+?  Drill: (.+?)\n', self.projektBRD):
@@ -341,13 +328,7 @@ class HYP_PCB(baseModel):
                 y = self.setUnit(i[1])
                 r = self.setUnit(i[3]) / 2.
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
 
     def getPCB(self, borderObject):
         board = re.search(r'\{BOARD\s+(.+?)\s+\}', self.projektBRD, re.MULTILINE|re.DOTALL).groups()[0]

@@ -224,9 +224,7 @@ class LibrePCB(baseModel):
         return parts
         
     def getHoles(self, holesObject, types, Hmin, Hmax):
-        if types['IH']:  # detecting collisions between holes - intersections
-            holesList = []
-        #
+        holesList = []
         # holes
         if types['H']:
             for i in re.findall(r'\(hole\s+.+?\s+\(diameter\s+(.+?)\)\s+\(position\s+(.+?)\s+(.+?)\)\)', self.projektBRD):
@@ -234,13 +232,7 @@ class LibrePCB(baseModel):
                 y = float(i[2])
                 r = float(i[0]) / 2. + 0.001
                 
-                if self.filterHoles(r, Hmin, Hmax):
-                    if types['IH']:  # detecting collisions between holes - intersections
-                        if self.detectIntersectingHoles(holesList, x, y, r):
-                            holesList.append([x, y, r])
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                    else:
-                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # vias
         if types['V']:
             self.getNetsegments()
@@ -251,13 +243,7 @@ class LibrePCB(baseModel):
                     y = self.netsegments[i]["via"][j]['y']
                     r = self.netsegments[i]["via"][j]['drill'] / 2. + 0.001
                     
-                    if self.filterHoles(r, Hmin, Hmax):
-                        if types['IH']:  # detecting collisions between holes - intersections
-                            if self.detectIntersectingHoles(holesList, x, y, r):
-                                holesList.append([x, y, r])
-                                holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                        else:
-                            holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                    holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         ## pady
         self.getElements()
 
@@ -285,13 +271,7 @@ class LibrePCB(baseModel):
                             if self.elements[i]['side'] == "BOTTOM":  # odbicie wspolrzednych
                                 xR = self.odbijWspolrzedne(xR, X)
                             
-                            if self.filterHoles(drill, Hmin, Hmax):
-                                if types['IH']:  # detecting collisions between holes - intersections
-                                    if self.detectIntersectingHoles(holesList, xR, yR, drill):
-                                        holesList.append([xR, yR, drill])
-                                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
-                                else:
-                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(xR, yR, 0.), FreeCAD.Vector(0, 0, 1), drill))
+                            holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], xR, yR, drill, holesList)
                     if types['H']:  # holes
                         for j in re.findall(r'\(hole\s+.+?\s+\(diameter\s+(.+?)\)\s+\(position\s+(.+?)\s+(.+?)\)\)', footprint):
                             x = float(j[1])
@@ -303,13 +283,7 @@ class LibrePCB(baseModel):
                             if self.elements[i]['side'] == "BOTTOM":  # odbicie wspolrzednych
                                 x = self.odbijWspolrzedne(x, X)
                             
-                            if self.filterHoles(r, Hmin, Hmax):
-                                if types['IH']:  # detecting collisions between holes - intersections
-                                    if self.detectIntersectingHoles(holesList, x, y, r):
-                                        holesList.append([x, y, r])
-                                        holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
-                                else:
-                                    holesObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y, 0.), FreeCAD.Vector(0, 0, 1), r))
+                            holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         except Exception as e:
             print(e)
         
