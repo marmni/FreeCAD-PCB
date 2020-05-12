@@ -539,10 +539,10 @@ class FreePCB(baseModel):
                             layerNew.setChangeSide(X1, Y1, SIDE)
                             layerNew.setFace()
                         else: # arc
-                            layerNew.addArcWidth([j[1] + X1, j[2] + Y1], [j[3] + X1, j[4] + Y1], j[6], j[5])
-                            layerNew.addRotation(X1, Y1, ROT)
-                            layerNew.setChangeSide(X1, Y1, SIDE)
-                            layerNew.setFace()
+                            if layerNew.addArcWidth([j[1] + X1, j[2] + Y1], [j[3] + X1, j[4] + Y1], j[6], j[5]):
+                                layerNew.addRotation(X1, Y1, ROT)
+                                layerNew.setChangeSide(X1, Y1, SIDE)
+                                layerNew.setFace()
         except Exception as e:
             FreeCAD.Console.PrintWarning("getSilkLayerModels() error: {0}\n".format(e))
     

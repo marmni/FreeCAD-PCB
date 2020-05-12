@@ -133,8 +133,8 @@ class HYP_PCB(baseModel):
                 width = self.setUnit(i[6])
                 angle = self.getArcParameters(x1, y1, x2, y2, xs, ys)
                 #
-                layerNew.addArcWidth([x1, y1], [x2, y2],  angle, width)
-                layerNew.setFace(signalName=signal)
+                if layerNew.addArcWidth([x1, y1], [x2, y2],  angle, width):
+                    layerNew.setFace(signalName=signal)
     
     def getArcParameters(self, x1, y1, x2, y2, xs, ys):
         angle = degrees(atan2(y2 - ys, x2 - xs) - atan2(y1 - ys, x1 - xs))

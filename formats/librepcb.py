@@ -679,11 +679,11 @@ class LibrePCB(baseModel):
                             polygonData.append(['Line', x1, y1, x2, y2])
                     else:
                         if not angle == 0.0:
-                            layerNew.addArcWidth([x1, y1], [x2, y2], angle, width)
-                            if parent:
-                                layerNew.addRotation(X, Y, parent['rot'])
-                                layerNew.setChangeSide(X, Y, SIDE)
-                            layerNew.setFace()
+                            if layerNew.addArcWidth([x1, y1], [x2, y2], angle, width):
+                                if parent:
+                                    layerNew.addRotation(X, Y, parent['rot'])
+                                    layerNew.setChangeSide(X, Y, SIDE)
+                                layerNew.setFace()
                         else:
                             if [x1, y1] != [x2, y2]:
                                 layerNew.addLineWidth(x1, y1, x2, y2, width)

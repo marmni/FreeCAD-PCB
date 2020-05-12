@@ -711,11 +711,11 @@ class KiCadv3_PCB(baseModel):
                 layerNew.setFace()
                 
             for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
-                layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width'])
-                if parent:
-                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
-                layerNew.setFace()
+                if layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width']):
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                        layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                    layerNew.setFace()
         # okregi
         if display[1]:
             for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
