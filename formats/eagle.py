@@ -793,7 +793,7 @@ class EaglePCB(baseModel):
         # linie/luki
         if display[0]:
             for i in self.getWires(dane, layerNumber, [X, Y]):
-                if not i['curve']:
+                if not i['curve']:  # LINE
                     layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
                     if parent:
                         layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
@@ -802,15 +802,15 @@ class EaglePCB(baseModel):
                         layerNew.setFace(signalName=i['data'].parentNode.getAttribute('name'))
                     else:
                         layerNew.setFace()
-                else:
-                    layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'], i['cap'])
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                        layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
-                    if getSignals:
-                        layerNew.setFace(signalName=i['data'].parentNode.getAttribute('name'))
-                    else:
-                        layerNew.setFace()
+                else:  # ARC
+                    if layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], i['curve'], i['width'], i['cap']):
+                        if parent:
+                            layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                            layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                        if getSignals:
+                            layerNew.setFace(signalName=i['data'].parentNode.getAttribute('name'))
+                        else:
+                            layerNew.setFace()
         # okregi
         if display[1]:
             for i in self.getCircles(dane, layerNumber, [X, Y]):

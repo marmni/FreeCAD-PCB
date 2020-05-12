@@ -1211,6 +1211,13 @@ class layerSilkObject(objectWire):
                 [x3, y3] = self.arcMidPoint(p1, p2, curve)
             
             [xs, ys] = self.arcCenter(p1[0], p1[1], p2[0], p2[1], x3, y3)
+            r = self.arcRadius(p1[0], p1[1], p2[0], p2[1], curve)
+            ######################################
+            # temporary solution
+            if r * 2 < width * 2:
+                FreeCAD.Console.PrintWarning(u"Radius of the arc is smaller than the width. The object will be skipped (temporarily).\n")
+                return False
+            ######################################
             #
             # a = (ys - p1[1]) / (xs - p1[0])
             [xT_1, yT_1] = self.shiftPointOnLine(p1[0], p1[1], xs, ys, width)
@@ -1306,8 +1313,10 @@ class layerSilkObject(objectWire):
             self.spisObiektowTXT.append(mainObj)
             # self.addPlacement([x1, y1, 0], kat, [0, 0, 0])
             # return mainObj
+            return True
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
+            return False
             
     def addLineWidth(self, x1, y1, x2, y2, width=0, style=''):
         if style in ["longdash", "shortdash"]:

@@ -77,7 +77,8 @@ class mainPCB(partsManaging):
         self.projektBRD = None
         self.projektBRDName = None
         self.wersjaFormatu = None
-        self.tentedVias = [False, False]
+        self.tentedVias = [False, False]  # [TOP, BOTTOM]
+        #self.padsHeight = [0, 0]  # [TOP, BOTTOM]
         
         if wersjaFormatu == "eagle":
             self.wersjaFormatu = EaglePCB(filename, self)
@@ -125,12 +126,12 @@ class mainPCB(partsManaging):
     def generate(self, doc):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc, self.wersjaFormatu.dialogMAIN.gruboscPlytki.value())
+        self.generatePCB(doc)
         # HOLES
-        self.generateHoles(doc, self.wersjaFormatu.dialogMAIN.holesMin.value(), self.wersjaFormatu.dialogMAIN.holesMax.value())
+        self.generateHoles(doc)
         # PARTS
         if self.wersjaFormatu.dialogMAIN.partsBox.isChecked():
-            self.importParts(self.wersjaFormatu.dialogMAIN.plytkaPCB_elementyKolory.isChecked(), self.wersjaFormatu.dialogMAIN.adjustParts.isChecked(), self.wersjaFormatu.dialogMAIN.plytkaPCB_grupujElementy.isChecked(), self.wersjaFormatu.dialogMAIN.partMinX.value(), self.wersjaFormatu.dialogMAIN.partMinY.value(), self.wersjaFormatu.dialogMAIN.partMinZ.value())
+            self.importParts()
         # LAYERS
         grp = createGroup_Layers()
         grp_2 = createGroup_Areas()
@@ -232,7 +233,14 @@ class mainPCB(partsManaging):
         if self.wersjaFormatu.dialogMAIN.copperImportPolygons.isChecked():
             self.generatePolygonsOnCopperLayer(pathsLayers)
     
-    def importParts(self, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ):
+    def importParts(self):
+        koloroweElemnty = self.wersjaFormatu.dialogMAIN.plytkaPCB_elementyKolory.isChecked()
+        adjustParts = self.wersjaFormatu.dialogMAIN.adjustParts.isChecked()
+        groupParts = self.wersjaFormatu.dialogMAIN.plytkaPCB_grupujElementy.isChecked()
+        partMinX = self.wersjaFormatu.dialogMAIN.partMinX.value()
+        partMinY = self.wersjaFormatu.dialogMAIN.partMinY.value()
+        partMinZ = self.wersjaFormatu.dialogMAIN.partMinZ.value()
+        #
         self.printInfo('\nImporting parts: ')
         errors = []
         
@@ -454,9 +462,10 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc, gruboscPlytki):
+    def generatePCB(self, doc):
+        gruboscPlytki = self.wersjaFormatu.dialogMAIN.gruboscPlytki.value()
+        #
         self.printInfo('\nGenerate board: ')
-        
         try:
             groupBRD = createGroup_PCB()
             #
@@ -480,15 +489,17 @@ class mainPCB(partsManaging):
         else:
             self.printInfo('done')
         
-    def generateHoles(self, doc, Hmin, Hmax):
+    def generateHoles(self, doc):
         self.printInfo('\nGenerate holes: ')
-        
         try:
             doc.addObject('Sketcher::SketchObject', 'PCB_Holes')
             doc.PCB_Holes.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 0.0), FreeCAD.Rotation(0.0, 0.0, 0.0, 1.0))
             FreeCADGui.activeDocument().PCB_Holes.Visibility = False
             #
+            Hmin = self.wersjaFormatu.dialogMAIN.holesMin.value()
+            Hmax = self.wersjaFormatu.dialogMAIN.holesMax.value()
             types = {'H':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyH.isChecked(), 'V':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyV.isChecked(), 'P':self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyP.isChecked(), "IH":self.wersjaFormatu.dialogMAIN.plytkaPCB_otworyIH.isChecked()}
+            
             self.wersjaFormatu.getHoles(doc.PCB_Holes, types, Hmin, Hmax)
             #
             doc.Board.Holes = doc.PCB_Holes

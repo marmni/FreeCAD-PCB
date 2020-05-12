@@ -38,6 +38,8 @@ from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from formats.baseModel import baseModel
 
+__currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
+
 
 class dialogMAIN(dialogMAIN_FORM):
     def __init__(self, filename=None, parent=None):
@@ -84,6 +86,9 @@ class dialogMAIN(dialogMAIN_FORM):
             gEDAColors = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("gEDAColors", "")
             if os.path.isfile(gEDAColors):
                 gEDAColors = builtins.open(gEDAColors, "r").read()
+        else:  # def. colors list
+            if os.path.isfile(os.path.join(__currentPath__, "..", "data", "gEDA_def_colors")):
+                gEDAColors = builtins.open(os.path.join(__currentPath__, "..", "data", "gEDA_def_colors"), "r").read()
         # ##############
         dane = {}
         for i in re.findall("Layer\((.+?) \"(.+?)\" \"(.+?)\"\)", self.projektBRD):
@@ -594,8 +599,8 @@ class gEDA_PCB(baseModel):
                     else:
                         (x1, y1, x2, y2, curve, width) = self.getArcParameters(i)
                         #
-                        layerNew.addArcWidth([x1, y1], [x2, y2], curve, width)
-                        layerNew.setFace()
+                        if layerNew.addArcWidth([x1, y1], [x2, y2], curve, width):
+                            layerNew.setFace()
             else:
                 # ElementLine [X1 Y1 X2 Y2 Thickness]
                 for i in re.findall('ElementLine \s*\[(.+?) (.+?) (.+?) (.+?) (.+?)\]', dane):
@@ -622,8 +627,8 @@ class gEDA_PCB(baseModel):
                     else:
                         (x1, y1, x2, y2, curve, width) = self.getElementArcParameters(i)
                         #
-                        layerNew.addArcWidth([x1 + parent['x'], y1 + parent['y']], [x2 + parent['x'], y2 + parent['y']], curve, width)
-                        layerNew.setFace()
+                        if layerNew.addArcWidth([x1 + parent['x'], y1 + parent['y']], [x2 + parent['x'], y2 + parent['y']], curve, width):
+                            layerNew.setFace()
         ## polygon
         if display[3]:
             if parent == None:
