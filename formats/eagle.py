@@ -954,11 +954,14 @@ class EaglePCB(baseModel):
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("smd") + self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
                     x = float(j.getAttribute('x')) + i['x']
                     y = float(j.getAttribute('y')) + i['y']
+                    padSide = softLayers[self.databaseType][int(j.getAttribute('layer'))]["side"]
+                    ROT_2 = 0  # kat o jaki zostana obrocone elementy
                     
                     if j.getAttribute('rot'):
-                        ROT_2 = float(j.getAttribute('rot')[1:])  # kat o jaki zostana obrocone elementy
-                    else:
-                        ROT_2 = 0  # kat o jaki zostana obrocone elementy
+                        ROT_2 = int(re.sub("[^0-9]", "", j.getAttribute('rot')))  # kat o jaki zostana obrocone elementy
+
+                    if i['side'] == 0:
+                        padSide = softLayers[self.databaseType][softLayers[self.databaseType][int(j.getAttribute('layer'))]["mirrorLayer"]]["side"]
                     #####
                     if j.tagName == "pad":
                         drill = float(j.getAttribute('drill'))
@@ -1027,7 +1030,7 @@ class EaglePCB(baseModel):
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
                             layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
-                    elif j.tagName == "smd" and layerSide == i['side']:  # smd
+                    elif j.tagName == "smd" and layerSide == padSide:  # smd
                         dx = float(j.getAttribute('dx'))
                         dy = float(j.getAttribute('dy'))
                         
