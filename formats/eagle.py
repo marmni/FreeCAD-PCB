@@ -954,14 +954,10 @@ class EaglePCB(baseModel):
                 for j in self.libraries[i['library']][i['package']].getElementsByTagName("smd") + self.libraries[i['library']][i['package']].getElementsByTagName("pad"):
                     x = float(j.getAttribute('x')) + i['x']
                     y = float(j.getAttribute('y')) + i['y']
-                    padSide = softLayers[self.databaseType][int(j.getAttribute('layer'))]["side"]
                     ROT_2 = 0  # kat o jaki zostana obrocone elementy
                     
                     if j.getAttribute('rot'):
                         ROT_2 = int(re.sub("[^0-9]", "", j.getAttribute('rot')))  # kat o jaki zostana obrocone elementy
-
-                    if i['side'] == 0:
-                        padSide = softLayers[self.databaseType][softLayers[self.databaseType][int(j.getAttribute('layer'))]["mirrorLayer"]]["side"]
                     #####
                     if j.tagName == "pad":
                         drill = float(j.getAttribute('drill'))
@@ -1030,37 +1026,43 @@ class EaglePCB(baseModel):
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
                             layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
-                    elif j.tagName == "smd" and layerSide == padSide:  # smd
-                        dx = float(j.getAttribute('dx'))
-                        dy = float(j.getAttribute('dy'))
+                    elif j.tagName == "smd":
+                        padSide = softLayers[self.databaseType][int(j.getAttribute('layer'))]["side"]
                         
-                        if j.getAttribute('roundness'):
-                            roundness = float(j.getAttribute('roundness'))
-                        else:
-                            roundness = 0
-                        ######
-                        if dx == dy and roundness == 100:  # +
-                            layerNew.addCircle(x, y, dx / 2.)
-                            layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                            layerNew.setFace()
-                        elif roundness:  # +
-                            layerNew.addPadLong(x, y, dx / 2., dy / 2., roundness)
-                            layerNew.addRotation(x, y, ROT_2)
-                            layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                            layerNew.setFace()
-                        else:  # +
-                            x1 = x - dx / 2.
-                            y1 = y - dy / 2.
-                            x2 = x + dx / 2.
-                            y2 = y + dy / 2.
+                        if i['side'] == 0:
+                            padSide = softLayers[self.databaseType][softLayers[self.databaseType][int(j.getAttribute('layer'))]["mirrorLayer"]]["side"]
+                        
+                        if layerSide == padSide:  # smd
+                            dx = float(j.getAttribute('dx'))
+                            dy = float(j.getAttribute('dy'))
                             
-                            layerNew.addRectangle(x1, y1, x2, y2)
-                            layerNew.addRotation(x, y, ROT_2)
-                            layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
-                            layerNew.setFace()
+                            if j.getAttribute('roundness'):
+                                roundness = float(j.getAttribute('roundness'))
+                            else:
+                                roundness = 0
+                            ######
+                            if dx == dy and roundness == 100:  # +
+                                layerNew.addCircle(x, y, dx / 2.)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                                layerNew.setFace()
+                            elif roundness:  # +
+                                layerNew.addPadLong(x, y, dx / 2., dy / 2., roundness)
+                                layerNew.addRotation(x, y, ROT_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                                layerNew.setFace()
+                            else:  # +
+                                x1 = x - dx / 2.
+                                y1 = y - dy / 2.
+                                x2 = x + dx / 2.
+                                y2 = y + dy / 2.
+                                
+                                layerNew.addRectangle(x1, y1, x2, y2)
+                                layerNew.addRotation(x, y, ROT_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                                layerNew.setFace()
 
     def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
         self.addStandardShapes(self.projektBRD.getElementsByTagName("plain")[0], layerNew, [layerNumber[0]], display)
