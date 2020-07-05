@@ -1121,6 +1121,12 @@ class EaglePCB(baseModel):
             #
             if mode == 'anno':
                 txt = i.firstChild.nodeValue
+                #
+                if txt.startswith(">") or txt.startswith("&gt;"):
+                    for j in self.getSection("attributes").getElementsByTagName("attribute"):
+                        if txt.replace(">", "") == j.getAttribute('name') or txt.replace("&gt;", "") == j.getAttribute('name'):
+                            txt = j.getAttribute("value")
+                            break
             else:
                 txt = i.getAttribute('name')
             #
