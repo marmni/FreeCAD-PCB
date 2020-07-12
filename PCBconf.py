@@ -117,7 +117,7 @@ exportData = {
         'exportComponent': False,
     },
     "kicad": {
-        'name': 'KiCad v4',
+        'name': 'KiCad',
         'exportLayers': ['dim', 'hol', 'anno', 'glue'],
         'exportClass': 'kicad()',
         'description': 'KiCad',
