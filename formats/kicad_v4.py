@@ -108,3 +108,229 @@ class KiCadv4_PCB(KiCadv3_PCB):
             return "annotations"
         else:
             return "silk"
+    
+    def getPads(self, layerNew, layerNumber, layerSide, tentedViasLimit, tentedVias):
+        # via
+        via_drill = float(self.getSettings('via_drill'))
+
+        for i in re.findall(r'\(via\s+\(at\s+(.*?)\s+(.*?)\)\s+\(size\s+(.*?)\)\s+(\(drill\s+(.*?)\)|)', self.projektBRD):
+            x = float(i[0])
+            y = float(i[1]) * (-1)
+            diameter = float(i[2])
+
+            if i[4] == '':
+                drill = via_drill / 2.
+            else:
+                drill = float(i[4]) / 2.
+            
+            ##### ##### ##### 
+            ##### tented dVias
+            if self.filterTentedVias(tentedViasLimit, tentedVias, drill * 2, False):
+                continue
+            ##### ##### ##### 
+            layerNew.addCircle(x, y, diameter / 2.)
+            layerNew.setFace()
+        
+        if not tentedVias:
+            # pad
+            self.getElements()
+            #
+            for i in self.elements:
+                for j in self.getPadsList(i['dataElement']):
+                    if("np_" in j['padType'].lower()):  # mounting holes
+                        continue
+                    #
+                    xs = j['x'] + i['x']
+                    ys = j['y'] + i['y']
+                    numerWarstwy = j['layers'].split(' ')
+                    
+                    rot_2 = j['rot'] + i['rot']
+                    
+                    # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
+                    # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
+                    # kicad_pcb v4 TOP:         self.getLayerName(0) in numerWarstwy and layerNumber == 107
+                    # kicad_pcb v4 BOTTOM:      self.getLayerName(31) in numerWarstwy and layerNumber == 108
+                    dodaj = False
+                    if self.databaseType == "kicad" and ((self.getLayerName(15) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(0) in numerWarstwy and layerNumber[0] == 108)):
+                        dodaj = True
+                    elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
+                        dodaj = True
+                    elif '*.Cu' in numerWarstwy:
+                        dodaj = True
+                    #####
+                    if dodaj:
+                        if j['padShape'] == 'rect':
+                            x1 = xs - j['dx'] / 2. + j['xOF']
+                            y1 = ys - j['dy'] / 2. + j['yOF']
+                            x2 = xs + j['dx'] / 2. + j['xOF']
+                            y2 = ys + j['dy'] / 2. + j['yOF']
+                            
+                            layerNew.addRectangle(x1, y1, x2, y2)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            #layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif j['padShape'] == 'circle':
+                            layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            #layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+                        elif j['padShape'] == 'oval':
+                            if j['dx'] == j['dy']:
+                                layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
+                                layerNew.addRotation(xs, ys, rot_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                #layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                                layerNew.setFace()
+                            else:
+                                layerNew.addPadLong(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2., j['dy'] / 2., 100)
+                                layerNew.addRotation(xs, ys, rot_2)
+                                layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                #layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                                layerNew.setFace()
+                        elif j['padShape'] == 'trapezoid':
+                            if j[8].strip() == '':
+                                xRD = 0
+                                yRD = 0
+                            else:
+                                rect_delta = re.findall(r'\(rect_delta ([-0-9\.]*?) ([-0-9\.]*?) \)', j[8].strip())[0]
+                                yRD = float(rect_delta[0]) / 2.
+                                xRD = float(rect_delta[1]) / 2.
+                            
+                            x1 = xs - j['dx'] / 2. + j['xOF']
+                            y1 = ys - j['dy'] / 2. + j['yOF']
+                            x2 = xs + j['dx'] / 2. + j['xOF']
+                            y2 = ys + j['dy'] / 2. + j['yOF']
+                            
+                            layerNew.addTrapeze([x1, y1], [x2, y2], xRD, yRD)
+                            layerNew.addRotation(xs, ys, rot_2)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            #layerNew.setChangeSide(i['x'], i['y'], i['side'])
+                            layerNew.setFace()
+    
+    def getParts(self):
+        self.getElements()
+        parts = []
+        ###########
+        for i in self.elements:
+            copyL = i.copy()
+            #
+            if copyL['side'] == 1:
+                copyL['side'] = "TOP"
+            else:
+                copyL['side'] = "BOTTOM"
+                copyL['rot'] = (180 - copyL['rot'])
+            ####################################
+            dataName = self.getAnnotations(re.findall(r'\(fp_text reference(.+?)\)\n\s+\)\n\s+\(', copyL['dataElement'], re.MULTILINE|re.DOTALL), mode='param')
+            copyL['EL_Name'] = dataName[0]
+            copyL['EL_Name']["text"] = "NAME"
+            copyL['EL_Name']["x"] = copyL['EL_Name']["x"] + i["x"]
+            copyL['EL_Name']["y"] = copyL['EL_Name']["y"] + i["y"]
+            copyL['EL_Name']["rot"] = copyL['EL_Name']["rot"] - i["rot"]
+            ####################################
+            dataValue = self.getAnnotations(re.findall(r'\(fp_text value(.+?)\)\n\s+\)\n\s+\(', copyL['dataElement'], re.MULTILINE|re.DOTALL), mode='param')
+            copyL['EL_Value'] = dataValue[0]
+            copyL['EL_Value']["text"] = "VALUE"
+            copyL['EL_Value']["x"] = copyL['EL_Value']["x"] + i["x"]
+            copyL['EL_Value']["y"] = copyL['EL_Value']["y"] + i["y"]
+            copyL['EL_Value']["rot"] = copyL['EL_Value']["rot"] - i["rot"]
+            ####################################
+            parts.append(copyL)    
+        #
+        return parts
+    
+    def getSilkLayerModels(self, layerNew, layerNumber):
+        self.getElements()
+        #
+        for i in self.elements:
+            self.addStandardShapes(i['dataElement'], layerNew, layerNumber[1], parent=i)
+    
+    def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
+        if parent:
+            X = parent['x']
+            Y = parent['y']
+            oType = 'fp_'
+        else:
+            X = 0
+            Y = 0
+            oType = 'gr_'
+
+        # linie/luki
+        if display[0]:
+            for i in self.getLine(layerNumber, dane, oType + 'line', [X, Y]):
+                layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+                
+            for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
+                if layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width']):
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                        #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                    layerNew.setFace()
+        # okregi
+        if display[1]:
+            for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
+                layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+                
+                if i['width'] > 0:
+                    layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
+    
+    def getElements(self):
+        if len(self.elements) == 0:
+            for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+                [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
+                layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
+                
+                name = re.search(r'\(fp_text reference\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+                name = re.search(r'^(".+?"|.+?)\s', name).groups()[0].replace('"', '')
+                value = re.search(r'\(fp_text value\s+(.*)', i, re.MULTILINE|re.DOTALL).groups()[0]
+                value  = re.search(r'^(".+?"|.+?)\s', value).groups()[0].replace('"', '')
+                
+                x = float(x)
+                y = float(y) * (-1)
+                ########
+                package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
+                package = re.sub('locked|placed|pla', '', package).split(':')[-1]
+                package = package.replace('"', '').strip()
+                ##3D package from KiCad
+                #try:
+                    #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
+                    #if package3D and self.partExist(os.path.basename(package3D), "", False):
+                        #package = os.path.basename(package3D)
+                #except:
+                    #pass
+                ########
+                library = package
+                #
+                if rot == '':
+                    rot = 0.0
+                else:
+                    rot = float(rot)
+                
+                if (self.databaseType == "kicad" and self.spisWarstw[layer] == 15) or (self.databaseType == "kicad_v4" and self.spisWarstw[layer] == 0):  # top
+                    side = 1  # TOP
+                    mirror = 'None'
+                else:
+                    side = 0  # BOTTOM
+                    mirror = 'Local Y axis'
+                
+                self.elements.append({
+                    'name': name, 
+                    'library': library, 
+                    'package': package, 
+                    'value': value, 
+                    'x': x, 
+                    'y': y, 
+                    'rot': rot,
+                    'side': side, 
+                    'dataElement': i, 
+                    'mirror': mirror
+                })
