@@ -178,13 +178,16 @@ class KiCadv3_PCB(baseModel):
             #
             for i in self.elements:
                 for j in self.getPadsList(i['dataElement']):
+                    if("np_" in j['padType'].lower()):  # mounting holes
+                        continue
+                    #
                     xs = j['x'] + i['x']
                     ys = j['y'] + i['y']
                     numerWarstwy = j['layers'].split(' ')
                     
                     rot_2 = j['rot']
                     if i['rot'] != 0:
-                        rot_2 -= i['rot']
+                        rot_2 = -i['rot']
                     
                     # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
                     # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
@@ -193,8 +196,7 @@ class KiCadv3_PCB(baseModel):
                     dodaj = False
                     if self.databaseType == "kicad" and ((self.getLayerName(15) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(0) in numerWarstwy and layerNumber[0] == 108)):
                         dodaj = True
-                    elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
-                        dodaj = True
+
                     elif '*.Cu' in numerWarstwy:
                         dodaj = True
                     #####
@@ -208,22 +210,26 @@ class KiCadv3_PCB(baseModel):
                             layerNew.addRectangle(x1, y1, x2, y2)
                             layerNew.addRotation(xs, ys, rot_2)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
                         elif j['padShape'] == 'circle':
                             layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
                             layerNew.addRotation(xs, ys, rot_2)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
                         elif j['padShape'] == 'oval':
                             if j['dx'] == j['dy']:
                                 layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
                                 layerNew.addRotation(xs, ys, rot_2)
                                 layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setChangeSide(i['x'], i['y'], i['side'])
                                 layerNew.setFace()
                             else:
                                 layerNew.addPadLong(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2., j['dy'] / 2., 100)
                                 layerNew.addRotation(xs, ys, rot_2)
                                 layerNew.addRotation(i['x'], i['y'], i['rot'])
+                                layerNew.setChangeSide(i['x'], i['y'], i['side'])
                                 layerNew.setFace()
                         elif j['padShape'] == 'trapezoid':
                             if j[8].strip() == '':
@@ -242,6 +248,7 @@ class KiCadv3_PCB(baseModel):
                             layerNew.addTrapeze([x1, y1], [x2, y2], xRD, yRD)
                             layerNew.addRotation(xs, ys, rot_2)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
 
     def getPadsList(self, model):
@@ -749,6 +756,8 @@ class KiCadv3_PCB(baseModel):
         for i in self.elements:
             if i['side'] == 0:  # bottom side - get mirror
                 try:
+                    print(softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"])
+                    
                     if softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"]:
                         szukanaWarstwa = self.getLayerName(softLayers[self.databaseType][layerNumber[0]]["mirrorLayer"])
                     else:
@@ -773,7 +782,7 @@ class KiCadv3_PCB(baseModel):
                 
                 x = float(x)
                 y = float(y) * (-1)
-                
+                ########
                 package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
                 package = re.sub('locked|placed|pla', '', package).split(':')[-1]
                 package = package.replace('"', '').strip()
@@ -784,7 +793,7 @@ class KiCadv3_PCB(baseModel):
                         #package = os.path.basename(package3D)
                 #except:
                     #pass
-                ##
+                ########
                 library = package
                 #
                 if rot == '':
