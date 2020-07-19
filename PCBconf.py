@@ -194,8 +194,9 @@ layersList = {
 
 
 def replaceMirrorLayer(data, value):
-    data["mirrorLayer"] = value
-    return data
+    data1 = data.copy()
+    data1["mirrorLayer"] = value
+    return data1
 
 
 softLayers = {

@@ -1070,7 +1070,6 @@ class EaglePCB(baseModel):
     def getSilkLayerModels(self, layerNew, layerNumber):
         self.getLibraries()
         self.getElements()
-        
         for i in self.elements:
             if i['side'] == 0:  # bottom side - get mirror
                 try:

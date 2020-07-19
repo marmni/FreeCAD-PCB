@@ -130,7 +130,9 @@ def wersjaFormatuF(filename):
             version = re.findall('^\(kicad_pcb \(version (.+?)\)', projektBRD)[0]
             #
             if version == '3':
-                return ["kicad_v3", "KiCad (version 3)"]
+                #return ["kicad_v3", "KiCad (version 3)"]
+                FreeCAD.Console.PrintWarning(u"KiCad (version 3) is no longer supported.\n".format(version))
+                return [False]
             elif version == '4':
                 return ["kicad_v4", "KiCad (version 4)"]
             elif int(version[:4]) >= 2016:
