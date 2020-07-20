@@ -309,7 +309,7 @@ class KiCadv3_PCB(baseModel):
                         else:
                             yOF = float(data[5])
                     ##
-                    pads.append({'x': x, 'y': y, 'rot': rot, 'padType': pType, 'padShape': pShape, 'r': drill, 'dx': dx, 'dy': dy, 'holeType': hType, 'xOF': xOF, 'yOF': yOF, 'layers': layers})
+                    pads.append({'x': x, 'y': y, 'rot': rot, 'padType': pType, 'padShape': pShape, 'r': drill, 'dx': dx, 'dy': dy, 'holeType': hType, 'xOF': xOF, 'yOF': yOF, 'layers': layers, 'data': j})
         #
         return pads
 

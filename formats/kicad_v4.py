@@ -144,7 +144,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     ys = j['y'] + i['y']
                     numerWarstwy = j['layers'].split(' ')
                     
-                    rot_2 = j['rot'] + i['rot']
+                    rot_2 = i['rot'] - j['rot']
                     
                     # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
                     # kicad_pcb v3 BOTTOM:      self.getLayerName(0) in numerWarstwy and layerNumber == 18
@@ -170,6 +170,18 @@ class KiCadv4_PCB(KiCadv3_PCB):
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
                             #layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
+                        elif j['padShape'] == "custom":
+                            parentL = {
+                                'x': xs, 
+                                'y': ys, 
+                                'rot': rot_2
+                            }
+                            layerNew = self.addStandardShapes(j["data"], layerNew, None, display=[False, False, False, True], parent=parentL)
+                            layerNew.addRotation(i['x'], i['y'], i['rot'])
+                            
+                            
+                            
+                            
                         elif j['padShape'] == 'circle':
                             layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
                             layerNew.addRotation(xs, ys, rot_2)
@@ -244,7 +256,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
         self.getElements()
         #
         for i in self.elements:
-            self.addStandardShapes(i['dataElement'], layerNew, layerNumber[1], parent=i)
+            self.addStandardShapes(i['dataElement'], layerNew, layerNumber[1], display=[True, True, True, True], parent=i)
     
     def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
         if parent:
@@ -268,7 +280,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
             for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
                 if layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width']):
                     if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                        layerNew.addRotation(X, Y, parent['rot'])
                         #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                     layerNew.setFace()
         # okregi
@@ -276,13 +288,67 @@ class KiCadv4_PCB(KiCadv3_PCB):
             for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
                 layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
                 if parent:
-                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, parent['rot'])
                     #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 layerNew.setFace()
                 
                 if i['width'] > 0:
                     layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
+        ## polygon
+        if display[3]:
+            for i in self.getPolygons(dane, oType + 'poly', layerNumber):
+                if parent:
+                    layerNew.addPolygon(self.getPolygon(i, X, Y))
+                    layerNew.addRotation(X, Y, parent['rot'])
+                else:
+                    layerNew.addPolygon(self.getPolygon(i))
+                
+                layerNew.setFace()
+                return layerNew
     
+    def getPolygon(self, polygonL, X=0, Y=0):
+        poin = []
+        for k in range(len(polygonL)):
+            x1 = float(polygonL[k][0])
+            y1 = float(polygonL[k][1])
+            
+            try:
+                x2 = float(polygonL[k + 1][0])
+                y2 = float(polygonL[k + 1][1])
+            except:
+                x2 = float(polygonL[0][0])
+                y2 = float(polygonL[0][1])
+            
+            if not [x1, y1] == [x2, y2]:  # remove points, only lines
+                x1 = x1 + X
+                y1 = y1 + Y
+                x2 = x2 + X
+                y2 = y2 + Y
+                
+                poin.append(['Line', x1, y1, x2, y2])
+        return poin
+    
+    def getPolygons(self, section, oType, layer=False):
+        if layer:
+            data = re.findall(r'\({1}\s+\(pts\s+[xy0-9.\(\)\s+-]*\s+\(layer\s+{0}\)'.format(layer, oType), section, re.MULTILINE|re.DOTALL)
+        else:
+            data = re.findall(r'\(gr_poly\s+\(pts\s+[xy0-9.\(\)\s+-]*', section, re.MULTILINE|re.DOTALL)
+        
+        dataOut = []
+        #
+        for i in data:
+            pol = []
+            pts = re.findall('\(xy\s+[-.0-9]*\s+[-.0-9]*\)', i, re.MULTILINE|re.DOTALL)
+            for j in range(len(pts)):
+                [cord, x, y] = pts[j].replace(")", "").split(" ")
+                x = float(x)
+                y = float(y) * -1
+                
+                pol.append([x, y])
+            dataOut.append(pol)
+        #
+        return dataOut
+
     def getElements(self):
         if len(self.elements) == 0:
             for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
