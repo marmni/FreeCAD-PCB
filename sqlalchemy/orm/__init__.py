@@ -1,5 +1,5 @@
 # orm/__init__.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -13,61 +13,51 @@ documentation for an overview of how this module is used.
 
 """
 
-from . import exc
-from .mapper import (
-    Mapper,
-    _mapper_registry,
-    class_mapper,
-    configure_mappers,
-    reconstructor,
-    validates
-)
-from .interfaces import (
-    EXT_CONTINUE,
-    EXT_STOP,
-    PropComparator,
-)
-from .deprecated_interfaces import (
-    MapperExtension,
-    SessionExtension,
-    AttributeExtension,
-)
-from .util import (
-    aliased,
-    join,
-    object_mapper,
-    outerjoin,
-    polymorphic_union,
-    was_deleted,
-    with_parent,
-    with_polymorphic,
-)
-from .properties import ColumnProperty
-from .relationships import RelationshipProperty
-from .descriptor_props import (
-    ComparableProperty,
-    CompositeProperty,
-    SynonymProperty,
-)
-from .relationships import (
-    foreign,
-    remote,
-)
-from .session import (
-    Session,
-    object_session,
-    sessionmaker,
-    make_transient,
-    make_transient_to_detached
-)
-from .scoping import (
-    scoped_session
-)
-from . import mapper as mapperlib
-from .query import AliasOption, Query, Bundle
-from ..util.langhelpers import public_factory
+from . import exc  # noqa
+from . import mapper as mapperlib  # noqa
+from . import strategy_options
+from .deprecated_interfaces import AttributeExtension  # noqa
+from .deprecated_interfaces import MapperExtension  # noqa
+from .deprecated_interfaces import SessionExtension  # noqa
+from .descriptor_props import ComparableProperty  # noqa
+from .descriptor_props import CompositeProperty  # noqa
+from .descriptor_props import SynonymProperty  # noqa
+from .interfaces import EXT_CONTINUE  # noqa
+from .interfaces import EXT_SKIP  # noqa
+from .interfaces import EXT_STOP  # noqa
+from .interfaces import PropComparator  # noqa
+from .mapper import _mapper_registry
+from .mapper import class_mapper  # noqa
+from .mapper import configure_mappers  # noqa
+from .mapper import Mapper  # noqa
+from .mapper import reconstructor  # noqa
+from .mapper import validates  # noqa
+from .properties import ColumnProperty  # noqa
+from .query import AliasOption  # noqa
+from .query import Bundle  # noqa
+from .query import Query  # noqa
+from .relationships import foreign  # noqa
+from .relationships import RelationshipProperty  # noqa
+from .relationships import remote  # noqa
+from .scoping import scoped_session  # noqa
+from .session import close_all_sessions  # noqa
+from .session import make_transient  # noqa
+from .session import make_transient_to_detached  # noqa
+from .session import object_session  # noqa
+from .session import Session  # noqa
+from .session import sessionmaker  # noqa
+from .strategy_options import Load  # noqa
+from .util import aliased  # noqa
+from .util import join  # noqa
+from .util import object_mapper  # noqa
+from .util import outerjoin  # noqa
+from .util import polymorphic_union  # noqa
+from .util import was_deleted  # noqa
+from .util import with_parent  # noqa
+from .util import with_polymorphic  # noqa
+from .. import sql as _sql
 from .. import util as _sa_util
-from . import strategies as _strategies
+from ..util.langhelpers import public_factory
 
 
 def create_session(bind=None, **kwargs):
@@ -101,10 +91,11 @@ def create_session(bind=None, **kwargs):
     create_session().
 
     """
-    kwargs.setdefault('autoflush', False)
-    kwargs.setdefault('autocommit', True)
-    kwargs.setdefault('expire_on_commit', False)
+    kwargs.setdefault("autoflush", False)
+    kwargs.setdefault("autocommit", True)
+    kwargs.setdefault("expire_on_commit", False)
     return Session(bind=bind, **kwargs)
+
 
 relationship = public_factory(RelationshipProperty, ".orm.relationship")
 
@@ -131,7 +122,7 @@ def dynamic_loader(argument, **kw):
     on dynamic loading.
 
     """
-    kw['lazy'] = 'dynamic'
+    kw["lazy"] = "dynamic"
     return relationship(argument, **kw)
 
 
@@ -163,7 +154,8 @@ def deferred(*columns, **kw):
     not load unless accessed.
 
     :param \*columns: columns to be mapped.  This is typically a single
-     :class:`.Column` object, however a collection is supported in order
+     :class:`_schema.Column` object,
+     however a collection is supported in order
      to support multiple columns mapped under the same attribute.
 
     :param \**kw: additional keyword arguments passed to
@@ -177,16 +169,48 @@ def deferred(*columns, **kw):
     return ColumnProperty(deferred=True, *columns, **kw)
 
 
+def query_expression(default_expr=_sql.null()):
+    """Indicate an attribute that populates from a query-time SQL expression.
+
+    :param default_expr: Optional SQL expression object that will be used in
+        all cases if not assigned later with :func:`_orm.with_expression`.
+        E.g.::
+
+            from sqlalchemy.sql import literal
+
+            class C(Base):
+                #...
+                my_expr = query_expression(literal(1))
+
+        .. versionadded:: 1.3.18
+
+
+    .. versionadded:: 1.2
+
+    .. seealso::
+
+        :ref:`mapper_querytime_expression`
+
+    """
+    prop = ColumnProperty(default_expr)
+    prop.strategy_key = (("query_expression", True),)
+    return prop
+
+
 mapper = public_factory(Mapper, ".orm.mapper")
 
 synonym = public_factory(SynonymProperty, ".orm.synonym")
 
-comparable_property = public_factory(ComparableProperty,
-                                     ".orm.comparable_property")
+comparable_property = public_factory(
+    ComparableProperty, ".orm.comparable_property"
+)
 
 
-@_sa_util.deprecated("0.7", message=":func:`.compile_mappers` "
-                     "is renamed to :func:`.configure_mappers`")
+@_sa_util.deprecated(
+    "0.7",
+    message=":func:`.compile_mappers` is deprecated and will be removed "
+    "in a future release.  Please use :func:`.configure_mappers`",
+)
 def compile_mappers():
     """Initialize the inter-mapper relationships of all mappers that have
     been defined.
@@ -227,7 +251,6 @@ def clear_mappers():
     finally:
         mapperlib._CONFIGURE_MUTEX.release()
 
-from . import strategy_options
 
 joinedload = strategy_options.joinedload._unbound_fn
 joinedload_all = strategy_options.joinedload._unbound_all_fn
@@ -235,17 +258,19 @@ contains_eager = strategy_options.contains_eager._unbound_fn
 defer = strategy_options.defer._unbound_fn
 undefer = strategy_options.undefer._unbound_fn
 undefer_group = strategy_options.undefer_group._unbound_fn
+with_expression = strategy_options.with_expression._unbound_fn
 load_only = strategy_options.load_only._unbound_fn
 lazyload = strategy_options.lazyload._unbound_fn
 lazyload_all = strategy_options.lazyload_all._unbound_all_fn
 subqueryload = strategy_options.subqueryload._unbound_fn
 subqueryload_all = strategy_options.subqueryload_all._unbound_all_fn
+selectinload = strategy_options.selectinload._unbound_fn
+selectinload_all = strategy_options.selectinload_all._unbound_all_fn
 immediateload = strategy_options.immediateload._unbound_fn
 noload = strategy_options.noload._unbound_fn
 raiseload = strategy_options.raiseload._unbound_fn
 defaultload = strategy_options.defaultload._unbound_fn
-
-from .strategy_options import Load
+selectin_polymorphic = strategy_options.selectin_polymorphic._unbound_fn
 
 
 def eagerload(*args, **kwargs):
@@ -263,14 +288,20 @@ contains_alias = public_factory(AliasOption, ".orm.contains_alias")
 
 def __go(lcls):
     global __all__
-    from .. import util as sa_util
-    from . import dynamic
-    from . import events
+    from .. import util as sa_util  # noqa
+    from . import dynamic  # noqa
+    from . import events  # noqa
+    from . import loading  # noqa
     import inspect as _inspect
 
-    __all__ = sorted(name for name, obj in lcls.items()
-                     if not (name.startswith('_') or _inspect.ismodule(obj)))
+    __all__ = sorted(
+        name
+        for name, obj in lcls.items()
+        if not (name.startswith("_") or _inspect.ismodule(obj))
+    )
 
     _sa_util.dependencies.resolve_all("sqlalchemy.orm")
+    _sa_util.dependencies.resolve_all("sqlalchemy.ext")
+
 
 __go(locals())

@@ -1,5 +1,5 @@
 # ext/compiler.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -32,7 +32,7 @@ when the object is compiled to a string::
     from sqlalchemy import select
 
     s = select([MyColumn('x'), MyColumn('y')])
-    print str(s)
+    print(str(s))
 
 Produces::
 
@@ -85,12 +85,12 @@ method which can be used for compilation of embedded attributes::
     @compiles(InsertFromSelect)
     def visit_insert_from_select(element, compiler, **kw):
         return "INSERT INTO %s (%s)" % (
-            compiler.process(element.table, asfrom=True),
-            compiler.process(element.select)
+            compiler.process(element.table, asfrom=True, **kw),
+            compiler.process(element.select, **kw)
         )
 
     insert = InsertFromSelect(t1, select([t1]).where(t1.c.x>5))
-    print insert
+    print(insert)
 
 Produces::
 
@@ -101,7 +101,7 @@ Produces::
 
     The above ``InsertFromSelect`` construct is only an example, this actual
     functionality is already available using the
-    :meth:`.Insert.from_select` method.
+    :meth:`_expression.Insert.from_select` method.
 
 .. note::
 
@@ -119,10 +119,11 @@ below where we generate a CHECK constraint that embeds a SQL expression::
 
     @compiles(MyConstraint)
     def compile_my_constraint(constraint, ddlcompiler, **kw):
+        kw['literal_binds'] = True
         return "CONSTRAINT %s CHECK (%s)" % (
             constraint.name,
             ddlcompiler.sql_compiler.process(
-                constraint.expression, literal_binds=True)
+                constraint.expression, **kw)
         )
 
 Above, we add an additional flag to the process step as called by
@@ -139,7 +140,8 @@ supported.
 Enabling Autocommit on a Construct
 ==================================
 
-Recall from the section :ref:`autocommit` that the :class:`.Engine`, when
+Recall from the section :ref:`autocommit` that the :class:`_engine.Engine`,
+when
 asked to execute a construct in the absence of a user-defined transaction,
 detects if the given construct represents DML or DDL, that is, a data
 modification or data definition statement, which requires (or may require,
@@ -164,7 +166,7 @@ is a "frozen" dictionary which supplies a generative ``union()`` method)::
 
 More succinctly, if the construct is truly similar to an INSERT, UPDATE, or
 DELETE, :class:`.UpdateBase` can be used, which already is a subclass
-of :class:`.Executable`, :class:`.ClauseElement` and includes the
+of :class:`.Executable`, :class:`_expression.ClauseElement` and includes the
 ``autocommit`` flag::
 
     from sqlalchemy.sql.expression import UpdateBase
@@ -265,13 +267,13 @@ A synopsis is as follows:
 
       @compiles(coalesce)
       def compile(element, compiler, **kw):
-          return "coalesce(%s)" % compiler.process(element.clauses)
+          return "coalesce(%s)" % compiler.process(element.clauses, **kw)
 
       @compiles(coalesce, 'oracle')
       def compile(element, compiler, **kw):
           if len(element.clauses) > 2:
               raise TypeError("coalesce only supports two arguments on Oracle")
-          return "nvl(%s)" % compiler.process(element.clauses)
+          return "nvl(%s)" % compiler.process(element.clauses, **kw)
 
 * :class:`~sqlalchemy.schema.DDLElement` - The root of all DDL expressions,
   like CREATE TABLE, ALTER TABLE, etc. Compilation of ``DDLElement``
@@ -336,7 +338,7 @@ that is of the highest value - its equivalent to Python's ``max``
 function.  A SQL standard version versus a CASE based version which only
 accommodates two arguments::
 
-    from sqlalchemy.sql import expression
+    from sqlalchemy.sql import expression, case
     from sqlalchemy.ext.compiler import compiles
     from sqlalchemy.types import Numeric
 
@@ -353,12 +355,7 @@ accommodates two arguments::
     @compiles(greatest, 'oracle')
     def case_greatest(element, compiler, **kw):
         arg1, arg2 = list(element.clauses)
-        return "CASE WHEN %s > %s THEN %s ELSE %s END" % (
-            compiler.process(arg1),
-            compiler.process(arg2),
-            compiler.process(arg1),
-            compiler.process(arg2),
-        )
+        return compiler.process(case([(arg1 > arg2, arg1)], else_=arg2), **kw)
 
 Example usage::
 
@@ -402,54 +399,65 @@ Example usage::
 
 """
 from .. import exc
+from .. import util
 from ..sql import visitors
 
 
 def compiles(class_, *specs):
     """Register a function as a compiler for a
-    given :class:`.ClauseElement` type."""
+    given :class:`_expression.ClauseElement` type."""
 
     def decorate(fn):
         # get an existing @compiles handler
-        existing = class_.__dict__.get('_compiler_dispatcher', None)
+        existing = class_.__dict__.get("_compiler_dispatcher", None)
 
         # get the original handler.  All ClauseElement classes have one
         # of these, but some TypeEngine classes will not.
-        existing_dispatch = getattr(class_, '_compiler_dispatch', None)
+        existing_dispatch = getattr(class_, "_compiler_dispatch", None)
 
         if not existing:
             existing = _dispatcher()
 
             if existing_dispatch:
+
                 def _wrap_existing_dispatch(element, compiler, **kw):
                     try:
                         return existing_dispatch(element, compiler, **kw)
-                    except exc.UnsupportedCompilationError:
-                        raise exc.CompileError(
-                            "%s construct has no default "
-                            "compilation handler." % type(element))
-                existing.specs['default'] = _wrap_existing_dispatch
+                    except exc.UnsupportedCompilationError as uce:
+                        util.raise_(
+                            exc.CompileError(
+                                "%s construct has no default "
+                                "compilation handler." % type(element)
+                            ),
+                            from_=uce,
+                        )
+
+                existing.specs["default"] = _wrap_existing_dispatch
 
             # TODO: why is the lambda needed ?
-            setattr(class_, '_compiler_dispatch',
-                    lambda *arg, **kw: existing(*arg, **kw))
-            setattr(class_, '_compiler_dispatcher', existing)
+            setattr(
+                class_,
+                "_compiler_dispatch",
+                lambda *arg, **kw: existing(*arg, **kw),
+            )
+            setattr(class_, "_compiler_dispatcher", existing)
 
         if specs:
             for s in specs:
                 existing.specs[s] = fn
 
         else:
-            existing.specs['default'] = fn
+            existing.specs["default"] = fn
         return fn
+
     return decorate
 
 
 def deregister(class_):
     """Remove all custom compilers associated with a given
-    :class:`.ClauseElement` type."""
+    :class:`_expression.ClauseElement` type."""
 
-    if hasattr(class_, '_compiler_dispatcher'):
+    if hasattr(class_, "_compiler_dispatcher"):
         # regenerate default _compiler_dispatch
         visitors._generate_dispatch(class_)
         # remove custom directive
@@ -465,10 +473,14 @@ class _dispatcher(object):
         fn = self.specs.get(compiler.dialect.name, None)
         if not fn:
             try:
-                fn = self.specs['default']
-            except KeyError:
-                raise exc.CompileError(
-                    "%s construct has no default "
-                    "compilation handler." % type(element))
+                fn = self.specs["default"]
+            except KeyError as ke:
+                util.raise_(
+                    exc.CompileError(
+                        "%s construct has no default "
+                        "compilation handler." % type(element)
+                    ),
+                    replace_context=ke,
+                )
 
         return fn(element, compiler, **kw)

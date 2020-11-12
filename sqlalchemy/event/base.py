@@ -1,5 +1,5 @@
 # event/base.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -19,15 +19,17 @@ from __future__ import absolute_import
 
 import weakref
 
+from .attr import _ClsLevelDispatch
+from .attr import _EmptyListener
+from .attr import _JoinedListener
 from .. import util
-from .attr import _JoinedListener, \
-    _EmptyListener, _ClsLevelDispatch
+
 
 _registrars = util.defaultdict(list)
 
 
 def _is_event_name(name):
-    return not name.startswith('_') and name != 'dispatch'
+    return not name.startswith("_") and name != "dispatch"
 
 
 class _UnpickleDispatch(object):
@@ -38,9 +40,10 @@ class _UnpickleDispatch(object):
 
     def __call__(self, _instance_cls):
         for cls in _instance_cls.__mro__:
-            if 'dispatch' in cls.__dict__:
-                return cls.__dict__['dispatch'].\
-                    dispatch_cls._for_class(_instance_cls)
+            if "dispatch" in cls.__dict__:
+                return cls.__dict__["dispatch"].dispatch._for_class(
+                    _instance_cls
+                )
         else:
             raise AttributeError("No class with a 'dispatch' member present.")
 
@@ -65,30 +68,32 @@ class _Dispatch(object):
 
     """
 
-    # in one ORM edge case, an attribute is added to _Dispatch,
+    # In one ORM edge case, an attribute is added to _Dispatch,
     # so __dict__ is used in just that case and potentially others.
-    __slots__ = '_parent', '_instance_cls', '__dict__', '_empty_listeners'
+    __slots__ = "_parent", "_instance_cls", "__dict__", "_empty_listeners"
 
     _empty_listener_reg = weakref.WeakKeyDictionary()
 
     def __init__(self, parent, instance_cls=None):
         self._parent = parent
         self._instance_cls = instance_cls
+
         if instance_cls:
             try:
                 self._empty_listeners = self._empty_listener_reg[instance_cls]
             except KeyError:
-                self._empty_listeners = \
-                    self._empty_listener_reg[instance_cls] = dict(
-                        (ls.name, _EmptyListener(ls, instance_cls))
-                        for ls in parent._event_descriptors
-                    )
+                self._empty_listeners = self._empty_listener_reg[
+                    instance_cls
+                ] = {
+                    ls.name: _EmptyListener(ls, instance_cls)
+                    for ls in parent._event_descriptors
+                }
         else:
             self._empty_listeners = {}
 
     def __getattr__(self, name):
-        # assign EmptyListeners as attributes on demand
-        # to reduce startup time for new dispatch objects
+        # Assign EmptyListeners as attributes on demand
+        # to reduce startup time for new dispatch objects.
         try:
             ls = self._empty_listeners[name]
         except KeyError:
@@ -100,7 +105,13 @@ class _Dispatch(object):
     @property
     def _event_descriptors(self):
         for k in self._event_names:
+            # Yield _ClsLevelDispatch related
+            # to relevant event name.
             yield getattr(self, k)
+
+    @property
+    def _listen(self):
+        return self._events._listen
 
     def _for_class(self, instance_cls):
         return self.__class__(self, instance_cls)
@@ -109,10 +120,6 @@ class _Dispatch(object):
         instance_cls = instance.__class__
         return self._for_class(instance_cls)
 
-    @property
-    def _listen(self):
-        return self._events._listen
-
     def _join(self, other):
         """Create a 'join' of this :class:`._Dispatch` and another.
 
@@ -120,26 +127,28 @@ class _Dispatch(object):
         :class:`._Dispatch` objects.
 
         """
-        if '_joined_dispatch_cls' not in self.__class__.__dict__:
+        if "_joined_dispatch_cls" not in self.__class__.__dict__:
             cls = type(
                 "Joined%s" % self.__class__.__name__,
-                (_JoinedDispatcher, ), {'__slots__': self._event_names}
+                (_JoinedDispatcher,),
+                {"__slots__": self._event_names},
             )
 
             self.__class__._joined_dispatch_cls = cls
         return self._joined_dispatch_cls(self, other)
 
     def __reduce__(self):
-        return _UnpickleDispatch(), (self._instance_cls, )
+        return _UnpickleDispatch(), (self._instance_cls,)
 
     def _update(self, other, only_propagate=True):
         """Populate from the listeners in another :class:`_Dispatch`
-            object."""
+        object."""
         for ls in other._event_descriptors:
             if isinstance(ls, _EmptyListener):
                 continue
-            getattr(self, ls.name).\
-                for_modify(self)._update(ls, only_propagate=only_propagate)
+            getattr(self, ls.name).for_modify(self)._update(
+                ls, only_propagate=only_propagate
+            )
 
     def _clear(self):
         for ls in self._event_descriptors:
@@ -152,7 +161,7 @@ class _EventMeta(type):
 
     def __init__(cls, classname, bases, dict_):
         _create_dispatcher_class(cls, classname, bases, dict_)
-        return type.__init__(cls, classname, bases, dict_)
+        type.__init__(cls, classname, bases, dict_)
 
 
 def _create_dispatcher_class(cls, classname, bases, dict_):
@@ -162,14 +171,15 @@ def _create_dispatcher_class(cls, classname, bases, dict_):
     # there's all kinds of ways to do this,
     # i.e. make a Dispatch class that shares the '_listen' method
     # of the Event class, this is the straight monkeypatch.
-    if hasattr(cls, 'dispatch'):
+    if hasattr(cls, "dispatch"):
         dispatch_base = cls.dispatch.__class__
     else:
         dispatch_base = _Dispatch
 
     event_names = [k for k in dict_ if _is_event_name(k)]
-    dispatch_cls = type("%sDispatch" % classname,
-                        (dispatch_base, ), {'__slots__': event_names})
+    dispatch_cls = type(
+        "%sDispatch" % classname, (dispatch_base,), {"__slots__": event_names}
+    )
 
     dispatch_cls._event_names = event_names
 
@@ -184,7 +194,7 @@ def _create_dispatcher_class(cls, classname, bases, dict_):
                 setattr(dispatch_inst, ls.name, ls)
                 dispatch_cls._event_names.append(ls.name)
 
-    if getattr(cls, '_dispatch_target', None):
+    if getattr(cls, "_dispatch_target", None):
         cls._dispatch_target.dispatch = dispatcher(cls)
 
 
@@ -200,10 +210,10 @@ class Events(util.with_metaclass(_EventMeta, object)):
 
     @staticmethod
     def _set_dispatch(cls, dispatch_cls):
-        # this allows an Events subclass to define additional utility
+        # This allows an Events subclass to define additional utility
         # methods made available to the target via
         # "self.dispatch._events.<utilitymethod>"
-        # @staticemethod to allow easy "super" calls while in a metaclass
+        # @staticmethod to allow easy "super" calls while in a metaclass
         # constructor.
         cls.dispatch = dispatch_cls(None)
         dispatch_cls._events = cls
@@ -211,28 +221,24 @@ class Events(util.with_metaclass(_EventMeta, object)):
 
     @classmethod
     def _accept_with(cls, target):
+        def dispatch_is(*types):
+            return all(isinstance(target.dispatch, t) for t in types)
+
+        def dispatch_parent_is(t):
+            return isinstance(target.dispatch.parent, t)
+
         # Mapper, ClassManager, Session override this to
         # also accept classes, scoped_sessions, sessionmakers, etc.
-        if hasattr(target, 'dispatch') and (
-
-                isinstance(target.dispatch, cls.dispatch.__class__) or
-
-
-                (
-                    isinstance(target.dispatch, type) and
-                    isinstance(target.dispatch, cls.dispatch.__class__)
-                ) or
-
-                (
-                    isinstance(target.dispatch, _JoinedDispatcher) and
-                    isinstance(target.dispatch.parent, cls.dispatch.__class__)
+        if hasattr(target, "dispatch"):
+            if (
+                dispatch_is(cls.dispatch.__class__)
+                or dispatch_is(type, cls.dispatch.__class__)
+                or (
+                    dispatch_is(_JoinedDispatcher)
+                    and dispatch_parent_is(cls.dispatch.__class__)
                 )
-
-
-        ):
-            return target
-        else:
-            return None
+            ):
+                return target
 
     @classmethod
     def _listen(cls, event_key, propagate=False, insert=False, named=False):
@@ -250,7 +256,7 @@ class Events(util.with_metaclass(_EventMeta, object)):
 class _JoinedDispatcher(object):
     """Represent a connection between two _Dispatch objects."""
 
-    __slots__ = 'local', 'parent', '_instance_cls'
+    __slots__ = "local", "parent", "_instance_cls"
 
     def __init__(self, local, parent):
         self.local = local
@@ -258,8 +264,8 @@ class _JoinedDispatcher(object):
         self._instance_cls = self.local._instance_cls
 
     def __getattr__(self, name):
-        # assign _JoinedListeners as attributes on demand
-        # to reduce startup time for new dispatch objects
+        # Assign _JoinedListeners as attributes on demand
+        # to reduce startup time for new dispatch objects.
         ls = getattr(self.local, name)
         jl = _JoinedListener(self.parent, ls.name, ls)
         setattr(self, ls.name, jl)
@@ -268,6 +274,10 @@ class _JoinedDispatcher(object):
     @property
     def _listen(self):
         return self.parent._listen
+
+    @property
+    def _events(self):
+        return self.parent._events
 
 
 class dispatcher(object):
@@ -279,11 +289,11 @@ class dispatcher(object):
     """
 
     def __init__(self, events):
-        self.dispatch_cls = events.dispatch
+        self.dispatch = events.dispatch
         self.events = events
 
     def __get__(self, obj, cls):
         if obj is None:
-            return self.dispatch_cls
-        obj.__dict__['dispatch'] = disp = self.dispatch_cls._for_instance(obj)
+            return self.dispatch
+        obj.__dict__["dispatch"] = disp = self.dispatch._for_instance(obj)
         return disp

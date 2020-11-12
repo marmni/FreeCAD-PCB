@@ -1,5 +1,5 @@
 # mysql/json.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -7,21 +7,17 @@
 
 from __future__ import absolute_import
 
-import json
-
-from ...sql import elements
 from ... import types as sqltypes
-from ... import util
 
 
 class JSON(sqltypes.JSON):
     """MySQL JSON type.
 
-    MySQL supports JSON as of version 5.7.  Note that MariaDB does **not**
-    support JSON at the time of this writing.
+    MySQL supports JSON as of version 5.7.
+    MariaDB supports JSON (as an alias for LONGTEXT) as of version 10.2.
 
     The :class:`.mysql.JSON` type supports persistence of JSON values
-    as well as the core index operations provided by :class:`.types.JSON`
+    as well as the core index operations provided by :class:`_types.JSON`
     datatype, by adapting the operations to render the ``JSON_EXTRACT``
     function at the database level.
 
@@ -60,7 +56,6 @@ class _FormatTypeMixin(object):
 
 
 class JSONIndexType(_FormatTypeMixin, sqltypes.JSON.JSONIndexType):
-
     def _format_value(self, value):
         if isinstance(value, int):
             value = "$[%s]" % value
@@ -72,8 +67,10 @@ class JSONIndexType(_FormatTypeMixin, sqltypes.JSON.JSONIndexType):
 class JSONPathType(_FormatTypeMixin, sqltypes.JSON.JSONPathType):
     def _format_value(self, value):
         return "$%s" % (
-            "".join([
-                "[%s]" % elem if isinstance(elem, int)
-                else '."%s"' % elem for elem in value
-            ])
+            "".join(
+                [
+                    "[%s]" % elem if isinstance(elem, int) else '."%s"' % elem
+                    for elem in value
+                ]
+            )
         )

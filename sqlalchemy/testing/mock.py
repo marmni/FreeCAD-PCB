@@ -1,5 +1,5 @@
 # testing/mock.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -8,14 +8,25 @@
 """Import stub for mock library.
 """
 from __future__ import absolute_import
+
 from ..util import py33
 
+
 if py33:
-    from unittest.mock import MagicMock, Mock, call, patch, ANY
+    from unittest.mock import MagicMock
+    from unittest.mock import Mock
+    from unittest.mock import call
+    from unittest.mock import patch
+    from unittest.mock import ANY
 else:
     try:
-        from mock import MagicMock, Mock, call, patch, ANY
+        from mock import MagicMock  # noqa
+        from mock import Mock  # noqa
+        from mock import call  # noqa
+        from mock import patch  # noqa
+        from mock import ANY  # noqa
     except ImportError:
         raise ImportError(
             "SQLAlchemy's test suite requires the "
-            "'mock' library as of 0.8.2.")
+            "'mock' library as of 0.8.2."
+        )
