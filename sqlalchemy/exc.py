@@ -1,5 +1,5 @@
 # sqlalchemy/exc.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -13,9 +13,85 @@ raised as a result of DBAPI exceptions are all subclasses of
 
 """
 
+from .util import _preloaded
+from .util import compat
+
+_version_token = None
+
 
 class SQLAlchemyError(Exception):
     """Generic error class."""
+
+    code = None
+
+    def __init__(self, *arg, **kw):
+        code = kw.pop("code", None)
+        if code is not None:
+            self.code = code
+        super(SQLAlchemyError, self).__init__(*arg, **kw)
+
+    def _code_str(self):
+        if not self.code:
+            return ""
+        else:
+            return (
+                "(Background on this error at: "
+                "http://sqlalche.me/e/%s/%s)"
+                % (
+                    _version_token,
+                    self.code,
+                )
+            )
+
+    def _message(self, as_unicode=compat.py3k):
+        # rules:
+        #
+        # 1. under py2k, for __str__ return single string arg as it was
+        # given without converting to unicode.  for __unicode__
+        # do a conversion but check that it's not unicode already just in
+        # case
+        #
+        # 2. under py3k, single arg string will usually be a unicode
+        # object, but since __str__() must return unicode, check for
+        # bytestring just in case
+        #
+        # 3. for multiple self.args, this is not a case in current
+        # SQLAlchemy though this is happening in at least one known external
+        # library, call str() which does a repr().
+        #
+        if len(self.args) == 1:
+            text = self.args[0]
+
+            if as_unicode and isinstance(text, compat.binary_types):
+                text = compat.decode_backslashreplace(text, "utf-8")
+            # This is for when the argument is not a string of any sort.
+            # Otherwise, converting this exception to string would fail for
+            # non-string arguments.
+            elif compat.py3k or not as_unicode:
+                text = str(text)
+            else:
+                text = compat.text_type(text)
+
+            return text
+        else:
+            # this is not a normal case within SQLAlchemy but is here for
+            # compatibility with Exception.args - the str() comes out as
+            # a repr() of the tuple
+            return str(self.args)
+
+    def _sql_message(self, as_unicode):
+        message = self._message(as_unicode)
+
+        if self.code:
+            message = "%s %s" % (message, self._code_str())
+
+        return message
+
+    def __str__(self):
+        return self._sql_message(compat.py3k)
+
+    def __unicode__(self):
+        return self._sql_message(as_unicode=True)
 
 
 class ArgumentError(SQLAlchemyError):
@@ -66,24 +142,25 @@ class CircularDependencyError(SQLAlchemyError):
       or pre-deassociate one of the foreign key constrained values.
       The ``post_update`` flag described at :ref:`post_update` can resolve
       this cycle.
-    * In a :attr:`.MetaData.sorted_tables` operation, two :class:`.ForeignKey`
-      or :class:`.ForeignKeyConstraint` objects mutually refer to each
+    * In a :attr:`_schema.MetaData.sorted_tables` operation, two
+      :class:`_schema.ForeignKey`
+      or :class:`_schema.ForeignKeyConstraint` objects mutually refer to each
       other.  Apply the ``use_alter=True`` flag to one or both,
       see :ref:`use_alter`.
 
     """
-    def __init__(self, message, cycles, edges, msg=None):
+
+    def __init__(self, message, cycles, edges, msg=None, code=None):
         if msg is None:
             message += " (%s)" % ", ".join(repr(s) for s in cycles)
         else:
             message = msg
-        SQLAlchemyError.__init__(self, message)
+        SQLAlchemyError.__init__(self, message, code=code)
         self.cycles = cycles
         self.edges = edges
 
     def __reduce__(self):
-        return self.__class__, (None, self.cycles,
-                                self.edges, self.args[0])
+        return self.__class__, (None, self.cycles, self.edges, self.args[0])
 
 
 class CompileError(SQLAlchemyError):
@@ -93,15 +170,20 @@ class CompileError(SQLAlchemyError):
 class UnsupportedCompilationError(CompileError):
     """Raised when an operation is not supported by the given compiler.
 
+    .. seealso::
 
-    .. versionadded:: 0.8.3
+        :ref:`faq_sql_expression_string`
 
+        :ref:`error_l7de`
     """
+
+    code = "l7de"
 
     def __init__(self, compiler, element_type):
         super(UnsupportedCompilationError, self).__init__(
-            "Compiler %r can't render element of type %s" %
-            (compiler, element_type))
+            "Compiler %r can't render element of type %s"
+            % (compiler, element_type)
+        )
 
 
 class IdentifierError(SQLAlchemyError):
@@ -112,15 +194,36 @@ class DisconnectionError(SQLAlchemyError):
     """A disconnect is detected on a raw DB-API connection.
 
     This error is raised and consumed internally by a connection pool.  It can
-    be raised by the :meth:`.PoolEvents.checkout` event so that the host pool
+    be raised by the :meth:`_events.PoolEvents.checkout`
+    event so that the host pool
     forces a retry; the exception will be caught three times in a row before
     the pool gives up and raises :class:`~sqlalchemy.exc.InvalidRequestError`
     regarding the connection attempt.
 
     """
 
+    invalidate_pool = False
 
-class TimeoutError(SQLAlchemyError):
+
+class InvalidatePoolError(DisconnectionError):
+    """Raised when the connection pool should invalidate all stale connections.
+
+    A subclass of :class:`_exc.DisconnectionError` that indicates that the
+    disconnect situation encountered on the connection probably means the
+    entire pool should be invalidated, as the database has been restarted.
+
+    This exception will be handled otherwise the same way as
+    :class:`_exc.DisconnectionError`, allowing three attempts to reconnect
+    before giving up.
+
+    .. versionadded:: 1.2
+
+    """
+
+    invalidate_pool = True
+
+
+class TimeoutError(SQLAlchemyError):  # noqa
     """Raised when a connection pool times out on getting a connection."""
 
 
@@ -155,6 +258,7 @@ class NoReferencedTableError(NoReferenceError):
     located.
 
     """
+
     def __init__(self, message, tname):
         NoReferenceError.__init__(self, message)
         self.table_name = tname
@@ -168,18 +272,29 @@ class NoReferencedColumnError(NoReferenceError):
     located.
 
     """
+
     def __init__(self, message, tname, cname):
         NoReferenceError.__init__(self, message)
         self.table_name = tname
         self.column_name = cname
 
     def __reduce__(self):
-        return self.__class__, (self.args[0], self.table_name,
-                                self.column_name)
+        return (
+            self.__class__,
+            (self.args[0], self.table_name, self.column_name),
+        )
 
 
 class NoSuchTableError(InvalidRequestError):
     """Table does not exist or is not visible to a connection."""
+
+
+class UnreflectableTableError(InvalidRequestError):
+    """Table exists but can't be reflected for some reason.
+
+    .. versionadded:: 1.2
+
+    """
 
 
 class UnboundExecutionError(InvalidRequestError):
@@ -207,6 +322,7 @@ class DontWrapMixin(object):
 
     """
 
+
 # Moved to orm.exc; compatibility definition installed by orm import until 0.6
 UnmappedColumnError = None
 
@@ -233,35 +349,68 @@ class StatementError(SQLAlchemyError):
     orig = None
     """The DBAPI exception object."""
 
-    def __init__(self, message, statement, params, orig):
-        SQLAlchemyError.__init__(self, message)
+    ismulti = None
+
+    def __init__(
+        self,
+        message,
+        statement,
+        params,
+        orig,
+        hide_parameters=False,
+        code=None,
+        ismulti=None,
+    ):
+        SQLAlchemyError.__init__(self, message, code=code)
         self.statement = statement
         self.params = params
         self.orig = orig
+        self.ismulti = ismulti
+        self.hide_parameters = hide_parameters
         self.detail = []
 
     def add_detail(self, msg):
         self.detail.append(msg)
 
     def __reduce__(self):
-        return self.__class__, (self.args[0], self.statement,
-                                self.params, self.orig)
+        return (
+            self.__class__,
+            (
+                self.args[0],
+                self.statement,
+                self.params,
+                self.orig,
+                self.hide_parameters,
+                self.ismulti,
+            ),
+        )
 
-    def __str__(self):
-        from sqlalchemy.sql import util
+    @_preloaded.dependencies("sqlalchemy.sql.util")
+    def _sql_message(self, util, as_unicode):
 
-        details = [SQLAlchemyError.__str__(self)]
+        details = [self._message(as_unicode=as_unicode)]
         if self.statement:
-            details.append("[SQL: %r]" % self.statement)
+            if not as_unicode and not compat.py3k:
+                stmt_detail = "[SQL: %s]" % compat.safe_bytestring(
+                    self.statement
+                )
+            else:
+                stmt_detail = "[SQL: %s]" % self.statement
+            details.append(stmt_detail)
             if self.params:
-                params_repr = util._repr_params(self.params, 10)
-                details.append("[parameters: %r]" % params_repr)
-        return ' '.join([
-            "(%s)" % det for det in self.detail
-        ] + details)
-
-    def __unicode__(self):
-        return self.__str__()
+                if self.hide_parameters:
+                    details.append(
+                        "[SQL parameters hidden due to hide_parameters=True]"
+                    )
+                else:
+                    params_repr = util._repr_params(
+                        self.params, 10, ismulti=self.ismulti
+                    )
+                    details.append("[parameters: %r]" % params_repr)
+        code_str = self._code_str()
+        if code_str:
+            details.append(code_str)
+        return "\n".join(["(%s)" % det for det in self.detail] + details)
 
 
 class DBAPIError(StatementError):
@@ -287,27 +436,58 @@ class DBAPIError(StatementError):
 
     """
 
+    code = "dbapi"
+
     @classmethod
-    def instance(cls, statement, params,
-                 orig, dbapi_base_err,
-                 connection_invalidated=False,
-                 dialect=None):
+    def instance(
+        cls,
+        statement,
+        params,
+        orig,
+        dbapi_base_err,
+        hide_parameters=False,
+        connection_invalidated=False,
+        dialect=None,
+        ismulti=None,
+    ):
         # Don't ever wrap these, just return them directly as if
         # DBAPIError didn't exist.
-        if (isinstance(orig, BaseException) and
-                not isinstance(orig, Exception)) or \
-                isinstance(orig, DontWrapMixin):
+        if (
+            isinstance(orig, BaseException) and not isinstance(orig, Exception)
+        ) or isinstance(orig, DontWrapMixin):
             return orig
 
         if orig is not None:
             # not a DBAPI error, statement is present.
             # raise a StatementError
-            if not isinstance(orig, dbapi_base_err) and statement:
+            if isinstance(orig, SQLAlchemyError) and statement:
                 return StatementError(
-                    "(%s.%s) %s" %
-                    (orig.__class__.__module__, orig.__class__.__name__,
-                     orig),
-                    statement, params, orig
+                    "(%s.%s) %s"
+                    % (
+                        orig.__class__.__module__,
+                        orig.__class__.__name__,
+                        orig.args[0],
+                    ),
+                    statement,
+                    params,
+                    orig,
+                    hide_parameters=hide_parameters,
+                    code=orig.code,
+                    ismulti=ismulti,
+                )
+            elif not isinstance(orig, dbapi_base_err) and statement:
+                return StatementError(
+                    "(%s.%s) %s"
+                    % (
+                        orig.__class__.__module__,
+                        orig.__class__.__name__,
+                        orig,
+                    ),
+                    statement,
+                    params,
+                    orig,
+                    hide_parameters=hide_parameters,
+                    ismulti=ismulti,
                 )
 
             glob = globals()
@@ -315,29 +495,59 @@ class DBAPIError(StatementError):
                 name = super_.__name__
                 if dialect:
                     name = dialect.dbapi_exception_translation_map.get(
-                        name, name)
+                        name, name
+                    )
                 if name in glob and issubclass(glob[name], DBAPIError):
                     cls = glob[name]
                     break
 
-        return cls(statement, params, orig, connection_invalidated)
+        return cls(
+            statement,
+            params,
+            orig,
+            connection_invalidated=connection_invalidated,
+            hide_parameters=hide_parameters,
+            code=cls.code,
+            ismulti=ismulti,
+        )
 
     def __reduce__(self):
-        return self.__class__, (self.statement, self.params,
-                                self.orig, self.connection_invalidated)
+        return (
+            self.__class__,
+            (
+                self.statement,
+                self.params,
+                self.orig,
+                self.hide_parameters,
+                self.connection_invalidated,
+                self.ismulti,
+            ),
+        )
 
-    def __init__(self, statement, params, orig, connection_invalidated=False):
+    def __init__(
+        self,
+        statement,
+        params,
+        orig,
+        hide_parameters=False,
+        connection_invalidated=False,
+        code=None,
+        ismulti=None,
+    ):
         try:
             text = str(orig)
         except Exception as e:
-            text = 'Error in str() of DB-API-generated exception: ' + str(e)
+            text = "Error in str() of DB-API-generated exception: " + str(e)
         StatementError.__init__(
             self,
-            '(%s.%s) %s' % (
-                orig.__class__.__module__, orig.__class__.__name__, text, ),
+            "(%s.%s) %s"
+            % (orig.__class__.__module__, orig.__class__.__name__, text),
             statement,
             params,
-            orig
+            orig,
+            hide_parameters,
+            code=code,
+            ismulti=ismulti,
         )
         self.connection_invalidated = connection_invalidated
 
@@ -345,36 +555,53 @@ class DBAPIError(StatementError):
 class InterfaceError(DBAPIError):
     """Wraps a DB-API InterfaceError."""
 
+    code = "rvf5"
+
 
 class DatabaseError(DBAPIError):
     """Wraps a DB-API DatabaseError."""
+
+    code = "4xp6"
 
 
 class DataError(DatabaseError):
     """Wraps a DB-API DataError."""
 
+    code = "9h9h"
+
 
 class OperationalError(DatabaseError):
     """Wraps a DB-API OperationalError."""
+
+    code = "e3q8"
 
 
 class IntegrityError(DatabaseError):
     """Wraps a DB-API IntegrityError."""
 
+    code = "gkpj"
+
 
 class InternalError(DatabaseError):
     """Wraps a DB-API InternalError."""
+
+    code = "2j85"
 
 
 class ProgrammingError(DatabaseError):
     """Wraps a DB-API ProgrammingError."""
 
+    code = "f405"
+
 
 class NotSupportedError(DatabaseError):
     """Wraps a DB-API NotSupportedError."""
 
+    code = "tw8g"
+
 
 # Warnings
+
 
 class SADeprecationWarning(DeprecationWarning):
     """Issued once per usage of a deprecated API."""

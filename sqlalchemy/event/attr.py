@@ -1,5 +1,5 @@
 # event/attr.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -29,41 +29,68 @@ as well as support for subclass propagation (e.g. events assigned to
 
 """
 
-from __future__ import absolute_import, with_statement
+from __future__ import absolute_import
+from __future__ import with_statement
 
-from .. import util
-from ..util import threading
-from . import registry
-from . import legacy
+import collections
 from itertools import chain
 import weakref
-import collections
+
+from . import legacy
+from . import registry
+from .. import exc
+from .. import util
+from ..util import threading
 
 
 class RefCollection(util.MemoizedSlots):
-    __slots__ = 'ref',
+    __slots__ = ("ref",)
 
     def _memoized_attr_ref(self):
         return weakref.ref(self, registry._collection_gced)
 
 
+class _empty_collection(object):
+    def append(self, element):
+        pass
+
+    def extend(self, other):
+        pass
+
+    def remove(self, element):
+        pass
+
+    def __iter__(self):
+        return iter([])
+
+    def clear(self):
+        pass
+
+
 class _ClsLevelDispatch(RefCollection):
     """Class-level events on :class:`._Dispatch` classes."""
 
-    __slots__ = ('name', 'arg_names', 'has_kw',
-                 'legacy_signatures', '_clslevel', '__weakref__')
+    __slots__ = (
+        "name",
+        "arg_names",
+        "has_kw",
+        "legacy_signatures",
+        "_clslevel",
+        "__weakref__",
+    )
 
     def __init__(self, parent_dispatch_cls, fn):
         self.name = fn.__name__
-        argspec = util.inspect_getargspec(fn)
+        argspec = util.inspect_getfullargspec(fn)
         self.arg_names = argspec.args[1:]
-        self.has_kw = bool(argspec.keywords)
-        self.legacy_signatures = list(reversed(
-            sorted(
-                getattr(fn, '_legacy_signatures', []),
-                key=lambda s: s[0]
+        self.has_kw = bool(argspec.varkw)
+        self.legacy_signatures = list(
+            reversed(
+                sorted(
+                    getattr(fn, "_legacy_signatures", []), key=lambda s: s[0]
+                )
             )
-        ))
+        )
         fn.__doc__ = legacy._augment_fn_docs(self, parent_dispatch_cls, fn)
 
         self._clslevel = weakref.WeakKeyDictionary()
@@ -85,12 +112,18 @@ class _ClsLevelDispatch(RefCollection):
             argdict = dict(zip(self.arg_names, args))
             argdict.update(kw)
             return fn(**argdict)
+
         return wrap_kw
 
     def insert(self, event_key, propagate):
         target = event_key.dispatch_target
-        assert isinstance(target, type), \
-            "Class-level Event targets must be classes."
+        assert isinstance(
+            target, type
+        ), "Class-level Event targets must be classes."
+        if not getattr(target, "_sa_propagate_class_events", True):
+            raise exc.InvalidRequestError(
+                "Can't assign an event directly to the %s class" % target
+            )
         stack = [target]
         while stack:
             cls = stack.pop(0)
@@ -99,15 +132,19 @@ class _ClsLevelDispatch(RefCollection):
                 self.update_subclass(cls)
             else:
                 if cls not in self._clslevel:
-                    self._clslevel[cls] = collections.deque()
+                    self._assign_cls_collection(cls)
                 self._clslevel[cls].appendleft(event_key._listen_fn)
         registry._stored_in_collection(event_key, self)
 
     def append(self, event_key, propagate):
         target = event_key.dispatch_target
-        assert isinstance(target, type), \
-            "Class-level Event targets must be classes."
-
+        assert isinstance(
+            target, type
+        ), "Class-level Event targets must be classes."
+        if not getattr(target, "_sa_propagate_class_events", True):
+            raise exc.InvalidRequestError(
+                "Can't assign an event directly to the %s class" % target
+            )
         stack = [target]
         while stack:
             cls = stack.pop(0)
@@ -116,21 +153,25 @@ class _ClsLevelDispatch(RefCollection):
                 self.update_subclass(cls)
             else:
                 if cls not in self._clslevel:
-                    self._clslevel[cls] = collections.deque()
+                    self._assign_cls_collection(cls)
                 self._clslevel[cls].append(event_key._listen_fn)
         registry._stored_in_collection(event_key, self)
 
+    def _assign_cls_collection(self, target):
+        if getattr(target, "_sa_propagate_class_events", True):
+            self._clslevel[target] = collections.deque()
+        else:
+            self._clslevel[target] = _empty_collection()
+
     def update_subclass(self, target):
         if target not in self._clslevel:
-            self._clslevel[target] = collections.deque()
+            self._assign_cls_collection(target)
         clslevel = self._clslevel[target]
         for cls in target.__mro__[1:]:
             if cls in self._clslevel:
-                clslevel.extend([
-                    fn for fn
-                    in self._clslevel[cls]
-                    if fn not in clslevel
-                ])
+                clslevel.extend(
+                    [fn for fn in self._clslevel[cls] if fn not in clslevel]
+                )
 
     def remove(self, event_key):
         target = event_key.dispatch_target
@@ -181,7 +222,7 @@ class _EmptyListener(_InstanceLevelDispatch):
     propagate = frozenset()
     listeners = ()
 
-    __slots__ = 'parent', 'parent_listeners', 'name'
+    __slots__ = "parent", "parent_listeners", "name"
 
     def __init__(self, parent, target_cls):
         if target_cls not in parent._clslevel:
@@ -209,7 +250,9 @@ class _EmptyListener(_InstanceLevelDispatch):
     def _needs_modify(self, *args, **kw):
         raise NotImplementedError("need to call for_modify()")
 
-    exec_once = insert = append = remove = clear = _needs_modify
+    exec_once = (
+        exec_once_unless_exception
+    ) = insert = append = remove = clear = _needs_modify
 
     def __call__(self, *args, **kw):
         """Execute this event."""
@@ -230,22 +273,45 @@ class _EmptyListener(_InstanceLevelDispatch):
 
 
 class _CompoundListener(_InstanceLevelDispatch):
-    __slots__ = '_exec_once_mutex', '_exec_once'
+    __slots__ = "_exec_once_mutex", "_exec_once"
 
     def _memoized_attr__exec_once_mutex(self):
         return threading.Lock()
+
+    def _exec_once_impl(self, retry_on_exception, *args, **kw):
+        with self._exec_once_mutex:
+            if not self._exec_once:
+                try:
+                    self(*args, **kw)
+                    exception = False
+                except:
+                    exception = True
+                    raise
+                finally:
+                    if not exception or not retry_on_exception:
+                        self._exec_once = True
 
     def exec_once(self, *args, **kw):
         """Execute this event, but only if it has not been
         executed already for this collection."""
 
         if not self._exec_once:
-            with self._exec_once_mutex:
-                if not self._exec_once:
-                    try:
-                        self(*args, **kw)
-                    finally:
-                        self._exec_once = True
+            self._exec_once_impl(False, *args, **kw)
+
+    def exec_once_unless_exception(self, *args, **kw):
+        """Execute this event, but only if it has not been
+        executed already for this collection, or was called
+        by a previous exec_once_unless_exception call and
+        raised an exception.
+
+        If exec_once was already called, then this method will never run
+        the callable regardless of whether it raised or not.
+
+        .. versionadded:: 1.3.8
+
+        """
+        if not self._exec_once:
+            self._exec_once_impl(True, *args, **kw)
 
     def __call__(self, *args, **kw):
         """Execute this event."""
@@ -278,8 +344,13 @@ class _ListenerCollection(_CompoundListener):
     """
 
     __slots__ = (
-        'parent_listeners', 'parent', 'name', 'listeners',
-        'propagate', '__weakref__')
+        "parent_listeners",
+        "parent",
+        "name",
+        "listeners",
+        "propagate",
+        "__weakref__",
+    )
 
     def __init__(self, parent, target_cls):
         if target_cls not in parent._clslevel:
@@ -302,16 +373,18 @@ class _ListenerCollection(_CompoundListener):
 
     def _update(self, other, only_propagate=True):
         """Populate from the listeners in another :class:`_Dispatch`
-            object."""
+        object."""
 
         existing_listeners = self.listeners
         existing_listener_set = set(existing_listeners)
         self.propagate.update(other.propagate)
-        other_listeners = [l for l
-                           in other.listeners
-                           if l not in existing_listener_set
-                           and not only_propagate or l in self.propagate
-                           ]
+        other_listeners = [
+            l
+            for l in other.listeners
+            if l not in existing_listener_set
+            and not only_propagate
+            or l in self.propagate
+        ]
 
         existing_listeners.extend(other_listeners)
 
@@ -340,7 +413,7 @@ class _ListenerCollection(_CompoundListener):
 
 
 class _JoinedListener(_CompoundListener):
-    __slots__ = 'parent', 'name', 'local', 'parent_listeners'
+    __slots__ = "parent", "name", "local", "parent_listeners"
 
     def __init__(self, parent, name, local):
         self._exec_once = False

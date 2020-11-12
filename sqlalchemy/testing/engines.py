@@ -1,5 +1,5 @@
 # testing/engines.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -7,16 +7,18 @@
 
 from __future__ import absolute_import
 
-import weakref
-from . import config
-from .util import decorator
-from .. import event, pool
 import re
 import warnings
+import weakref
+
+from . import config
+from . import uses_deprecated
+from .util import decorator
+from .. import event
+from .. import pool
 
 
 class ConnectionKiller(object):
-
     def __init__(self):
         self.proxy_refs = weakref.WeakKeyDictionary()
         self.testing_engines = weakref.WeakKeyDictionary()
@@ -39,8 +41,8 @@ class ConnectionKiller(object):
             fn()
         except Exception as e:
             warnings.warn(
-                "testing_reaper couldn't "
-                "rollback/close connection: %s" % e)
+                "testing_reaper couldn't " "rollback/close connection: %s" % e
+            )
 
     def rollback_all(self):
         for rec in list(self.proxy_refs):
@@ -59,6 +61,12 @@ class ConnectionKiller(object):
         # not sure if this should be if pypy/jython only.
         # note that firebird/fdb definitely needs this though
         for conn, rec in list(self.conns):
+            if rec.connection is None:
+                # this is a hint that the connection is closed, which
+                # is causing segfaults on mysqlclient due to
+                # https://github.com/PyMySQL/mysqlclient-python/issues/270;
+                # try to work around here
+                continue
             self._safe(conn.rollback)
 
     def _stop_test_ctx(self):
@@ -67,6 +75,7 @@ class ConnectionKiller(object):
         else:
             self._stop_test_ctx_aggressive()
 
+    @uses_deprecated()
     def _stop_test_ctx_minimal(self):
         self.close_all()
 
@@ -76,6 +85,7 @@ class ConnectionKiller(object):
             if rec is not config.db:
                 rec.dispose()
 
+    @uses_deprecated()
     def _stop_test_ctx_aggressive(self):
         self.close_all()
         for conn, rec in list(self.conns):
@@ -91,18 +101,19 @@ class ConnectionKiller(object):
             if rec.is_valid:
                 assert False
 
+
 testing_reaper = ConnectionKiller()
 
 
 def drop_all_tables(metadata, bind):
     testing_reaper.close_all()
-    if hasattr(bind, 'close'):
+    if hasattr(bind, "close"):
         bind.close()
 
     if not config.db.dialect.supports_alter:
         from . import assertions
-        with assertions.expect_warnings(
-                "Can't sort tables", assert_=False):
+
+        with assertions.expect_warnings("Can't sort tables", assert_=False):
             metadata.drop_all(bind)
     else:
         metadata.drop_all(bind)
@@ -145,48 +156,63 @@ def close_open_connections(fn, *args, **kw):
 
 def all_dialects(exclude=None):
     import sqlalchemy.databases as d
+
     for name in d.__all__:
         # TEMPORARY
         if exclude and name in exclude:
             continue
         mod = getattr(d, name, None)
         if not mod:
-            mod = getattr(__import__(
-                'sqlalchemy.databases.%s' % name).databases, name)
+            mod = getattr(
+                __import__("sqlalchemy.databases.%s" % name).databases, name
+            )
         yield mod.dialect()
 
 
 class ReconnectFixture(object):
-
     def __init__(self, dbapi):
         self.dbapi = dbapi
         self.connections = []
+        self.is_stopped = False
 
     def __getattr__(self, key):
         return getattr(self.dbapi, key)
 
     def connect(self, *args, **kwargs):
+
         conn = self.dbapi.connect(*args, **kwargs)
-        self.connections.append(conn)
-        return conn
+        if self.is_stopped:
+            self._safe(conn.close)
+            curs = conn.cursor()  # should fail on Oracle etc.
+            # should fail for everything that didn't fail
+            # above, connection is closed
+            curs.execute("select 1")
+            assert False, "simulated connect failure didn't work"
+        else:
+            self.connections.append(conn)
+            return conn
 
     def _safe(self, fn):
         try:
             fn()
         except Exception as e:
             warnings.warn(
-                "ReconnectFixture couldn't "
-                "close connection: %s" % e)
+                "ReconnectFixture couldn't " "close connection: %s" % e
+            )
 
-    def shutdown(self):
+    def shutdown(self, stop=False):
         # TODO: this doesn't cover all cases
         # as nicely as we'd like, namely MySQLdb.
         # would need to implement R. Brewer's
         # proxy server idea to get better
         # coverage.
+        self.is_stopped = stop
         for c in list(self.connections):
             self._safe(c.close)
         self.connections = []
+
+    def restart(self):
+        self.is_stopped = False
 
 
 def reconnecting_engine(url=None, options=None):
@@ -194,15 +220,17 @@ def reconnecting_engine(url=None, options=None):
     dbapi = config.db.dialect.dbapi
     if not options:
         options = {}
-    options['module'] = ReconnectFixture(dbapi)
+    options["module"] = ReconnectFixture(dbapi)
     engine = testing_engine(url, options)
     _dispose = engine.dispose
 
     def dispose():
         engine.dialect.dbapi.shutdown()
+        engine.dialect.dbapi.is_stopped = False
         _dispose()
 
     engine.test_shutdown = engine.dialect.dbapi.shutdown
+    engine.test_restart = engine.dialect.dbapi.restart
     engine.dispose = dispose
     return engine
 
@@ -216,7 +244,7 @@ def testing_engine(url=None, options=None):
     if not options:
         use_reaper = True
     else:
-        use_reaper = options.pop('use_reaper', True)
+        use_reaper = options.pop("use_reaper", True)
 
     url = url or config.db.url
 
@@ -231,15 +259,15 @@ def testing_engine(url=None, options=None):
         default_opt.update(options)
 
     engine = create_engine(url, **options)
-    engine._has_events = True   # enable event blocks, helps with profiling
+    engine._has_events = True  # enable event blocks, helps with profiling
 
     if isinstance(engine.pool, pool.QueuePool):
         engine.pool._timeout = 0
         engine.pool._max_overflow = 0
     if use_reaper:
-        event.listen(engine.pool, 'connect', testing_reaper.connect)
-        event.listen(engine.pool, 'checkout', testing_reaper.checkout)
-        event.listen(engine.pool, 'invalidate', testing_reaper.invalidate)
+        event.listen(engine.pool, "connect", testing_reaper.connect)
+        event.listen(engine.pool, "checkout", testing_reaper.checkout)
+        event.listen(engine.pool, "invalidate", testing_reaper.invalidate)
         testing_reaper.add_engine(engine)
 
     return engine
@@ -268,19 +296,17 @@ def mock_engine(dialect_name=None):
         buffer.append(sql)
 
     def assert_sql(stmts):
-        recv = [re.sub(r'[\n\t]', '', str(s)) for s in buffer]
+        recv = [re.sub(r"[\n\t]", "", str(s)) for s in buffer]
         assert recv == stmts, recv
 
     def print_sql():
         d = engine.dialect
-        return "\n".join(
-            str(s.compile(dialect=d))
-            for s in engine.mock
-        )
+        return "\n".join(str(s.compile(dialect=d)) for s in engine.mock)
 
-    engine = create_engine(dialect_name + '://',
-                           strategy='mock', executor=executor)
-    assert not hasattr(engine, 'mock')
+    engine = create_engine(
+        dialect_name + "://", strategy="mock", executor=executor
+    )
+    assert not hasattr(engine, "mock")
     engine.mock = buffer
     engine.assert_sql = assert_sql
     engine.print_sql = print_sql
@@ -336,14 +362,15 @@ class DBAPIProxyConnection(object):
         return getattr(self.conn, key)
 
 
-def proxying_engine(conn_cls=DBAPIProxyConnection,
-                    cursor_cls=DBAPIProxyCursor):
+def proxying_engine(
+    conn_cls=DBAPIProxyConnection, cursor_cls=DBAPIProxyCursor
+):
     """Produce an engine that provides proxy hooks for
     common methods.
 
     """
+
     def mock_conn():
         return conn_cls(config.db, cursor_cls)
-    return testing_engine(options={'creator': mock_conn})
 
-
+    return testing_engine(options={"creator": mock_conn})

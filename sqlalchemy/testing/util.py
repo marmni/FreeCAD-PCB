@@ -1,19 +1,27 @@
 # testing/util.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from ..util import jython, pypy, defaultdict, decorator, py2k
 import decimal
 import gc
-import time
 import random
 import sys
+import time
 import types
 
+from ..util import decorator
+from ..util import defaultdict
+from ..util import inspect_getfullargspec
+from ..util import jython
+from ..util import py2k
+from ..util import pypy
+
+
 if jython:
+
     def jython_gc_collect(*args):
         """aggressive gc.collect for tests."""
         gc.collect()
@@ -25,9 +33,11 @@ if jython:
     # "lazy" gc, for VM's that don't GC on refcount == 0
     gc_collect = lazy_gc = jython_gc_collect
 elif pypy:
+
     def pypy_gc_collect(*args):
         gc.collect()
         gc.collect()
+
     gc_collect = lazy_gc = pypy_gc_collect
 else:
     # assume CPython - straight gc.collect, lazy_gc() is a pass
@@ -42,16 +52,18 @@ def picklers():
     if py2k:
         try:
             import cPickle
+
             picklers.add(cPickle)
         except ImportError:
             pass
 
     import pickle
+
     picklers.add(pickle)
 
     # yes, this thing needs this much testing
     for pickle_ in picklers:
-        for protocol in -1, 0, 1, 2:
+        for protocol in range(-2, pickle.HIGHEST_PROTOCOL):
             yield pickle_.loads, lambda d: pickle_.dumps(d, protocol)
 
 
@@ -60,9 +72,9 @@ def round_decimal(value, prec):
         return round(value, prec)
 
     # can also use shift() here but that is 2.6 only
-    return (value * decimal.Decimal("1" + "0" * prec)
-            ).to_integral(decimal.ROUND_FLOOR) / \
-        pow(10, prec)
+    return (value * decimal.Decimal("1" + "0" * prec)).to_integral(
+        decimal.ROUND_FLOOR
+    ) / pow(10, prec)
 
 
 class RandomSet(set):
@@ -137,8 +149,9 @@ def function_named(fn, name):
     try:
         fn.__name__ = name
     except TypeError:
-        fn = types.FunctionType(fn.__code__, fn.__globals__, name,
-                                fn.__defaults__, fn.__closure__)
+        fn = types.FunctionType(
+            fn.__code__, fn.__globals__, name, fn.__defaults__, fn.__closure__
+        )
     return fn
 
 
@@ -161,7 +174,7 @@ def run_as_contextmanager(ctx, fn, *arg, **kw):
     except:
         exc_info = sys.exc_info()
         raise_ = ctx.__exit__(*exc_info)
-        if raise_ is None:
+        if not raise_:
             raise
         else:
             return raise_
@@ -173,7 +186,7 @@ def rowset(results):
     Useful for asserting the results of an unordered query.
     """
 
-    return set([tuple(row) for row in results])
+    return {tuple(row) for row in results}
 
 
 def fail(msg):
@@ -190,13 +203,104 @@ def provide_metadata(fn, *args, **kw):
 
     metadata = schema.MetaData(config.db)
     self = args[0]
-    prev_meta = getattr(self, 'metadata', None)
+    prev_meta = getattr(self, "metadata", None)
     self.metadata = metadata
     try:
         return fn(*args, **kw)
     finally:
         engines.drop_all_tables(metadata, config.db)
         self.metadata = prev_meta
+
+
+def flag_combinations(*combinations):
+    """A facade around @testing.combinations() oriented towards boolean
+    keyword-based arguments.
+
+    Basically generates a nice looking identifier based on the keywords
+    and also sets up the argument names.
+
+    E.g.::
+
+        @testing.flag_combinations(
+            dict(lazy=False, passive=False),
+            dict(lazy=True, passive=False),
+            dict(lazy=False, passive=True),
+            dict(lazy=False, passive=True, raiseload=True),
+        )
+
+
+    would result in::
+
+        @testing.combinations(
+            ('', False, False, False),
+            ('lazy', True, False, False),
+            ('lazy_passive', True, True, False),
+            ('lazy_passive', True, True, True),
+            id_='iaaa',
+            argnames='lazy,passive,raiseload'
+        )
+
+    """
+
+    from . import config
+
+    keys = set()
+
+    for d in combinations:
+        keys.update(d)
+
+    keys = sorted(keys)
+
+    return config.combinations(
+        *[
+            ("_".join(k for k in keys if d.get(k, False)),)
+            + tuple(d.get(k, False) for k in keys)
+            for d in combinations
+        ],
+        id_="i" + ("a" * len(keys)),
+        argnames=",".join(keys)
+    )
+
+
+def resolve_lambda(__fn, **kw):
+    """Given a no-arg lambda and a namespace, return a new lambda that
+    has all the values filled in.
+
+    This is used so that we can have module-level fixtures that
+    refer to instance-level variables using lambdas.
+
+    """
+
+    pos_args = inspect_getfullargspec(__fn)[0]
+    pass_pos_args = {arg: kw.pop(arg) for arg in pos_args}
+    glb = dict(__fn.__globals__)
+    glb.update(kw)
+    new_fn = types.FunctionType(__fn.__code__, glb)
+    return new_fn(**pass_pos_args)
+
+
+def metadata_fixture(ddl="function"):
+    """Provide MetaData for a pytest fixture."""
+
+    from . import config
+
+    def decorate(fn):
+        def run_ddl(self):
+            from sqlalchemy import schema
+
+            metadata = self.metadata = schema.MetaData()
+            try:
+                result = fn(self, metadata)
+                metadata.create_all(config.db)
+                # TODO:
+                # somehow get a per-function dml erase fixture here
+                yield result
+            finally:
+                metadata.drop_all(config.db)
+
+        return config.fixture(scope=ddl)(run_ddl)
+
+    return decorate
 
 
 def force_drop_names(*names):
@@ -213,8 +317,8 @@ def force_drop_names(*names):
         try:
             return fn(*args, **kw)
         finally:
-            drop_all_tables(
-                config.db, inspect(config.db), include_names=names)
+            drop_all_tables(config.db, inspect(config.db), include_names=names)
+
     return go
 
 
@@ -234,8 +338,13 @@ class adict(dict):
 
 
 def drop_all_tables(engine, inspector, schema=None, include_names=None):
-    from sqlalchemy import Column, Table, Integer, MetaData, \
-        ForeignKeyConstraint
+    from sqlalchemy import (
+        Column,
+        Table,
+        Integer,
+        MetaData,
+        ForeignKeyConstraint,
+    )
     from sqlalchemy.schema import DropTable, DropConstraint
 
     if include_names is not None:
@@ -243,30 +352,35 @@ def drop_all_tables(engine, inspector, schema=None, include_names=None):
 
     with engine.connect() as conn:
         for tname, fkcs in reversed(
-                inspector.get_sorted_table_and_fkc_names(schema=schema)):
+            inspector.get_sorted_table_and_fkc_names(schema=schema)
+        ):
             if tname:
                 if include_names is not None and tname not in include_names:
                     continue
-                conn.execute(DropTable(
-                    Table(tname, MetaData(), schema=schema)
-                ))
+                conn.execute(
+                    DropTable(Table(tname, MetaData(), schema=schema))
+                )
             elif fkcs:
                 if not engine.dialect.supports_alter:
                     continue
                 for tname, fkc in fkcs:
-                    if include_names is not None and \
-                            tname not in include_names:
+                    if (
+                        include_names is not None
+                        and tname not in include_names
+                    ):
                         continue
                     tb = Table(
-                        tname, MetaData(),
-                        Column('x', Integer),
-                        Column('y', Integer),
-                        schema=schema
+                        tname,
+                        MetaData(),
+                        Column("x", Integer),
+                        Column("y", Integer),
+                        schema=schema,
                     )
-                    conn.execute(DropConstraint(
-                        ForeignKeyConstraint(
-                            [tb.c.x], [tb.c.y], name=fkc)
-                    ))
+                    conn.execute(
+                        DropConstraint(
+                            ForeignKeyConstraint([tb.c.x], [tb.c.y], name=fkc)
+                        )
+                    )
 
 
 def teardown_events(event_cls):
@@ -276,5 +390,5 @@ def teardown_events(event_cls):
             return fn(*arg, **kw)
         finally:
             event_cls._clear()
-    return decorate
 
+    return decorate

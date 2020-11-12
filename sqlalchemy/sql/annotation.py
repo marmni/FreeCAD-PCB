@@ -1,5 +1,5 @@
 # sql/annotation.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -11,8 +11,8 @@ associations.
 
 """
 
-from .. import util
 from . import operators
+from .. import util
 
 
 class Annotated(object):
@@ -76,8 +76,7 @@ class Annotated(object):
             return self._with_annotations(_values)
 
     def _compiler_dispatch(self, visitor, **kw):
-        return self.__element.__class__._compiler_dispatch(
-            self, visitor, **kw)
+        return self.__element.__class__._compiler_dispatch(self, visitor, **kw)
 
     @property
     def _constructor(self):
@@ -93,6 +92,9 @@ class Annotated(object):
             # to this object's __dict__.
             clone.__dict__.update(self.__dict__)
             return self.__class__(clone, self._annotations)
+
+    def __reduce__(self):
+        return self.__class__, (self.__element, self._annotations)
 
     def __hash__(self):
         return self._hash
@@ -117,10 +119,13 @@ def _deep_annotate(element, annotations, exclude=None):
     Elements within the exclude collection will be cloned but not annotated.
 
     """
+
     def clone(elem):
-        if exclude and \
-                hasattr(elem, 'proxy_set') and \
-                elem.proxy_set.intersection(exclude):
+        if (
+            exclude
+            and hasattr(elem, "proxy_set")
+            and elem.proxy_set.intersection(exclude)
+        ):
             newelem = elem._clone()
         elif annotations != elem._annotations:
             newelem = elem._annotate(annotations)
@@ -131,6 +136,7 @@ def _deep_annotate(element, annotations, exclude=None):
 
     if element is not None:
         element = clone(element)
+    clone = None  # remove gc cycles
     return element
 
 
@@ -157,6 +163,7 @@ def _deep_deannotate(element, values=None):
 
     if element is not None:
         element = clone(element)
+    clone = None  # remove gc cycles
     return element
 
 
@@ -188,8 +195,8 @@ def _new_annotation_type(cls, base_cls):
             break
 
     annotated_classes[cls] = anno_cls = type(
-        "Annotated%s" % cls.__name__,
-        (base_cls, cls), {})
+        "Annotated%s" % cls.__name__, (base_cls, cls), {}
+    )
     globals()["Annotated%s" % cls.__name__] = anno_cls
     return anno_cls
 

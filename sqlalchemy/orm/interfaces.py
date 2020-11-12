@@ -1,5 +1,5 @@
 # orm/interfaces.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -20,52 +20,65 @@ are exposed when inspecting mappings.
 
 from __future__ import absolute_import
 
+import collections
+
+from . import exc as orm_exc
+from . import path_registry
+from .base import _MappedAttribute  # noqa
+from .base import EXT_CONTINUE
+from .base import EXT_SKIP
+from .base import EXT_STOP
+from .base import InspectionAttr  # noqa
+from .base import InspectionAttrInfo  # noqa
+from .base import MANYTOMANY
+from .base import MANYTOONE
+from .base import NOT_EXTENSION
+from .base import ONETOMANY
+from .. import inspect
 from .. import util
 from ..sql import operators
-from .base import (ONETOMANY, MANYTOONE, MANYTOMANY,
-                   EXT_CONTINUE, EXT_STOP, NOT_EXTENSION)
-from .base import (InspectionAttr, InspectionAttr,
-    InspectionAttrInfo, _MappedAttribute)
-import collections
-from .. import inspect
-from . import path_registry
+
 
 # imported later
 MapperExtension = SessionExtension = AttributeExtension = None
 
 __all__ = (
-    'AttributeExtension',
-    'EXT_CONTINUE',
-    'EXT_STOP',
-    'ONETOMANY',
-    'MANYTOMANY',
-    'MANYTOONE',
-    'NOT_EXTENSION',
-    'LoaderStrategy',
-    'MapperExtension',
-    'MapperOption',
-    'MapperProperty',
-    'PropComparator',
-    'SessionExtension',
-    'StrategizedProperty',
+    "AttributeExtension",
+    "EXT_CONTINUE",
+    "EXT_STOP",
+    "EXT_SKIP",
+    "ONETOMANY",
+    "MANYTOMANY",
+    "MANYTOONE",
+    "NOT_EXTENSION",
+    "LoaderStrategy",
+    "MapperExtension",
+    "MapperOption",
+    "MapperProperty",
+    "PropComparator",
+    "SessionExtension",
+    "StrategizedProperty",
 )
 
 
 class MapperProperty(_MappedAttribute, InspectionAttr, util.MemoizedSlots):
-    """Represent a particular class attribute mapped by :class:`.Mapper`.
+    """Represent a particular class attribute mapped by :class:`_orm.Mapper`.
 
     The most common occurrences of :class:`.MapperProperty` are the
-    mapped :class:`.Column`, which is represented in a mapping as
+    mapped :class:`_schema.Column`, which is represented in a mapping as
     an instance of :class:`.ColumnProperty`,
-    and a reference to another class produced by :func:`.relationship`,
+    and a reference to another class produced by :func:`_orm.relationship`,
     represented in the mapping as an instance of
     :class:`.RelationshipProperty`.
 
     """
 
     __slots__ = (
-        '_configure_started', '_configure_finished', 'parent', 'key',
-        'info'
+        "_configure_started",
+        "_configure_finished",
+        "parent",
+        "key",
+        "info",
     )
 
     cascade = frozenset()
@@ -89,11 +102,9 @@ class MapperProperty(_MappedAttribute, InspectionAttr, util.MemoizedSlots):
 
         The dictionary is generated when first accessed.  Alternatively,
         it can be specified as a constructor argument to the
-        :func:`.column_property`, :func:`.relationship`, or :func:`.composite`
+        :func:`.column_property`, :func:`_orm.relationship`, or
+        :func:`.composite`
         functions.
-
-        .. versionadded:: 0.8  Added support for .info to all
-           :class:`.MapperProperty` subclasses.
 
         .. versionchanged:: 1.0.0 :attr:`.MapperProperty.info` is also
            available on extension types via the
@@ -109,7 +120,7 @@ class MapperProperty(_MappedAttribute, InspectionAttr, util.MemoizedSlots):
         """
         return {}
 
-    def setup(self, context, entity, path, adapter, **kwargs):
+    def setup(self, context, query_entity, path, adapter, **kwargs):
         """Called by Query for the purposes of constructing a SQL statement.
 
         Each MapperProperty associated with the target mapper processes the
@@ -118,15 +129,17 @@ class MapperProperty(_MappedAttribute, InspectionAttr, util.MemoizedSlots):
 
         """
 
-    def create_row_processor(self, context, path,
-                             mapper, result, adapter, populators):
+    def create_row_processor(
+        self, context, path, mapper, result, adapter, populators
+    ):
         """Produce row processing functions and append to the given
         set of populators lists.
 
         """
 
-    def cascade_iterator(self, type_, state, visited_instances=None,
-                         halt_on=None):
+    def cascade_iterator(
+        self, type_, state, visited_instances=None, halt_on=None
+    ):
         """Iterate through instances related to the given instance for
         a particular 'cascade', starting with this MapperProperty.
 
@@ -234,17 +247,28 @@ class MapperProperty(_MappedAttribute, InspectionAttr, util.MemoizedSlots):
 
         """
 
-    def merge(self, session, source_state, source_dict, dest_state,
-              dest_dict, load, _recursive, _resolve_conflict_map):
+    def merge(
+        self,
+        session,
+        source_state,
+        source_dict,
+        dest_state,
+        dest_dict,
+        load,
+        _recursive,
+        _resolve_conflict_map,
+    ):
         """Merge the attribute represented by this ``MapperProperty``
         from source to destination object.
 
         """
 
     def __repr__(self):
-        return '<%s at 0x%x; %s>' % (
+        return "<%s at 0x%x; %s>" % (
             self.__class__.__name__,
-            id(self), getattr(self, 'key', 'no key'))
+            id(self),
+            getattr(self, "key", "no key"),
+        )
 
 
 class PropComparator(operators.ColumnOperators):
@@ -319,23 +343,23 @@ class PropComparator(operators.ColumnOperators):
     :attr:`.TypeEngine.comparator_factory` attribute.  See
     :ref:`types_operators` for more detail.
 
-    See also:
+    .. seealso::
 
-    :class:`.ColumnProperty.Comparator`
+        :class:`.ColumnProperty.Comparator`
 
-    :class:`.RelationshipProperty.Comparator`
+        :class:`.RelationshipProperty.Comparator`
 
-    :class:`.CompositeProperty.Comparator`
+        :class:`.CompositeProperty.Comparator`
 
-    :class:`.ColumnOperators`
+        :class:`.ColumnOperators`
 
-    :ref:`types_operators`
+        :ref:`types_operators`
 
-    :attr:`.TypeEngine.comparator_factory`
+        :attr:`.TypeEngine.comparator_factory`
 
     """
 
-    __slots__ = 'prop', 'property', '_parententity', '_adapt_to_entity'
+    __slots__ = "prop", "property", "_parententity", "_adapt_to_entity"
 
     def __init__(self, prop, parentmapper, adapt_to_entity=None):
         self.prop = self.property = prop
@@ -347,6 +371,9 @@ class PropComparator(operators.ColumnOperators):
 
     def _query_clause_element(self):
         return self.__clause_element__()
+
+    def _bulk_update_tuples(self, value):
+        return [(self.__clause_element__(), value)]
 
     def adapt_to_entity(self, adapt_to_entity):
         """Return a copy of this PropComparator which will use the given
@@ -388,7 +415,8 @@ class PropComparator(operators.ColumnOperators):
         return a.of_type(class_)
 
     def of_type(self, class_):
-        r"""Redefine this object in terms of a polymorphic subclass.
+        r"""Redefine this object in terms of a polymorphic subclass,
+        :func:`.with_polymorphic` construct, or :func:`.aliased` construct.
 
         Returns a new PropComparator from which further criterion can be
         evaluated.
@@ -401,6 +429,9 @@ class PropComparator(operators.ColumnOperators):
         :param \class_: a class or mapper indicating that criterion will be
             against this specific subclass.
 
+        .. seealso::
+
+            :ref:`inheritance_of_type`
 
         """
 
@@ -461,36 +492,40 @@ class StrategizedProperty(MapperProperty):
     """
 
     __slots__ = (
-        '_strategies', 'strategy',
-        '_wildcard_token', '_default_path_loader_key'
+        "_strategies",
+        "strategy",
+        "_wildcard_token",
+        "_default_path_loader_key",
     )
 
     strategy_wildcard_key = None
 
     def _memoized_attr__wildcard_token(self):
-        return ("%s:%s" % (
-            self.strategy_wildcard_key, path_registry._WILDCARD_TOKEN), )
+        return (
+            "%s:%s"
+            % (self.strategy_wildcard_key, path_registry._WILDCARD_TOKEN),
+        )
 
     def _memoized_attr__default_path_loader_key(self):
         return (
             "loader",
-            ("%s:%s" % (
-                self.strategy_wildcard_key, path_registry._DEFAULT_TOKEN), )
+            (
+                "%s:%s"
+                % (self.strategy_wildcard_key, path_registry._DEFAULT_TOKEN),
+            ),
         )
 
     def _get_context_loader(self, context, path):
         load = None
 
-        # use EntityRegistry.__getitem__()->PropRegistry here so
-        # that the path is stated in terms of our base
-        search_path = dict.__getitem__(path, self)
+        search_path = path[self]
 
         # search among: exact match, "attr.*", "default" strategy
         # if any.
         for path_key in (
             search_path._loader_key,
             search_path._wildcard_path_loader_key,
-            search_path._default_path_loader_key
+            search_path._default_path_loader_key,
         ):
             if path_key in context.attributes:
                 load = context.attributes[path_key]
@@ -502,39 +537,46 @@ class StrategizedProperty(MapperProperty):
         try:
             return self._strategies[key]
         except KeyError:
-            cls = self._strategy_lookup(*key)
-            self._strategies[key] = self._strategies[
-                cls] = strategy = cls(self, key)
-            return strategy
+            pass
 
-    def setup(
-            self, context, entity, path, adapter, **kwargs):
+        # run outside to prevent transfer of exception context
+        cls = self._strategy_lookup(self, *key)
+        self._strategies[key] = self._strategies[cls] = strategy = cls(
+            self, key
+        )
+        return strategy
+
+    def setup(self, context, query_entity, path, adapter, **kwargs):
         loader = self._get_context_loader(context, path)
         if loader and loader.strategy:
             strat = self._get_strategy(loader.strategy)
         else:
             strat = self.strategy
-        strat.setup_query(context, entity, path, loader, adapter, **kwargs)
+        strat.setup_query(
+            context, query_entity, path, loader, adapter, **kwargs
+        )
 
     def create_row_processor(
-            self, context, path, mapper,
-            result, adapter, populators):
+        self, context, path, mapper, result, adapter, populators
+    ):
         loader = self._get_context_loader(context, path)
         if loader and loader.strategy:
             strat = self._get_strategy(loader.strategy)
         else:
             strat = self.strategy
         strat.create_row_processor(
-            context, path, loader,
-            mapper, result, adapter, populators)
+            context, path, loader, mapper, result, adapter, populators
+        )
 
     def do_init(self):
         self._strategies = {}
         self.strategy = self._get_strategy(self.strategy_key)
 
     def post_instrument_class(self, mapper):
-        if not self.parent.non_primary and \
-                not mapper.class_manager._attr_has_impl(self.key):
+        if (
+            not self.parent.non_primary
+            and not mapper.class_manager._attr_has_impl(self.key)
+        ):
             self.strategy.init_class_attribute(mapper)
 
     _all_strategies = collections.defaultdict(dict)
@@ -544,16 +586,17 @@ class StrategizedProperty(MapperProperty):
         def decorate(dec_cls):
             # ensure each subclass of the strategy has its
             # own _strategy_keys collection
-            if '_strategy_keys' not in dec_cls.__dict__:
+            if "_strategy_keys" not in dec_cls.__dict__:
                 dec_cls._strategy_keys = []
             key = tuple(sorted(kw.items()))
             cls._all_strategies[cls][key] = dec_cls
             dec_cls._strategy_keys.append(key)
             return dec_cls
+
         return decorate
 
     @classmethod
-    def _strategy_lookup(cls, *key):
+    def _strategy_lookup(cls, requesting_property, *key):
         for prop_cls in cls.__mro__:
             if prop_cls in cls._all_strategies:
                 strategies = cls._all_strategies[prop_cls]
@@ -561,7 +604,23 @@ class StrategizedProperty(MapperProperty):
                     return strategies[key]
                 except KeyError:
                     pass
-        raise Exception("can't locate strategy for %s %s" % (cls, key))
+
+        for property_type, strats in cls._all_strategies.items():
+            if key in strats:
+                intended_property_type = property_type
+                actual_strategy = strats[key]
+                break
+        else:
+            intended_property_type = None
+            actual_strategy = None
+
+        raise orm_exc.LoaderStrategyException(
+            cls,
+            requesting_property,
+            intended_property_type,
+            actual_strategy,
+            key,
+        )
 
 
 class MapperOption(object):
@@ -575,7 +634,7 @@ class MapperOption(object):
     """
 
     def process_query(self, query):
-        """Apply a modification to the given :class:`.Query`."""
+        """Apply a modification to the given :class:`_query.Query`."""
 
     def process_query_conditionally(self, query):
         """same as process_query(), except that this option may not
@@ -589,6 +648,58 @@ class MapperOption(object):
         """
 
         self.process_query(query)
+
+    def _generate_cache_key(self, path):
+        """Used by the "baked lazy loader" to see if this option can be cached.
+
+        The "baked lazy loader" refers to the :class:`_query.Query` that is
+        produced during a lazy load operation for a mapped relationship.
+        It does not yet apply to the "lazy" load operation for deferred
+        or expired column attributes, however this may change in the future.
+
+        This loader generates SQL for a query only once and attempts to  cache
+        it; from that point on, if the SQL has been cached it will no longer
+        run the :meth:`_query.Query.options` method of the
+        :class:`_query.Query`.   The
+        :class:`.MapperOption` object that wishes to participate within a lazy
+        load operation therefore needs to tell the baked loader that it either
+        needs to forego this caching, or that it needs to include the state of
+        the :class:`.MapperOption` itself as part of its cache key, otherwise
+        SQL or other query state that has been affected by the
+        :class:`.MapperOption` may be cached in place of a query that does not
+        include these modifications, or the option may not be invoked at all.
+
+        By default, this method returns the value ``False``, which means
+        the :class:`.BakedQuery` generated by the lazy loader will
+        not cache the SQL when this :class:`.MapperOption` is present.
+        This is the safest option and ensures both that the option is
+        invoked every time, and also that the cache isn't filled up with
+        an unlimited number of :class:`_query.Query` objects for an unlimited
+        number of :class:`.MapperOption` objects.
+
+        .. versionchanged:: 1.2.8 the default return value of
+           :meth:`.MapperOption._generate_cache_key` is False; previously it
+           was ``None`` indicating "safe to cache, don't include as part of
+           the cache key"
+
+        To enable caching of :class:`_query.Query` objects within lazy loaders
+        , a
+        given :class:`.MapperOption` that returns a cache key must return a key
+        that uniquely identifies the complete state of this option, which will
+        match any other :class:`.MapperOption` that itself retains the
+        identical state.  This includes path options, flags, etc.    It should
+        be a state that is repeatable and part of a limited set of possible
+        options.
+
+        If the :class:`.MapperOption` does not apply to the given path and
+        would not affect query results on such a path, it should return None,
+        indicating the :class:`_query.Query` is safe to cache for this given
+        loader path and that this :class:`.MapperOption` need not be
+        part of the cache key.
+
+
+        """
+        return False
 
 
 class LoaderStrategy(object):
@@ -615,8 +726,14 @@ class LoaderStrategy(object):
 
     """
 
-    __slots__ = 'parent_property', 'is_class_level', 'parent', 'key', \
-        'strategy_key', 'strategy_opts'
+    __slots__ = (
+        "parent_property",
+        "is_class_level",
+        "parent",
+        "key",
+        "strategy_key",
+        "strategy_opts",
+    )
 
     def __init__(self, parent, strategy_key):
         self.parent_property = parent
@@ -629,7 +746,9 @@ class LoaderStrategy(object):
     def init_class_attribute(self, mapper):
         pass
 
-    def setup_query(self, context, entity, path, loadopt, adapter, **kwargs):
+    def setup_query(
+        self, context, query_entity, path, loadopt, adapter, **kwargs
+    ):
         """Establish column and other state for a given QueryContext.
 
         This method fulfills the contract specified by MapperProperty.setup().
@@ -639,8 +758,9 @@ class LoaderStrategy(object):
 
         """
 
-    def create_row_processor(self, context, path, loadopt, mapper,
-                             result, adapter, populators):
+    def create_row_processor(
+        self, context, path, loadopt, mapper, result, adapter, populators
+    ):
         """Establish row processing functions for a given QueryContext.
 
         This method fulfills the contract specified by

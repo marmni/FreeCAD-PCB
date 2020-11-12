@@ -1,5 +1,5 @@
 # testing/profiling.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -12,19 +12,22 @@ in a more fine-grained way than nose's profiling plugin.
 
 """
 
-import os
-import sys
-from .util import gc_collect
-from . import config
-import pstats
 import collections
 import contextlib
+import os
+import platform
+import pstats
+import sys
+
+from . import config
+from .util import gc_collect
+from ..util import update_wrapper
+
 
 try:
     import cProfile
 except ImportError:
     cProfile = None
-from ..util import jython, pypy, win32, update_wrapper
 
 _current_test = None
 
@@ -33,7 +36,7 @@ _profile_stats = None
 
 
 class ProfileStatsFile(object):
-    """"Store per-platform/fn profiling results in a file.
+    """Store per-platform/fn profiling results in a file.
 
     We're still targeting Py2.5, 2.4 on 0.7 with no dependencies,
     so no json lib :(  need to roll something silly
@@ -42,17 +45,16 @@ class ProfileStatsFile(object):
 
     def __init__(self, filename):
         self.force_write = (
-            config.options is not None and
-            config.options.force_write_profiles
+            config.options is not None and config.options.force_write_profiles
         )
         self.write = self.force_write or (
-            config.options is not None and
-            config.options.write_profiles
+            config.options is not None and config.options.write_profiles
         )
         self.fname = os.path.abspath(filename)
         self.short_fname = os.path.split(self.fname)[-1]
         self.data = collections.defaultdict(
-            lambda: collections.defaultdict(dict))
+            lambda: collections.defaultdict(dict)
+        )
         self._read()
         if self.write:
             # rewrite for the case where features changed,
@@ -64,17 +66,22 @@ class ProfileStatsFile(object):
 
         dbapi_key = config.db.name + "_" + config.db.driver
 
-        # keep it at 2.7, 3.1, 3.2, etc. for now.
-        py_version = '.'.join([str(v) for v in sys.version_info[0:2]])
+        if config.db.name == "sqlite" and config.db.dialect._is_url_file_db(
+            config.db.url
+        ):
+            dbapi_key += "_file"
 
-        platform_tokens = [py_version]
-        platform_tokens.append(dbapi_key)
-        if jython:
-            platform_tokens.append("jython")
-        if pypy:
-            platform_tokens.append("pypy")
-        if win32:
-            platform_tokens.append("win")
+        # keep it at 2.7, 3.1, 3.2, etc. for now.
+        py_version = ".".join([str(v) for v in sys.version_info[0:2]])
+
+        platform_tokens = [
+            platform.machine(),
+            platform.system().lower(),
+            platform.python_implementation().lower(),
+            py_version,
+            dbapi_key,
+        ]
+
         platform_tokens.append(
             "nativeunicode"
             if config.db.dialect.convert_unicode
@@ -87,8 +94,7 @@ class ProfileStatsFile(object):
     def has_stats(self):
         test_key = _current_test
         return (
-            test_key in self.data and
-            self.platform_key in self.data[test_key]
+            test_key in self.data and self.platform_key in self.data[test_key]
         )
 
     def result(self, callcount):
@@ -96,15 +102,15 @@ class ProfileStatsFile(object):
         per_fn = self.data[test_key]
         per_platform = per_fn[self.platform_key]
 
-        if 'counts' not in per_platform:
-            per_platform['counts'] = counts = []
+        if "counts" not in per_platform:
+            per_platform["counts"] = counts = []
         else:
-            counts = per_platform['counts']
+            counts = per_platform["counts"]
 
-        if 'current_count' not in per_platform:
-            per_platform['current_count'] = current_count = 0
+        if "current_count" not in per_platform:
+            per_platform["current_count"] = current_count = 0
         else:
-            current_count = per_platform['current_count']
+            current_count = per_platform["current_count"]
 
         has_count = len(counts) > current_count
 
@@ -114,16 +120,16 @@ class ProfileStatsFile(object):
                 self._write()
             result = None
         else:
-            result = per_platform['lineno'], counts[current_count]
-        per_platform['current_count'] += 1
+            result = per_platform["lineno"], counts[current_count]
+        per_platform["current_count"] += 1
         return result
 
     def replace(self, callcount):
         test_key = _current_test
         per_fn = self.data[test_key]
         per_platform = per_fn[self.platform_key]
-        counts = per_platform['counts']
-        current_count = per_platform['current_count']
+        counts = per_platform["counts"]
+        current_count = per_platform["current_count"]
         if current_count < len(counts):
             counts[current_count - 1] = callcount
         else:
@@ -164,9 +170,9 @@ class ProfileStatsFile(object):
             per_fn = self.data[test_key]
             per_platform = per_fn[platform_key]
             c = [int(count) for count in counts.split(",")]
-            per_platform['counts'] = c
-            per_platform['lineno'] = lineno + 1
-            per_platform['current_count'] = 0
+            per_platform["counts"] = c
+            per_platform["lineno"] = lineno + 1
+            per_platform["current_count"] = 0
         profile_f.close()
 
     def _write(self):
@@ -179,12 +185,12 @@ class ProfileStatsFile(object):
             profile_f.write("\n# TEST: %s\n\n" % test_key)
             for platform_key in sorted(per_fn):
                 per_platform = per_fn[platform_key]
-                c = ",".join(str(count) for count in per_platform['counts'])
+                c = ",".join(str(count) for count in per_platform["counts"])
                 profile_f.write("%s %s %s\n" % (test_key, platform_key, c))
         profile_f.close()
 
 
-def function_call_count(variance=0.05):
+def function_call_count(variance=0.05, times=1, warmup=0):
     """Assert a target for a test case's function call count.
 
     The main purpose of this assertion is to detect changes in
@@ -197,37 +203,45 @@ def function_call_count(variance=0.05):
 
     def decorate(fn):
         def wrap(*args, **kw):
+            for warm in range(warmup):
+                fn(*args, **kw)
+            timerange = range(times)
             with count_functions(variance=variance):
-                return fn(*args, **kw)
+                for time in timerange:
+                    rv = fn(*args, **kw)
+                return rv
+
         return update_wrapper(wrap, fn)
+
     return decorate
 
 
 @contextlib.contextmanager
 def count_functions(variance=0.05):
     if cProfile is None:
-        raise SkipTest("cProfile is not installed")
+        raise config._skip_test_exception("cProfile is not installed")
 
     if not _profile_stats.has_stats() and not _profile_stats.write:
         config.skip_test(
             "No profiling stats available on this "
             "platform for this function.  Run tests with "
             "--write-profiles to add statistics to %s for "
-            "this platform." % _profile_stats.short_fname)
+            "this platform." % _profile_stats.short_fname
+        )
 
     gc_collect()
 
     pr = cProfile.Profile()
     pr.enable()
-    #began = time.time()
+    # began = time.time()
     yield
-    #ended = time.time()
+    # ended = time.time()
     pr.disable()
 
-    #s = compat.StringIO()
+    # s = compat.StringIO()
     stats = pstats.Stats(pr, stream=sys.stdout)
 
-    #timespent = ended - began
+    # timespent = ended - began
     callcount = stats.total_calls
 
     expected = _profile_stats.result(callcount)
@@ -237,11 +251,7 @@ def count_functions(variance=0.05):
     else:
         line_no, expected_count = expected
 
-    print(("Pstats calls: %d Expected %s" % (
-        callcount,
-        expected_count
-    )
-    ))
+    print(("Pstats calls: %d Expected %s" % (callcount, expected_count)))
     stats.sort_stats("cumulative")
     stats.print_stats()
 
@@ -259,7 +269,9 @@ def count_functions(variance=0.05):
                     "--write-profiles to "
                     "regenerate this callcount."
                     % (
-                        callcount, (variance * 100),
-                        expected_count, _profile_stats.platform_key))
-
-
+                        callcount,
+                        (variance * 100),
+                        expected_count,
+                        _profile_stats.platform_key,
+                    )
+                )

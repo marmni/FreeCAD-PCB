@@ -1,5 +1,5 @@
 # mysql/enumerated.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -8,35 +8,38 @@
 import re
 
 from .types import _StringType
-from ... import exc, sql, util
-from ... import types as sqltypes
+from ... import exc
+from ... import sql
+from ... import util
+from ...sql import sqltypes
 
 
 class _EnumeratedValues(_StringType):
     def _init_values(self, values, kw):
-        self.quoting = kw.pop('quoting', 'auto')
+        self.quoting = kw.pop("quoting", "auto")
 
-        if self.quoting == 'auto' and len(values):
+        if self.quoting == "auto" and len(values):
             # What quoting character are we using?
             q = None
             for e in values:
                 if len(e) == 0:
-                    self.quoting = 'unquoted'
+                    self.quoting = "unquoted"
                     break
                 elif q is None:
                     q = e[0]
 
                 if len(e) == 1 or e[0] != q or e[-1] != q:
-                    self.quoting = 'unquoted'
+                    self.quoting = "unquoted"
                     break
             else:
-                self.quoting = 'quoted'
+                self.quoting = "quoted"
 
-        if self.quoting == 'quoted':
+        if self.quoting == "quoted":
             util.warn_deprecated(
-                'Manually quoting %s value literals is deprecated.  Supply '
-                'unquoted values and use the quoting= option in cases of '
-                'ambiguity.' % self.__class__.__name__)
+                "Manually quoting %s value literals is deprecated.  Supply "
+                "unquoted values and use the quoting= option in cases of "
+                "ambiguity." % self.__class__.__name__
+            )
 
             values = self._strip_values(values)
 
@@ -55,10 +58,12 @@ class _EnumeratedValues(_StringType):
         return strip_values
 
 
-class ENUM(sqltypes.Enum, _EnumeratedValues):
+class ENUM(sqltypes.NativeForEmulated, sqltypes.Enum, _EnumeratedValues):
     """MySQL ENUM type."""
 
-    __visit_name__ = 'ENUM'
+    __visit_name__ = "ENUM"
+
+    native_enum = True
 
     def __init__(self, *enums, **kw):
         """Construct an ENUM.
@@ -113,22 +118,23 @@ class ENUM(sqltypes.Enum, _EnumeratedValues):
 
         """
 
-        kw.pop('strict', None)
-        validate_strings = kw.pop("validate_strings", False)
-        sqltypes.Enum.__init__(
-            self, validate_strings=validate_strings, *enums)
-        kw.pop('metadata', None)
-        kw.pop('schema', None)
-        kw.pop('name', None)
-        kw.pop('quote', None)
-        kw.pop('native_enum', None)
-        kw.pop('inherit_schema', None)
-        kw.pop('_create_events', None)
+        kw.pop("strict", None)
+        self._enum_init(enums, kw)
         _StringType.__init__(self, length=self.length, **kw)
+
+    @classmethod
+    def adapt_emulated_to_native(cls, impl, **kw):
+        """Produce a MySQL native :class:`.mysql.ENUM` from plain
+        :class:`.Enum`.
+
+        """
+        kw.setdefault("validate_strings", impl.validate_strings)
+        kw.setdefault("values_callable", impl.values_callable)
+        return cls(**kw)
 
     def _setup_for_values(self, values, objects, kw):
         values, length = self._init_values(values, kw)
-        return sqltypes.Enum._setup_for_values(self, values, objects, kw)
+        return super(ENUM, self)._setup_for_values(values, objects, kw)
 
     def _object_value_for_elem(self, elem):
         # mysql sends back a blank string for any value that
@@ -142,16 +148,14 @@ class ENUM(sqltypes.Enum, _EnumeratedValues):
 
     def __repr__(self):
         return util.generic_repr(
-            self, to_inspect=[ENUM, _StringType, sqltypes.Enum])
-
-    def adapt(self, cls, **kw):
-        return sqltypes.Enum.adapt(self, cls, **kw)
+            self, to_inspect=[ENUM, _StringType, sqltypes.Enum]
+        )
 
 
 class SET(_EnumeratedValues):
     """MySQL SET type."""
 
-    __visit_name__ = 'SET'
+    __visit_name__ = "SET"
 
     def __init__(self, *values, **kw):
         """Construct a SET.
@@ -216,45 +220,43 @@ class SET(_EnumeratedValues):
 
 
         """
-        self.retrieve_as_bitwise = kw.pop('retrieve_as_bitwise', False)
+        self.retrieve_as_bitwise = kw.pop("retrieve_as_bitwise", False)
         values, length = self._init_values(values, kw)
         self.values = tuple(values)
-        if not self.retrieve_as_bitwise and '' in values:
+        if not self.retrieve_as_bitwise and "" in values:
             raise exc.ArgumentError(
                 "Can't use the blank value '' in a SET without "
-                "setting retrieve_as_bitwise=True")
+                "setting retrieve_as_bitwise=True"
+            )
         if self.retrieve_as_bitwise:
             self._bitmap = dict(
-                (value, 2 ** idx)
-                for idx, value in enumerate(self.values)
+                (value, 2 ** idx) for idx, value in enumerate(self.values)
             )
             self._bitmap.update(
-                (2 ** idx, value)
-                for idx, value in enumerate(self.values)
+                (2 ** idx, value) for idx, value in enumerate(self.values)
             )
-        kw.setdefault('length', length)
+        kw.setdefault("length", length)
         super(SET, self).__init__(**kw)
 
     def column_expression(self, colexpr):
         if self.retrieve_as_bitwise:
             return sql.type_coerce(
-                sql.type_coerce(colexpr, sqltypes.Integer) + 0,
-                self
+                sql.type_coerce(colexpr, sqltypes.Integer) + 0, self
             )
         else:
             return colexpr
 
     def result_processor(self, dialect, coltype):
         if self.retrieve_as_bitwise:
+
             def process(value):
                 if value is not None:
                     value = int(value)
 
-                    return set(
-                        util.map_bits(self._bitmap.__getitem__, value)
-                    )
+                    return set(util.map_bits(self._bitmap.__getitem__, value))
                 else:
                     return None
+
         else:
             super_convert = super(SET, self).result_processor(dialect, coltype)
 
@@ -263,18 +265,20 @@ class SET(_EnumeratedValues):
                     # MySQLdb returns a string, let's parse
                     if super_convert:
                         value = super_convert(value)
-                    return set(re.findall(r'[^,]+', value))
+                    return set(re.findall(r"[^,]+", value))
                 else:
                     # mysql-connector-python does a naive
                     # split(",") which throws in an empty string
                     if value is not None:
-                        value.discard('')
+                        value.discard("")
                     return value
+
         return process
 
     def bind_processor(self, dialect):
         super_convert = super(SET, self).bind_processor(dialect)
         if self.retrieve_as_bitwise:
+
             def process(value):
                 if value is None:
                     return None
@@ -288,24 +292,23 @@ class SET(_EnumeratedValues):
                     for v in value:
                         int_value |= self._bitmap[v]
                     return int_value
+
         else:
 
             def process(value):
                 # accept strings and int (actually bitflag) values directly
                 if value is not None and not isinstance(
-                        value, util.int_types + util.string_types):
+                    value, util.int_types + util.string_types
+                ):
                     value = ",".join(value)
 
                 if super_convert:
                     return super_convert(value)
                 else:
                     return value
+
         return process
 
     def adapt(self, impltype, **kw):
-        kw['retrieve_as_bitwise'] = self.retrieve_as_bitwise
-        return util.constructor_copy(
-            self, impltype,
-            *self.values,
-            **kw
-        )
+        kw["retrieve_as_bitwise"] = self.retrieve_as_bitwise
+        return util.constructor_copy(self, impltype, *self.values, **kw)

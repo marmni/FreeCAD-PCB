@@ -1,5 +1,5 @@
 # ext/orderinglist.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -11,7 +11,7 @@ elements.
 :author: Jason Kirtland
 
 ``orderinglist`` is a helper for mutable ordered relationships.  It will
-intercept list operations performed on a :func:`.relationship`-managed
+intercept list operations performed on a :func:`_orm.relationship`-managed
 collection and
 automatically synchronize changes in list position onto a target scalar
 attribute.
@@ -86,7 +86,7 @@ With the above mapping the ``Bullet.position`` attribute is managed::
 The :class:`.OrderingList` construct only works with **changes** to a
 collection, and not the initial load from the database, and requires that the
 list be sorted when loaded.  Therefore, be sure to specify ``order_by`` on the
-:func:`.relationship` against the target ordering attribute, so that the
+:func:`_orm.relationship` against the target ordering attribute, so that the
 ordering is correct when first loaded.
 
 .. warning::
@@ -107,7 +107,7 @@ ordering is correct when first loaded.
       to lessen the impact of this limitation, however this does not take place
       for a UNIQUE column.
       A future feature will allow the "DELETE before INSERT" behavior to be
-      possible, allevating this limitation, though this feature will require
+      possible, alleviating this limitation, though this feature will require
       explicit configuration at the mapper level for sets of columns that
       are to be handled in this way.
 
@@ -119,10 +119,12 @@ start numbering at 1 or some other integer, provide ``count_from=1``.
 
 
 """
-from ..orm.collections import collection, collection_adapter
 from .. import util
+from ..orm.collections import collection
+from ..orm.collections import collection_adapter
 
-__all__ = ['ordering_list']
+
+__all__ = ["ordering_list"]
 
 
 def ordering_list(attr, count_from=None, **kw):
@@ -180,8 +182,9 @@ def count_from_n_factory(start):
 
     def f(index, collection):
         return index + start
+
     try:
-        f.__name__ = 'count_from_%i' % start
+        f.__name__ = "count_from_%i" % start
     except TypeError:
         pass
     return f
@@ -194,14 +197,14 @@ def _unsugar_count_from(**kw):
     ``count_from`` argument, otherwise passes ``ordering_func`` on unchanged.
     """
 
-    count_from = kw.pop('count_from', None)
-    if kw.get('ordering_func', None) is None and count_from is not None:
+    count_from = kw.pop("count_from", None)
+    if kw.get("ordering_func", None) is None and count_from is not None:
         if count_from == 0:
-            kw['ordering_func'] = count_from_0
+            kw["ordering_func"] = count_from_0
         elif count_from == 1:
-            kw['ordering_func'] = count_from_1
+            kw["ordering_func"] = count_from_1
         else:
-            kw['ordering_func'] = count_from_n_factory(count_from)
+            kw["ordering_func"] = count_from_n_factory(count_from)
     return kw
 
 
@@ -210,12 +213,13 @@ class OrderingList(list):
 
     The :class:`.OrderingList` object is normally set up using the
     :func:`.ordering_list` factory function, used in conjunction with
-    the :func:`.relationship` function.
+    the :func:`_orm.relationship` function.
 
     """
 
-    def __init__(self, ordering_attr=None, ordering_func=None,
-                 reorder_on_append=False):
+    def __init__(
+        self, ordering_attr=None, ordering_func=None, reorder_on_append=False
+    ):
         """A custom list that manages position information for its children.
 
         ``OrderingList`` is a ``collection_class`` list implementation that
@@ -311,6 +315,7 @@ class OrderingList(list):
         """Append without any ordering behavior."""
 
         super(OrderingList, self).append(entity)
+
     _raw_append = collection.adds(1)(_raw_append)
 
     def insert(self, index, entity):
@@ -361,14 +366,18 @@ class OrderingList(list):
         return _reconstitute, (self.__class__, self.__dict__, list(self))
 
     for func_name, func in list(locals().items()):
-        if (util.callable(func) and func.__name__ == func_name and
-                not func.__doc__ and hasattr(list, func_name)):
+        if (
+            util.callable(func)
+            and func.__name__ == func_name
+            and not func.__doc__
+            and hasattr(list, func_name)
+        ):
             func.__doc__ = getattr(list, func_name).__doc__
     del func_name, func
 
 
 def _reconstitute(cls, dict_, items):
-    """ Reconstitute an :class:`.OrderingList`.
+    """Reconstitute an :class:`.OrderingList`.
 
     This is the adjoint to :meth:`.OrderingList.__reduce__`.  It is used for
     unpickling :class:`.OrderingList` objects.

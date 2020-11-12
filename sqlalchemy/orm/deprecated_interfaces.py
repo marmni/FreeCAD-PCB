@@ -1,23 +1,24 @@
 # orm/deprecated_interfaces.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from .. import event, util
 from .interfaces import EXT_CONTINUE
+from .. import event
+from .. import util
 
 
 @util.langhelpers.dependency_for("sqlalchemy.orm.interfaces")
 class MapperExtension(object):
-    """Base implementation for :class:`.Mapper` event hooks.
+    """Base implementation for :class:`_orm.Mapper` event hooks.
 
-    .. note::
+    .. deprecated:: 0.7
 
-       :class:`.MapperExtension` is deprecated.   Please
-       refer to :func:`.event.listen` as well as
-       :class:`.MapperEvents`.
+       :class:`.MapperExtension` is deprecated and will be removed in a future
+       release.  Please refer to :func:`.event.listen` in conjunction with
+       the :class:`.MapperEvents` listener interface.
 
     New extension classes subclass :class:`.MapperExtension` and are specified
     using the ``extension`` mapper() argument, which is a single
@@ -58,23 +59,25 @@ class MapperExtension(object):
 
     @classmethod
     def _adapt_instrument_class(cls, self, listener):
-        cls._adapt_listener_methods(self, listener, ('instrument_class',))
+        cls._adapt_listener_methods(self, listener, ("instrument_class",))
 
     @classmethod
     def _adapt_listener(cls, self, listener):
         cls._adapt_listener_methods(
-            self, listener,
+            self,
+            listener,
             (
-                'init_instance',
-                'init_failed',
-                'reconstruct_instance',
-                'before_insert',
-                'after_insert',
-                'before_update',
-                'after_update',
-                'before_delete',
-                'after_delete'
-            ))
+                "init_instance",
+                "init_failed",
+                "reconstruct_instance",
+                "before_insert",
+                "after_insert",
+                "before_update",
+                "after_update",
+                "before_delete",
+                "after_delete",
+            ),
+        )
 
     @classmethod
     def _adapt_listener_methods(cls, self, listener, methods):
@@ -84,36 +87,83 @@ class MapperExtension(object):
             ls_meth = getattr(listener, meth)
 
             if not util.methods_equivalent(me_meth, ls_meth):
-                if meth == 'reconstruct_instance':
+                util.warn_deprecated(
+                    "MapperExtension.%s is deprecated.  The "
+                    "MapperExtension class will be removed in a future "
+                    "release.  Please transition to the @event interface, "
+                    "using @event.listens_for(mapped_class, '%s')."
+                    % (meth, meth)
+                )
+
+                if meth == "reconstruct_instance":
+
                     def go(ls_meth):
                         def reconstruct(instance, ctx):
                             ls_meth(self, instance)
+
                         return reconstruct
-                    event.listen(self.class_manager, 'load',
-                                 go(ls_meth), raw=False, propagate=True)
-                elif meth == 'init_instance':
+
+                    event.listen(
+                        self.class_manager,
+                        "load",
+                        go(ls_meth),
+                        raw=False,
+                        propagate=True,
+                    )
+                elif meth == "init_instance":
+
                     def go(ls_meth):
                         def init_instance(instance, args, kwargs):
-                            ls_meth(self, self.class_,
-                                    self.class_manager.original_init,
-                                    instance, args, kwargs)
+                            ls_meth(
+                                self,
+                                self.class_,
+                                self.class_manager.original_init,
+                                instance,
+                                args,
+                                kwargs,
+                            )
+
                         return init_instance
-                    event.listen(self.class_manager, 'init',
-                                 go(ls_meth), raw=False, propagate=True)
-                elif meth == 'init_failed':
+
+                    event.listen(
+                        self.class_manager,
+                        "init",
+                        go(ls_meth),
+                        raw=False,
+                        propagate=True,
+                    )
+                elif meth == "init_failed":
+
                     def go(ls_meth):
                         def init_failed(instance, args, kwargs):
                             util.warn_exception(
-                                ls_meth, self, self.class_,
+                                ls_meth,
+                                self,
+                                self.class_,
                                 self.class_manager.original_init,
-                                instance, args, kwargs)
+                                instance,
+                                args,
+                                kwargs,
+                            )
 
                         return init_failed
-                    event.listen(self.class_manager, 'init_failure',
-                                 go(ls_meth), raw=False, propagate=True)
+
+                    event.listen(
+                        self.class_manager,
+                        "init_failure",
+                        go(ls_meth),
+                        raw=False,
+                        propagate=True,
+                    )
                 else:
-                    event.listen(self, "%s" % meth, ls_meth,
-                                 raw=False, retval=True, propagate=True)
+                    event.listen(
+                        self,
+                        "%s" % meth,
+                        ls_meth,
+                        raw=False,
+                        retval=True,
+                        propagate=True,
+                    )
 
     def instrument_class(self, mapper, class_):
         """Receive a class when the mapper is first constructed, and has
@@ -276,11 +326,11 @@ class SessionExtension(object):
 
     """Base implementation for :class:`.Session` event hooks.
 
-    .. note::
+    .. deprecated:: 0.7
 
-       :class:`.SessionExtension` is deprecated.   Please
-       refer to :func:`.event.listen` as well as
-       :class:`.SessionEvents`.
+       :class:`.SessionExtension` is deprecated and will be removed in a future
+       release.  Please refer to :func:`.event.listen` in conjunction with
+       the :class:`.SessionEvents` listener interface.
 
     Subclasses may be installed into a :class:`.Session` (or
     :class:`.sessionmaker`) using the ``extension`` keyword
@@ -302,21 +352,28 @@ class SessionExtension(object):
     @classmethod
     def _adapt_listener(cls, self, listener):
         for meth in [
-            'before_commit',
-            'after_commit',
-            'after_rollback',
-            'before_flush',
-            'after_flush',
-            'after_flush_postexec',
-            'after_begin',
-            'after_attach',
-            'after_bulk_update',
-            'after_bulk_delete',
+            "before_commit",
+            "after_commit",
+            "after_rollback",
+            "before_flush",
+            "after_flush",
+            "after_flush_postexec",
+            "after_begin",
+            "after_attach",
+            "after_bulk_update",
+            "after_bulk_delete",
         ]:
             me_meth = getattr(SessionExtension, meth)
             ls_meth = getattr(listener, meth)
 
             if not util.methods_equivalent(me_meth, ls_meth):
+                util.warn_deprecated(
+                    "SessionExtension.%s is deprecated.  The "
+                    "SessionExtension class will be removed in a future "
+                    "release.  Please transition to the @event interface, "
+                    "using @event.listens_for(Session, '%s')." % (meth, meth)
+                )
+
                 event.listen(self, meth, getattr(listener, meth))
 
     def before_commit(self, session):
@@ -341,7 +398,7 @@ class SessionExtension(object):
         """Execute before flush process has started.
 
         `instances` is an optional list of objects which were passed to
-        the ``flush()`` method. """
+        the ``flush()`` method."""
 
     def after_flush(self, session, flush_context):
         """Execute after flush has completed, but before commit has been
@@ -358,18 +415,18 @@ class SessionExtension(object):
         This will be when the 'new', 'dirty', and 'deleted' lists are in
         their final state.  An actual commit() may or may not have
         occurred, depending on whether or not the flush started its own
-        transaction or participated in a larger transaction. """
+        transaction or participated in a larger transaction."""
 
     def after_begin(self, session, transaction, connection):
         """Execute after a transaction is begun on a connection
 
         `transaction` is the SessionTransaction. This method is called
-        after an engine level transaction is begun on a connection. """
+        after an engine level transaction is begun on a connection."""
 
     def after_attach(self, session, instance):
         """Execute after an instance is attached to a session.
 
-        This is called after an add, delete or merge. """
+        This is called after an add, delete or merge."""
 
     def after_bulk_update(self, session, query, query_context, result):
         """Execute after a bulk update operation to the session.
@@ -397,17 +454,17 @@ class AttributeExtension(object):
     """Base implementation for :class:`.AttributeImpl` event hooks, events
     that fire upon attribute mutations in user code.
 
-    .. note::
+    .. deprecated:: 0.7
 
-       :class:`.AttributeExtension` is deprecated.   Please
-       refer to :func:`.event.listen` as well as
-       :class:`.AttributeEvents`.
+       :class:`.AttributeExtension` is deprecated and will be removed in a
+       future release.  Please refer to :func:`.event.listen` in conjunction
+       with the :class:`.AttributeEvents` listener interface.
 
     :class:`.AttributeExtension` is used to listen for set,
     remove, and append events on individual mapped attributes.
     It is established on an individual mapped attribute using
     the `extension` argument, available on
-    :func:`.column_property`, :func:`.relationship`, and
+    :func:`.column_property`, :func:`_orm.relationship`, and
     others::
 
         from sqlalchemy.orm.interfaces import AttributeExtension
@@ -444,21 +501,49 @@ class AttributeExtension(object):
     even if it means firing lazy callables.
 
     Note that ``active_history`` can also be set directly via
-    :func:`.column_property` and :func:`.relationship`.
+    :func:`.column_property` and :func:`_orm.relationship`.
 
     """
 
     @classmethod
     def _adapt_listener(cls, self, listener):
-        event.listen(self, 'append', listener.append,
-                     active_history=listener.active_history,
-                     raw=True, retval=True)
-        event.listen(self, 'remove', listener.remove,
-                     active_history=listener.active_history,
-                     raw=True, retval=True)
-        event.listen(self, 'set', listener.set,
-                     active_history=listener.active_history,
-                     raw=True, retval=True)
+        for meth in ["append", "remove", "set"]:
+            me_meth = getattr(AttributeExtension, meth)
+            ls_meth = getattr(listener, meth)
+
+            if not util.methods_equivalent(me_meth, ls_meth):
+                util.warn_deprecated(
+                    "AttributeExtension.%s is deprecated.  The "
+                    "AttributeExtension class will be removed in a future "
+                    "release.  Please transition to the @event interface, "
+                    "using @event.listens_for(Class.attribute, '%s')."
+                    % (meth, meth)
+                )
+
+        event.listen(
+            self,
+            "append",
+            listener.append,
+            active_history=listener.active_history,
+            raw=True,
+            retval=True,
+        )
+        event.listen(
+            self,
+            "remove",
+            listener.remove,
+            active_history=listener.active_history,
+            raw=True,
+            retval=True,
+        )
+        event.listen(
+            self,
+            "set",
+            listener.set,
+            active_history=listener.active_history,
+            raw=True,
+            retval=True,
+        )
 
     def append(self, state, value, initiator):
         """Receive a collection append event.

@@ -1,5 +1,5 @@
 # ext/mutable.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -7,10 +7,6 @@
 
 r"""Provide support for tracking of in-place changes to scalar values,
 which are propagated into ORM change events on owning parent objects.
-
-.. versionadded:: 0.7 :mod:`sqlalchemy.ext.mutable` replaces SQLAlchemy's
-   legacy approach to in-place mutations of scalar values; see
-   :ref:`07_migration_mutation_extension`.
 
 .. _mutable_scalars:
 
@@ -43,7 +39,7 @@ JSON strings before being persisted::
 The usage of ``json`` is only for the purposes of example. The
 :mod:`sqlalchemy.ext.mutable` extension can be used
 with any type whose target Python type may be mutable, including
-:class:`.PickleType`, :class:`.postgresql.ARRAY`, etc.
+:class:`.PickleType`, :class:`_postgresql.ARRAY`, etc.
 
 When using the :mod:`sqlalchemy.ext.mutable` extension, the value itself
 tracks all parents which reference it.  Below, we illustrate a simple
@@ -204,6 +200,28 @@ or more parent objects that are also part of the pickle, the :class:`.Mutable`
 mixin will re-establish the :attr:`.Mutable._parents` collection on each value
 object as the owning parents themselves are unpickled.
 
+Receiving Events
+----------------
+
+The :meth:`.AttributeEvents.modified` event handler may be used to receive
+an event when a mutable scalar emits a change event.  This event handler
+is called when the :func:`.attributes.flag_modified` function is called
+from within the mutable extension::
+
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy import event
+
+    Base = declarative_base()
+
+    class MyDataClass(Base):
+        __tablename__ = 'my_data'
+        id = Column(Integer, primary_key=True)
+        data = Column(MutableDict.as_mutable(JSONEncodedDict))
+
+    @event.listens_for(MyDataClass.data, "modified")
+    def modified_json(instance):
+        print("json value modified:", instance.data)
+
 .. _mutable_composites:
 
 Establishing Mutability on Composites
@@ -213,14 +231,6 @@ Composites are a special ORM feature which allow a single scalar attribute to
 be assigned an object value which represents information "composed" from one
 or more columns from the underlying mapped table. The usual example is that of
 a geometric "point", and is introduced in :ref:`mapper_composite`.
-
-.. versionchanged:: 0.7
-    The internals of :func:`.orm.composite` have been
-    greatly simplified and in-place mutation detection is no longer enabled by
-    default; instead, the user-defined value must detect changes on its own and
-    propagate them to all owning parents. The :mod:`sqlalchemy.ext.mutable`
-    extension provides the helper class :class:`.MutableComposite`, which is a
-    slight variant on the :class:`.Mutable` class.
 
 As is the case with :class:`.Mutable`, the user-defined composite class
 subclasses :class:`.MutableComposite` as a mixin, and detects and delivers
@@ -260,7 +270,7 @@ and to also route attribute set events via ``__setattr__`` to the
             return not self.__eq__(other)
 
 The :class:`.MutableComposite` class uses a Python metaclass to automatically
-establish listeners for any usage of :func:`.orm.composite` that specifies our
+establish listeners for any usage of :func:`_orm.composite` that specifies our
 ``Point`` type. Below, when ``Point`` is mapped to the ``Vertex`` class,
 listeners are established which will route change events from ``Point``
 objects to each of the ``Vertex.start`` and ``Vertex.end`` attributes::
@@ -319,10 +329,6 @@ make use of the custom composite type::
                 raise ValueError("tuple or Point expected")
             return value
 
-.. versionadded:: 0.7.10,0.8.0b2
-    Support for the :meth:`.MutableBase.coerce` method in conjunction with
-    objects of type :class:`.MutableComposite`.
-
 Supporting Pickling
 --------------------
 
@@ -348,12 +354,16 @@ pickling process of the parent's object-relational state so that the
 :meth:`MutableBase._parents` collection is restored to all ``Point`` objects.
 
 """
-from ..orm.attributes import flag_modified
-from .. import event, types
-from ..orm import mapper, object_mapper, Mapper
-from ..util import memoized_property
-from ..sql.base import SchemaEventTarget
 import weakref
+
+from .. import event
+from .. import types
+from ..orm import Mapper
+from ..orm import mapper
+from ..orm import object_mapper
+from ..orm.attributes import flag_modified
+from ..sql.base import SchemaEventTarget
+from ..util import memoized_property
 
 
 class MutableBase(object):
@@ -422,7 +432,7 @@ class MutableBase(object):
         .. versionadded:: 1.0.5
 
         """
-        return set([attribute.key])
+        return {attribute.key}
 
     @classmethod
     def _listen_on_attribute(cls, attribute, coerce, parent_cls):
@@ -457,7 +467,7 @@ class MutableBase(object):
             if not attrs or listen_keys.intersection(attrs):
                 load(state)
 
-        def set(target, value, oldvalue, initiator):
+        def set_(target, value, oldvalue, initiator):
             """Listen for set/replace events on the target
             data member.
 
@@ -480,27 +490,29 @@ class MutableBase(object):
         def pickle(state, state_dict):
             val = state.dict.get(key, None)
             if val is not None:
-                if 'ext.mutable.values' not in state_dict:
-                    state_dict['ext.mutable.values'] = []
-                state_dict['ext.mutable.values'].append(val)
+                if "ext.mutable.values" not in state_dict:
+                    state_dict["ext.mutable.values"] = []
+                state_dict["ext.mutable.values"].append(val)
 
         def unpickle(state, state_dict):
-            if 'ext.mutable.values' in state_dict:
-                for val in state_dict['ext.mutable.values']:
+            if "ext.mutable.values" in state_dict:
+                for val in state_dict["ext.mutable.values"]:
                     val._parents[state.obj()] = key
 
-        event.listen(parent_cls, 'load', load,
-                     raw=True, propagate=True)
-        event.listen(parent_cls, 'refresh', load_attrs,
-                     raw=True, propagate=True)
-        event.listen(parent_cls, 'refresh_flush', load_attrs,
-                     raw=True, propagate=True)
-        event.listen(attribute, 'set', set,
-                     raw=True, retval=True, propagate=True)
-        event.listen(parent_cls, 'pickle', pickle,
-                     raw=True, propagate=True)
-        event.listen(parent_cls, 'unpickle', unpickle,
-                     raw=True, propagate=True)
+        event.listen(parent_cls, "load", load, raw=True, propagate=True)
+        event.listen(
+            parent_cls, "refresh", load_attrs, raw=True, propagate=True
+        )
+        event.listen(
+            parent_cls, "refresh_flush", load_attrs, raw=True, propagate=True
+        )
+        event.listen(
+            attribute, "set", set_, raw=True, retval=True, propagate=True
+        )
+        event.listen(parent_cls, "pickle", pickle, raw=True, propagate=True)
+        event.listen(
+            parent_cls, "unpickle", unpickle, raw=True, propagate=True
+        )
 
 
 class Mutable(MutableBase):
@@ -544,11 +556,13 @@ class Mutable(MutableBase):
         """
 
         def listen_for_type(mapper, class_):
+            if mapper.non_primary:
+                return
             for prop in mapper.column_attrs:
                 if isinstance(prop.columns[0].type, sqltype):
                     cls.associate_with_attribute(getattr(class_, prop.key))
 
-        event.listen(mapper, 'mapper_configured', listen_for_type)
+        event.listen(mapper, "mapper_configured", listen_for_type)
 
     @classmethod
     def as_mutable(cls, sqltype):
@@ -589,26 +603,28 @@ class Mutable(MutableBase):
         # and we'll lose our ability to link that type back to the original.
         # so track our original type w/ columns
         if isinstance(sqltype, SchemaEventTarget):
+
             @event.listens_for(sqltype, "before_parent_attach")
             def _add_column_memo(sqltyp, parent):
-                parent.info['_ext_mutable_orig_type'] = sqltyp
+                parent.info["_ext_mutable_orig_type"] = sqltyp
+
             schema_event_check = True
         else:
             schema_event_check = False
 
         def listen_for_type(mapper, class_):
+            if mapper.non_primary:
+                return
             for prop in mapper.column_attrs:
                 if (
-                        schema_event_check and
-                        hasattr(prop.expression, 'info') and
-                        prop.expression.info.get('_ext_mutable_orig_type')
-                        is sqltype
-                ) or (
-                    prop.columns[0].type is sqltype
-                ):
+                    schema_event_check
+                    and hasattr(prop.expression, "info")
+                    and prop.expression.info.get("_ext_mutable_orig_type")
+                    is sqltype
+                ) or (prop.columns[0].type is sqltype):
                     cls.associate_with_attribute(getattr(class_, prop.key))
 
-        event.listen(mapper, 'mapper_configured', listen_for_type)
+        event.listen(mapper, "mapper_configured", listen_for_type)
 
         return sqltype
 
@@ -624,7 +640,7 @@ class MutableComposite(MutableBase):
 
     @classmethod
     def _get_listen_keys(cls, attribute):
-        return set([attribute.key]).union(attribute.property._attribute_keys)
+        return {attribute.key}.union(attribute.property._attribute_keys)
 
     def changed(self):
         """Subclasses should call this method whenever change events occur."""
@@ -633,21 +649,27 @@ class MutableComposite(MutableBase):
 
             prop = object_mapper(parent).get_property(key)
             for value, attr_name in zip(
-                    self.__composite_values__(),
-                    prop._attribute_keys):
+                self.__composite_values__(), prop._attribute_keys
+            ):
                 setattr(parent, attr_name, value)
 
 
 def _setup_composite_listener():
     def _listen_for_type(mapper, class_):
         for prop in mapper.iterate_properties:
-            if (hasattr(prop, 'composite_class') and
-                    isinstance(prop.composite_class, type) and
-                    issubclass(prop.composite_class, MutableComposite)):
+            if (
+                hasattr(prop, "composite_class")
+                and isinstance(prop.composite_class, type)
+                and issubclass(prop.composite_class, MutableComposite)
+            ):
                 prop.composite_class._listen_on_attribute(
-                    getattr(class_, prop.key), False, class_)
+                    getattr(class_, prop.key), False, class_
+                )
+
     if not event.contains(Mapper, "mapper_configured", _listen_for_type):
-        event.listen(Mapper, 'mapper_configured', _listen_for_type)
+        event.listen(Mapper, "mapper_configured", _listen_for_type)
+
+
 _setup_composite_listener()
 
 
@@ -663,10 +685,8 @@ class MutableDict(Mutable, dict):
     solution for the use case of tracking deep changes to a *recursive*
     dictionary structure, such as a JSON structure.  To support this use case,
     build a subclass of  :class:`.MutableDict` that provides appropriate
-    coersion to the values placed in the dictionary so that they too are
+    coercion to the values placed in the dictionary so that they too are
     "mutable", and emit events up to their parent structure.
-
-    .. versionadded:: 0.8
 
     .. seealso::
 
@@ -738,7 +758,7 @@ class MutableList(Mutable, list):
     solution for the use case of tracking deep changes to a *recursive*
     mutable structure, such as a JSON structure.  To support this use case,
     build a subclass of  :class:`.MutableList` that provides appropriate
-    coersion to the values placed in the dictionary so that they too are
+    coercion to the values placed in the dictionary so that they too are
     "mutable", and emit events up to their parent structure.
 
     .. versionadded:: 1.1
@@ -750,6 +770,14 @@ class MutableList(Mutable, list):
         :class:`.MutableSet`
 
     """
+
+    def __reduce_ex__(self, proto):
+        return (self.__class__, (list(self),))
+
+    # needed for backwards compatibility with
+    # older pickles
+    def __setstate__(self, state):
+        self[:] = state
 
     def __setitem__(self, index, value):
         """Detect list set events and emit change events."""
@@ -784,6 +812,10 @@ class MutableList(Mutable, list):
         list.extend(self, x)
         self.changed()
 
+    def __iadd__(self, x):
+        self.extend(x)
+        return self
+
     def insert(self, i, x):
         list.insert(self, i, x)
         self.changed()
@@ -796,8 +828,8 @@ class MutableList(Mutable, list):
         list.clear(self)
         self.changed()
 
-    def sort(self):
-        list.sort(self)
+    def sort(self, **kw):
+        list.sort(self, **kw)
         self.changed()
 
     def reverse(self):
@@ -814,12 +846,6 @@ class MutableList(Mutable, list):
         else:
             return value
 
-    def __getstate__(self):
-        return list(self)
-
-    def __setstate__(self, state):
-        self[:] = state
-
 
 class MutableSet(Mutable, set):
     """A set type that implements :class:`.Mutable`.
@@ -833,7 +859,7 @@ class MutableSet(Mutable, set):
     solution for the use case of tracking deep changes to a *recursive*
     mutable structure.  To support this use case,
     build a subclass of  :class:`.MutableSet` that provides appropriate
-    coersion to the values placed in the dictionary so that they too are
+    coercion to the values placed in the dictionary so that they too are
     "mutable", and emit events up to their parent structure.
 
     .. versionadded:: 1.1
@@ -862,6 +888,22 @@ class MutableSet(Mutable, set):
     def symmetric_difference_update(self, *arg):
         set.symmetric_difference_update(self, *arg)
         self.changed()
+
+    def __ior__(self, other):
+        self.update(other)
+        return self
+
+    def __iand__(self, other):
+        self.intersection_update(other)
+        return self
+
+    def __ixor__(self, other):
+        self.symmetric_difference_update(other)
+        return self
+
+    def __isub__(self, other):
+        self.difference_update(other)
+        return self
 
     def add(self, elem):
         set.add(self, elem)
@@ -901,4 +943,4 @@ class MutableSet(Mutable, set):
         self.update(state)
 
     def __reduce_ex__(self, proto):
-        return (self.__class__, (list(self), ))
+        return (self.__class__, (list(self),))

@@ -1,5 +1,5 @@
 # sqlite/pysqlite.py
-# Copyright (C) 2005-2017 the SQLAlchemy authors and contributors
+# Copyright (C) 2005-2020 the SQLAlchemy authors and contributors
 # <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -18,19 +18,8 @@ r"""
 Driver
 ------
 
-When using Python 2.5 and above, the built in ``sqlite3`` driver is
-already installed and no additional installation is needed.  Otherwise,
-the ``pysqlite2`` driver needs to be present.  This is the same driver as
-``sqlite3``, just with a different name.
-
-The ``pysqlite2`` driver will be loaded first, and if not found, ``sqlite3``
-is loaded.  This allows an explicitly installed pysqlite driver to take
-precedence over the built in one.   As with all dialects, a specific
-DBAPI module may be provided to :func:`~sqlalchemy.create_engine()` to control
-this explicitly::
-
-    from sqlite3 import dbapi2 as sqlite
-    e = create_engine('sqlite+pysqlite:///file.db', module=sqlite)
+The ``sqlite3`` Python DBAPI is standard on all modern Python versions;
+for cPython and Pypy, no additional installation is necessary.
 
 
 Connect Strings
@@ -65,6 +54,71 @@ present.  Specify ``sqlite://`` and nothing else::
 
     # in-memory database
     e = create_engine('sqlite://')
+
+.. _pysqlite_uri_connections:
+
+URI Connections
+^^^^^^^^^^^^^^^
+
+Modern versions of SQLite support an alternative system of connecting using a
+`driver level URI <https://www.sqlite.org/uri.html>`_, which has the  advantage
+that additional driver-level arguments can be passed including options such as
+"read only".   The Python sqlite3 driver supports this mode under modern Python
+3 versions.   The SQLAlchemy pysqlite driver supports this mode of use by
+specifing "uri=true" in the URL query string.  The SQLite-level "URI" is kept
+as the "database" portion of the SQLAlchemy url (that is, following a slash)::
+
+    e = create_engine("sqlite:///file:path/to/database?mode=ro&uri=true")
+
+.. note::  The "uri=true" parameter must appear in the **query string**
+   of the URL.  It will not currently work as expected if it is only
+   present in the :paramref:`_sa.create_engine.connect_args`
+   parameter dictionary.
+
+The logic reconciles the simultaneous presence of SQLAlchemy's query string and
+SQLite's query string by separating out the parameters that belong to the
+Python sqlite3 driver vs. those that belong to the SQLite URI.  This is
+achieved through the use of a fixed list of parameters known to be accepted by
+the Python side of the driver.  For example, to include a URL that indicates
+the Python sqlite3 "timeout" and "check_same_thread" parameters, along with the
+SQLite "mode" and "nolock" parameters, they can all be passed together on the
+query string::
+
+    e = create_engine(
+        "sqlite:///file:path/to/database?"
+        "check_same_thread=true&timeout=10&mode=ro&nolock=1&uri=true"
+    )
+
+Above, the pysqlite / sqlite3 DBAPI would be passed arguments as::
+
+    sqlite3.connect(
+        "file:path/to/database?mode=ro&nolock=1",
+        check_same_thread=True, timeout=10, uri=True
+    )
+
+Regarding future parameters added to either the Python or native drivers. new
+parameter names added to the SQLite URI scheme should be automatically
+accommodated by this scheme.  New parameter names added to the Python driver
+side can be accommodated by specifying them in the
+:paramref:`_sa.create_engine.connect_args` dictionary,
+until dialect support is
+added by SQLAlchemy.   For the less likely case that the native SQLite driver
+adds a new parameter name that overlaps with one of the existing, known Python
+driver parameters (such as "timeout" perhaps), SQLAlchemy's dialect would
+require adjustment for the URL scheme to continue to support this.
+
+As is always the case for all SQLAlchemy dialects, the entire "URL" process
+can be bypassed in :func:`_sa.create_engine` through the use of the
+:paramref:`_sa.create_engine.creator`
+parameter which allows for a custom callable
+that creates a Python sqlite3 driver level connection directly.
+
+.. versionadded:: 1.3.9
+
+.. seealso::
+
+    `Uniform Resource Identifiers <https://www.sqlite.org/uri.html>`_ - in
+    the SQLite documentation
 
 Compatibility with sqlite3 "native" date and datetime types
 -----------------------------------------------------------
@@ -135,12 +189,6 @@ SQLAlchemy sets up pooling to work with Pysqlite's default behavior:
   necessary. The scheme also prevents a connection from being used again in
   a different thread and works best with SQLite's coarse-grained file locking.
 
-  .. versionchanged:: 0.7
-      Default selection of :class:`.NullPool` for SQLite file-based databases.
-      Previous versions select :class:`.SingletonThreadPool` by
-      default for all SQLite databases.
-
-
 Using a Memory Database in Multiple Threads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -198,6 +246,44 @@ require unicode, however, so that non-``unicode`` values passed inadvertently
 will emit a warning.  Pysqlite will emit an error if a non-``unicode`` string
 is passed containing non-ASCII characters.
 
+Dealing with Mixed String / Binary Columns in Python 3
+------------------------------------------------------
+
+The SQLite database is weakly typed, and as such it is possible when using
+binary values, which in Python 3 are represented as ``b'some string'``, that a
+particular SQLite database can have data values within different rows where
+some of them will be returned as a ``b''`` value by the Pysqlite driver, and
+others will be returned as Python strings, e.g. ``''`` values.   This situation
+is not known to occur if the SQLAlchemy :class:`.LargeBinary` datatype is used
+consistently, however if a particular SQLite database has data that was
+inserted using the Pysqlite driver directly, or when using the SQLAlchemy
+:class:`.String` type which was later changed to :class:`.LargeBinary`, the
+table will not be consistently readable because SQLAlchemy's
+:class:`.LargeBinary` datatype does not handle strings so it has no way of
+"encoding" a value that is in string format.
+
+To deal with a SQLite table that has mixed string / binary data in the
+same column, use a custom type that will check each row individually::
+
+    # note this is Python 3 only
+
+    from sqlalchemy import String
+    from sqlalchemy import TypeDecorator
+
+    class MixedBinary(TypeDecorator):
+        impl = String
+
+        def process_result_value(self, value, dialect):
+            if isinstance(value, str):
+                value = bytes(value, 'utf-8')
+            elif value is not None:
+                value = bytes(value)
+
+            return value
+
+Then use the above ``MixedBinary`` datatype in the place where
+:class:`.LargeBinary` would normally be used.
+
 .. _pysqlite_serializable:
 
 Serializable isolation / Savepoints / Transactional DDL
@@ -241,12 +327,20 @@ ourselves. This is achieved using two event listeners::
         # emit our own BEGIN
         conn.execute("BEGIN")
 
+.. warning:: When using the above recipe, it is advised to not use the
+   :paramref:`.Connection.execution_options.isolation_level` setting on
+   :class:`_engine.Connection` and :func:`_sa.create_engine`
+   with the SQLite driver,
+   as this function necessarily will also alter the ".isolation_level" setting.
+
+
 Above, we intercept a new pysqlite connection and disable any transactional
 integration.   Then, at the point at which SQLAlchemy knows that transaction
 scope is to begin, we emit ``"BEGIN"`` ourselves.
 
 When we take control of ``"BEGIN"``, we can also control directly SQLite's
-locking modes, introduced at `BEGIN TRANSACTION <http://sqlite.org/lang_transaction.html>`_,
+locking modes, introduced at
+`BEGIN TRANSACTION <http://sqlite.org/lang_transaction.html>`_,
 by adding the desired locking mode to our ``"BEGIN"``::
 
     @event.listens_for(engine, "begin")
@@ -255,21 +349,27 @@ by adding the desired locking mode to our ``"BEGIN"``::
 
 .. seealso::
 
-    `BEGIN TRANSACTION <http://sqlite.org/lang_transaction.html>`_ - on the SQLite site
+    `BEGIN TRANSACTION <http://sqlite.org/lang_transaction.html>`_ -
+    on the SQLite site
 
-    `sqlite3 SELECT does not BEGIN a transaction <http://bugs.python.org/issue9924>`_ - on the Python bug tracker
+    `sqlite3 SELECT does not BEGIN a transaction <http://bugs.python.org/issue9924>`_ -
+    on the Python bug tracker
 
-    `sqlite3 module breaks transactions and potentially corrupts data <http://bugs.python.org/issue10740>`_ - on the Python bug tracker
+    `sqlite3 module breaks transactions and potentially corrupts data <http://bugs.python.org/issue10740>`_ -
+    on the Python bug tracker
 
 
-"""
-
-from sqlalchemy.dialects.sqlite.base import SQLiteDialect, DATETIME, DATE
-from sqlalchemy import exc, pool
-from sqlalchemy import types as sqltypes
-from sqlalchemy import util
+"""  # noqa
 
 import os
+
+from .base import DATE
+from .base import DATETIME
+from .base import SQLiteDialect
+from ... import exc
+from ... import pool
+from ... import types as sqltypes
+from ... import util
 
 
 class _SQLite_pysqliteTimeStamp(DATETIME):
@@ -301,53 +401,65 @@ class _SQLite_pysqliteDate(DATE):
 
 
 class SQLiteDialect_pysqlite(SQLiteDialect):
-    default_paramstyle = 'qmark'
+    default_paramstyle = "qmark"
 
     colspecs = util.update_copy(
         SQLiteDialect.colspecs,
         {
             sqltypes.Date: _SQLite_pysqliteDate,
             sqltypes.TIMESTAMP: _SQLite_pysqliteTimeStamp,
-        }
+        },
     )
 
     if not util.py2k:
         description_encoding = None
 
-    driver = 'pysqlite'
-
-    def __init__(self, **kwargs):
-        SQLiteDialect.__init__(self, **kwargs)
-
-        if self.dbapi is not None:
-            sqlite_ver = self.dbapi.version_info
-            if sqlite_ver < (2, 1, 3):
-                util.warn(
-                    ("The installed version of pysqlite2 (%s) is out-dated "
-                     "and will cause errors in some cases.  Version 2.1.3 "
-                     "or greater is recommended.") %
-                    '.'.join([str(subver) for subver in sqlite_ver]))
+    driver = "pysqlite"
 
     @classmethod
     def dbapi(cls):
-        try:
-            from pysqlite2 import dbapi2 as sqlite
-        except ImportError as e:
+        if util.py2k:
             try:
-                from sqlite3 import dbapi2 as sqlite  # try 2.5+ stdlib name.
+                from pysqlite2 import dbapi2 as sqlite
             except ImportError:
-                raise e
+                try:
+                    from sqlite3 import dbapi2 as sqlite
+                except ImportError as e:
+                    raise e
+        else:
+            from sqlite3 import dbapi2 as sqlite
         return sqlite
 
     @classmethod
+    def _is_url_file_db(cls, url):
+        if url.database and url.database != ":memory:":
+            return True
+        else:
+            return False
+
+    @classmethod
     def get_pool_class(cls, url):
-        if url.database and url.database != ':memory:':
+        if cls._is_url_file_db(url):
             return pool.NullPool
         else:
             return pool.SingletonThreadPool
 
     def _get_server_version_info(self, connection):
         return self.dbapi.sqlite_version_info
+
+    def set_isolation_level(self, connection, level):
+        if hasattr(connection, "connection"):
+            dbapi_connection = connection.connection
+        else:
+            dbapi_connection = connection
+
+        if level == "AUTOCOMMIT":
+            dbapi_connection.isolation_level = None
+        else:
+            dbapi_connection.isolation_level = ""
+            return super(SQLiteDialect_pysqlite, self).set_isolation_level(
+                connection, level
+            )
 
     def create_connect_args(self, url):
         if url.username or url.password or url.host or url.port:
@@ -356,22 +468,61 @@ class SQLiteDialect_pysqlite(SQLiteDialect):
                 "Valid SQLite URL forms are:\n"
                 " sqlite:///:memory: (or, sqlite://)\n"
                 " sqlite:///relative/path/to/file.db\n"
-                " sqlite:////absolute/path/to/file.db" % (url,))
-        filename = url.database or ':memory:'
-        if filename != ':memory:':
-            filename = os.path.abspath(filename)
+                " sqlite:////absolute/path/to/file.db" % (url,)
+            )
 
-        opts = url.query.copy()
-        util.coerce_kw_type(opts, 'timeout', float)
-        util.coerce_kw_type(opts, 'isolation_level', str)
-        util.coerce_kw_type(opts, 'detect_types', int)
-        util.coerce_kw_type(opts, 'check_same_thread', bool)
-        util.coerce_kw_type(opts, 'cached_statements', int)
+        # theoretically, this list can be augmented, at least as far as
+        # parameter names accepted by sqlite3/pysqlite, using
+        # inspect.getfullargspec().  for the moment this seems like overkill
+        # as these parameters don't change very often, and as always,
+        # parameters passed to connect_args will always go to the
+        # sqlite3/pysqlite driver.
+        pysqlite_args = [
+            ("uri", bool),
+            ("timeout", float),
+            ("isolation_level", str),
+            ("detect_types", int),
+            ("check_same_thread", bool),
+            ("cached_statements", int),
+        ]
+        opts = url.query
+        pysqlite_opts = {}
+        for key, type_ in pysqlite_args:
+            util.coerce_kw_type(opts, key, type_, dest=pysqlite_opts)
 
-        return ([filename], opts)
+        if pysqlite_opts.get("uri", False):
+            uri_opts = opts.copy()
+            # here, we are actually separating the parameters that go to
+            # sqlite3/pysqlite vs. those that go the SQLite URI.  What if
+            # two names conflict?  again, this seems to be not the case right
+            # now, and in the case that new names are added to
+            # either side which overlap, again the sqlite3/pysqlite parameters
+            # can be passed through connect_args instead of in the URL.
+            # If SQLite native URIs add a parameter like "timeout" that
+            # we already have listed here for the python driver, then we need
+            # to adjust for that here.
+            for key, type_ in pysqlite_args:
+                uri_opts.pop(key, None)
+            filename = url.database
+            if uri_opts:
+                # sorting of keys is for unit test support
+                filename += "?" + (
+                    "&".join(
+                        "%s=%s" % (key, uri_opts[key])
+                        for key in sorted(uri_opts)
+                    )
+                )
+        else:
+            filename = url.database or ":memory:"
+            if filename != ":memory:":
+                filename = os.path.abspath(filename)
+
+        return ([filename], pysqlite_opts)
 
     def is_disconnect(self, e, connection, cursor):
-        return isinstance(e, self.dbapi.ProgrammingError) and \
-            "Cannot operate on a closed database." in str(e)
+        return isinstance(
+            e, self.dbapi.ProgrammingError
+        ) and "Cannot operate on a closed database." in str(e)
+
 
 dialect = SQLiteDialect_pysqlite
