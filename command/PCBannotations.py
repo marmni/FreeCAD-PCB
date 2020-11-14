@@ -831,11 +831,14 @@ class viewProviderPCBannotation:
         vp.setEditorMode("DisplayMode", 2)
         vp.setEditorMode("Selectable", 2)
         vp.setEditorMode("SelectionStyle", 2)
-        vp.setEditorMode("GridSize", 2)
-        vp.setEditorMode("GridSnap", 2)
-        vp.setEditorMode("GridStyle", 2)
-        vp.setEditorMode("ShowGrid", 2)
-        vp.setEditorMode("TightGrid", 2)
+        try:
+            vp.setEditorMode("GridSize", 2)
+            vp.setEditorMode("GridSnap", 2)
+            vp.setEditorMode("GridStyle", 2)
+            vp.setEditorMode("ShowGrid", 2)
+            vp.setEditorMode("TightGrid", 2)
+        except:
+            pass
         vp.setEditorMode("AngularDeflection", 2)
         
         if prop == "ShapeColor":
