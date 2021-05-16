@@ -404,7 +404,7 @@ def generatetHolesReport():
     num = 0
     for i in range(len(holes.keys())):
         key = list(holes)
-        txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % key[i], '%.3f' % (float(key[i]) / 25.4), len(holes[key[i]]))
+        txt += 'T{0}  {1}mm  {2}"  ({3} holes)\n'.format(i + 1, '%.2f' % (key[i] * 2), '%.3f' % (float(key[i]) * 2 / 25.4), len(holes[key[i]]))
         num += len(holes[key[i]])
     
     txt += '\nTotal plated holes count: {0}\n'.format(num)
@@ -498,7 +498,7 @@ class drl(exportFileMain):
         # tools
         for i in range(len(self.holes.keys())):
             key = list(self.holes)
-            self.files.write('T{0}C{1}\n'.format(i + 1, key[i]))
+            self.files.write('T{0}C{1}\n'.format(i + 1, '%.2f' % (key[i] * 2)))
         #
         self.files.write('%\n')
         self.files.write('M47,DRILL\n')  # Message
@@ -515,7 +515,7 @@ class drl(exportFileMain):
             
             self.files.write('T{0}\n'.format(i + 1))
             for j in self.holes[key[i]]:
-                self.files.write('X{0}Y{1}\n'.format(j[0], j[1]))
+                self.files.write('X{0}Y{1}\n'.format('%.2f' % j[0], '%.2f' % j[1]))
             
         #self.files.write('T0\n')
         # end
@@ -560,13 +560,13 @@ class txt(exportFileMain):
         kolumny = [0, 0, 0]
         for i in self.holes.keys():
             if len(str(i)) > kolumny[0]:  # diameter
-                kolumny[0] = len(str(i))
+                kolumny[0] = len(str('%.2f' % (i * 2)))
             
             for j in self.holes[i]:
                 if len(str(j[0])) > kolumny[1]:    # x
-                    kolumny[1] = len(str(j[0]))
+                    kolumny[1] = len(str('%.2f' % j[0]))
                 if len(str(j[1])) > kolumny[2]:    # y
-                    kolumny[2] = len(str(j[1]))
+                    kolumny[2] = len(str('%.2f' % j[1]))
         # headers
         self.files.write(self.addTitle(0).ljust(kolumny[0] + 10))
         self.files.write(self.addTitle(1).ljust(kolumny[1] + 10))
@@ -575,16 +575,16 @@ class txt(exportFileMain):
         # write param. to file
         for i in self.holes.keys():  # package
             if self.groupList:
-                self.files.write(str(i).ljust(kolumny[0] + 10))
+                self.files.write(str('%.2f' % (i * 2)).ljust(kolumny[0] + 10))
                 self.files.write("\n")
             
             for j in self.holes[i]:  # value
                 if self.groupList:
                     self.files.write(str(' ').ljust(kolumny[0] + 10))
                 else:
-                    self.files.write(str(i).ljust(kolumny[0] + 10))
-                self.files.write(str(j[0]).ljust(kolumny[1] + 10))
-                self.files.write(str(j[1]).ljust(kolumny[2] + 10))
+                    self.files.write(str('%.2f' % (i * 2)).ljust(kolumny[0] + 10))
+                self.files.write(str('%.2f' % j[0]).ljust(kolumny[1] + 10))
+                self.files.write(str('%.2f' % j[1]).ljust(kolumny[2] + 10))
                 self.files.write("\n")
 
 
@@ -650,12 +650,12 @@ class html(exportFileMain):
     def exportHoles(self):
         for i in self.holes.keys():
             if self.groupList:
-                self.files.write("<tr><td>{0}</td><td></td><td></td></tr>\n".format(i))
+                self.files.write("<tr><td>{0}</td><td></td><td></td></tr>\n".format('%.2f' % (i * 2)))
             for j in self.holes[i]:
                 if self.groupList:
-                    self.files.write("<tr><td></td><td>{0}</td><td>{1}</td></tr>\n".format(j[0], j[1]))
+                    self.files.write("<tr><td></td><td>{0}</td><td>{1}</td></tr>\n".format('%.2f' % j[0], '%.2f' % j[1]))
                 else:
-                    self.files.write("<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>\n".format(i, j[0], j[1]))
+                    self.files.write("<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>\n".format('%.2f' % (i * 2), '%.2f' % j[0], '%.2f' % j[1]))
 
 
 class csv(exportFileMain):
@@ -693,9 +693,9 @@ class csv(exportFileMain):
     def exportHoles(self):
         for i in self.holes.keys():
             if self.groupList:
-                self.files.write("{0};;\n".format(i))
+                self.files.write("{0};;\n".format('%.2f' % (i * 2)))
             for j in self.holes[i]:
                 if self.groupList:
-                    self.files.write(";{0};{1}\n".format(j[0], j[1]))
+                    self.files.write(";{0};{1}\n".format('%.2f' % j[0], '%.2f' % j[1]))
                 else:
-                    self.files.write("{0};{1};{2}\n".format(i, j[0], j[1]))
+                    self.files.write("{0};{1};{2}\n".format('%.2f' % (i * 2), '%.2f' % j[0], '%.2f' % j[1]))
