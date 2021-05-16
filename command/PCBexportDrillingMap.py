@@ -330,6 +330,7 @@ class svg(drillMap):
                 self.addCode(files, '\n\t\t</g>')
             self.addCode(files, '\n\t</g>')
             # add annotation under board
+            #txt = SVG_Text(str('%.2f' % (key[i] * 2)))
             txt = SVG_Text(str(key[i] * 2))
             txt.x = self.pcbMin_X + 2.1
             txt.y = self.pcbMin_Y + 0.4 - lineNumber * lineHeight

@@ -139,7 +139,8 @@ def sketcherGetGeometryShapes(sketcherIN):
     try:
         num_1 = 0
         num_2 = 1
-        data = sketcherIN.Geometry
+        #data = sketcherIN.Geometry
+        data = sketcherIN.GeometryFacadeList
         first = False
         #
         while len(data):
@@ -148,18 +149,20 @@ def sketcherGetGeometryShapes(sketcherIN):
                     data.pop(i)
                     break
                 ####
-                if type(data[i]).__name__ == "BSplineCurve":
+                objGeometry = data[i].Geometry
+                
+                if type(objGeometry).__name__ == "BSplineCurve":
                     pass
-                elif type(data[i]).__name__ == "ArcOfParabola":
+                elif type(objGeometry).__name__ == "ArcOfParabola":
                     pass
                 #
-                if type(data[i]).__name__ == 'ArcOfCircle':
-                    [angle, startAngle, stopAngle] = sketcherGetArcAngle(data[i])
+                if type(objGeometry).__name__ == 'ArcOfCircle':
+                    [angle, startAngle, stopAngle] = sketcherGetArcAngle(objGeometry)
                     #
-                    x3 = float("%.4f" % (data[i].StartPoint.x))
-                    y3 = float("%.4f" % (data[i].StartPoint.y))
-                    x4 = float("%.4f" % (data[i].EndPoint.x))
-                    y4 = float("%.4f" % (data[i].EndPoint.y))
+                    x3 = float("%.4f" % (objGeometry.StartPoint.x))
+                    y3 = float("%.4f" % (objGeometry.StartPoint.y))
+                    x4 = float("%.4f" % (objGeometry.EndPoint.x))
+                    y4 = float("%.4f" % (objGeometry.EndPoint.y))
                     #
                     if not first:
                         num_1 = 0
@@ -167,7 +170,7 @@ def sketcherGetGeometryShapes(sketcherIN):
                             outList[num_2] = {}
                         outList[num_2][num_1] = [x3, y3, 'Line']
                         num_1 += 1
-                        outList[num_2][num_1] = [x4, y4, angle, data[i], 'Arc']
+                        outList[num_2][num_1] = [x4, y4, angle, objGeometry, 'Arc']
                         data.pop(i)
                         first = True
                         #
@@ -178,23 +181,23 @@ def sketcherGetGeometryShapes(sketcherIN):
                     #
                     if [x3, y3] == [x2, y2]:
                         num_1 += 1
-                        outList[num_2][num_1] = [x4, y4, angle, data[i], 'Arc']
+                        outList[num_2][num_1] = [x4, y4, angle, objGeometry, 'Arc']
                         x2 = x4
                         y2 = y4
                         data.pop(i)
                         break
                     elif [x4, y4] == [x2, y2]:
                         num_1 += 1
-                        outList[num_2][num_1] = [x3, y3, angle, data[i], 'rev', 'Arc']
+                        outList[num_2][num_1] = [x3, y3, angle, objGeometry, 'rev', 'Arc']
                         x2 = x3
                         y2 = y3
                         data.pop(i)
                         break
-                elif type(data[i]).__name__ == 'LineSegment':
-                    x3 = float("%.4f" % (data[i].StartPoint.x))
-                    y3 = float("%.4f" % (data[i].StartPoint.y))
-                    x4 = float("%.4f" % (data[i].EndPoint.x))
-                    y4 = float("%.4f" % (data[i].EndPoint.y))
+                elif type(objGeometry).__name__ == 'LineSegment':
+                    x3 = float("%.4f" % (objGeometry.StartPoint.x))
+                    y3 = float("%.4f" % (objGeometry.StartPoint.y))
+                    x4 = float("%.4f" % (objGeometry.EndPoint.x))
+                    y4 = float("%.4f" % (objGeometry.EndPoint.y))
                     #
                     if not first:
                         num_1 = 0
@@ -252,38 +255,43 @@ def sketcherLoopGeometry(outlineList, geometryList):
             if geometryList[k].Construction:
                 continue
             #
-            if type(geometryList[k]).__name__ == 'LineSegment':
+            try:
+                objGeometry = geometryList[k].Geometry
+            except:
+                objGeometry = geometryList[k]
+            
+            if type(objGeometry).__name__ == 'LineSegment':
                 outlineList.append({
                     'type': 'line',
-                    'x1': geometryList[k].StartPoint.x,
-                    'y1': geometryList[k].StartPoint.y,
-                    'x2': geometryList[k].EndPoint.x,
-                    'y2': geometryList[k].EndPoint.y
+                    'x1': objGeometry.StartPoint.x,
+                    'y1': objGeometry.StartPoint.y,
+                    'x2': objGeometry.EndPoint.x,
+                    'y2': objGeometry.EndPoint.y
                 })
-            elif type(geometryList[k]).__name__ == "BSplineCurve":
-                outlineList = sketcherLoopGeometry(outlineList, geometryList[k].toBiArcs(0.001))
-            elif type(geometryList[k]).__name__ == "ArcOfParabola":
-                outlineList = sketcherLoopGeometry(outlineList, geometryList[k].toNurbs().toBiArcs(0.001))
-            elif type(geometryList[k]).__name__ == 'Circle':
+            elif type(objGeometry).__name__ == "BSplineCurve":
+                outlineList = sketcherLoopGeometry(outlineList, objGeometry.toBiArcs(0.001))
+            elif type(objGeometry).__name__ == "ArcOfParabola":
+                outlineList = sketcherLoopGeometry(outlineList, objGeometry.toNurbs().toBiArcs(0.001))
+            elif type(objGeometry).__name__ == 'Circle':
                 outlineList.append({
                     'type': 'circle',
-                    'x': geometryList[k].Center.x,
-                    'y': geometryList[k].Center.y,
-                    'r': geometryList[k].Radius,
+                    'x': objGeometry.Center.x,
+                    'y': objGeometry.Center.y,
+                    'r': objGeometry.Radius,
                 })
-            elif type(geometryList[k]).__name__ == 'ArcOfCircle':
-                [angle, startAngle, stopAngle] = sketcherGetArcAngle(geometryList[k])
+            elif type(objGeometry).__name__ == 'ArcOfCircle':
+                [angle, startAngle, stopAngle] = sketcherGetArcAngle(objGeometry)
                 #
                 outlineList.append({
                     'type': 'arc',
-                    'x': geometryList[k].Center.x,
-                    'y': geometryList[k].Center.y,
-                    'r': geometryList[k].Radius,
+                    'x': objGeometry.Center.x,
+                    'y': objGeometry.Center.y,
+                    'r': objGeometry.Radius,
                     'angle': angle,
-                    'x1': geometryList[k].StartPoint.x,
-                    'y1': geometryList[k].StartPoint.y,
-                    'x2': geometryList[k].EndPoint.x,
-                    'y2': geometryList[k].EndPoint.y,
+                    'x1': objGeometry.StartPoint.x,
+                    'y1': objGeometry.StartPoint.y,
+                    'x2': objGeometry.EndPoint.x,
+                    'y2': objGeometry.EndPoint.y,
                     'startAngle': startAngle,
                     'stopAngle': stopAngle
                 })
@@ -304,7 +312,7 @@ def sketcherGetGeometry(sketcherIN):
         FreeCAD.Console.PrintWarning("Error: FreeCAD is not activated.\n")
         return [False]
     #
-    outlineList = sketcherLoopGeometry([], sketcherIN.Geometry)
+    outlineList = sketcherLoopGeometry([], sketcherIN.GeometryFacadeList)
     #
     return [True, outlineList]
 
