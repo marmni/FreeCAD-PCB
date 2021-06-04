@@ -215,7 +215,7 @@ class EaglePCB(baseModel):
                 package = i.getAttribute('package').strip()
                 #
                 if 'R' in i.getAttribute('rot'):
-                    rot = int(re.sub("[^0-9]", "", i.getAttribute('rot')))
+                    rot = int(round(float(re.sub("[^0-9.]", "", i.getAttribute('rot')))))
                 if 'M' in i.getAttribute('rot'):
                     side = 0
                 #
