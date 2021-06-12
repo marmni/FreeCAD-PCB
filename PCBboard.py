@@ -115,6 +115,7 @@ class PCBboardObject:
         #  base
         obj.addProperty("App::PropertyBool", "AutoUpdate", "Base", "Auto Update").AutoUpdate = True
         obj.addProperty("App::PropertyLinkList", "Group", "Base", "Group")
+        obj.addProperty("App::PropertyLinkHidden", "Parent", "Base", "Parent", 1)
         # obj.addExtension("Part::AttachExtensionPython", obj)
         #
         self.holesComp = None

@@ -44,7 +44,7 @@ from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
 from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
-from command.PCBgroups import createGroup_Parts, createGroup_Others, createGroup, createGroup_Missing
+from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
 
 
@@ -69,7 +69,30 @@ class partsManaging(mathFunctions):
     def updateView(self):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
+    
+    def createDefaultProject(self, objName):
+        newPartObjectFC = FreeCAD.ActiveDocument.addObject('App::Part', objName + "_PCB")
+        newPartObjectFC.Label = objName + "_PCB"
+        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
         
+        ####
+        grp = createGroup_Parts()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Layers()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_PCB()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Annotations()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Areas()
+        newPartObjectFC.addObject(grp)
+        ####
+        return newPartObjectFC
+    
     def getPartShape(self, filePath, step_model, colorizeElements):
         standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
         ################################################################
@@ -247,7 +270,7 @@ class partsManaging(mathFunctions):
             }
         }
         
-    def addPart(self, newPart, newPartObjectFC, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
+    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         #newPart = {
             # 'name': 'E$2', 
             # 'library': 'eagle-ltspice', 
@@ -586,7 +609,7 @@ class partsManaging(mathFunctions):
             step_model.Rot = newPart['rot'] # after setting X/Y
         ##################################################################
         result.append(step_model)
-        self.addPartToGroup(groupParts, step_model, newPartObjectFC)
+        self.addPartToGroup(groupParts, step_model)
         pcb[2].Proxy.addObject(pcb[2], step_model)
         self.updateView()
         return result
@@ -594,12 +617,15 @@ class partsManaging(mathFunctions):
     def partGenerateAnnotation(self, data, ):
         pass
     
-    def addPartToGroup(self, groupParts, step_model, newPartObjectFC):
+    def addPartToGroup(self, groupParts, step_model):
         if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:
             return
         #
         partsFolder = createGroup_Parts()
-        newPartObjectFC.addObject(partsFolder)
+        
+        if not FreeCAD.ActiveDocument.Board.Parent.getObject(partsFolder.Name):
+            FreeCAD.ActiveDocument.Board.Parent.addObject(partsFolder)
+            FreeCAD.Console.PrintWarning("Error: {0}\n".format(FreeCAD.ActiveDocument.Board.Parent.Label))
         #
         try:
             if groupParts and getPCBheight()[0]:

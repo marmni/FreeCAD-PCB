@@ -235,11 +235,7 @@ def importBRD(filename, wersjaFormatu):
         #
         plytkaPCB.setProject(filename)
         # adding New Part FC
-        newPartObjectFCName = docname + "_PCB"
-        
-        newPartObjectFC = doc.addObject('App::Part', newPartObjectFCName)
-        newPartObjectFC.Label = newPartObjectFCName
-        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
+        newPartObjectFC = plytkaPCB.createDefaultProject(docname)
         #
         plytka = plytkaPCB.generate(doc, newPartObjectFC)
         #

@@ -233,10 +233,10 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_ExportObjectToPovRay)
         self.addSeparator()
         self.addAction(scriptCmd_openInstruction_0)
-        #self.addAction(scriptCmd_QuickAssembly)
-        #self.addAction(scriptCmd_QuickAssembly2)
-        #self.addAction(scriptCmd_exportAssembly)
-        #self.addAction(scriptCmd_CheckForCollisions)
+        self.addAction(scriptCmd_QuickAssembly)
+        self.addAction(scriptCmd_QuickAssembly2)
+        self.addAction(scriptCmd_exportAssembly)
+        self.addAction(scriptCmd_CheckForCollisions)
         self.addToolBar(self)
     
     def openInstruction(self, fileName):
@@ -434,7 +434,7 @@ class pcbToolBar(pcbToolBarMain):
         QtCore.QObject.connect(scriptCmd_generateModel, QtCore.SIGNAL("triggered()"), self.generateModelF)
         # groups
         scriptCmd_addAllGroup = self.createAction(u"Create new project", u"Create new project", ":/data/img/folder_open_22x22.png")
-        QtCore.QObject.connect(scriptCmd_addAllGroup, QtCore.SIGNAL("triggered()"), self.addAllGroups)
+        QtCore.QObject.connect(scriptCmd_addAllGroup, QtCore.SIGNAL("triggered()"), self.createDefaultProjectF)
         scriptCmd_addLayerGroup = self.createAction(u"Add layers group", u"Add layers group", ":/data/img/folder_open_22x22.png")
         QtCore.QObject.connect(scriptCmd_addLayerGroup, QtCore.SIGNAL("triggered()"), self.addLayerGroup)
         scriptCmd_addPartsGroup = self.createAction(u"Add parts group", u"Add parts group", ":/data/img/folder_open_22x22.png")
@@ -586,7 +586,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_ExportHoleLocations)
         #self.addAction(scriptCmd_ImportSTP)
         self.addSeparator()
-        self.addAction(scriptCmd_addAllGroup)
+        #self.addAction(scriptCmd_addAllGroup)
         self.addAction(scriptCmd_CreatePCB)
         self.addAction(scriptCmd_CreateGluePath)
         self.addAction(scriptCmd_addAnnotation)
@@ -814,9 +814,12 @@ class pcbToolBar(pcbToolBarMain):
             if not FreeCADGui.Control.activeDialog():
                 FreeCADGui.Control.showDialog(form)
 
-    def addAllGroups(self):
+    def createDefaultProjectF(self):
         ''' add to current document all groups '''
-        setProject()
+        #setProject()
+        if FreeCAD.ActiveDocument:
+            pM = partsManaging()
+            pM.createDefaultProject(FreeCAD.ActiveDocument.Name)
     
     def addAreasGroup(self):
         createGroup_Areas()
