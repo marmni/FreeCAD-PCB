@@ -234,7 +234,14 @@ def importBRD(filename, wersjaFormatu):
         start = time.time()
         #
         plytkaPCB.setProject(filename)
-        plytka = plytkaPCB.generate(doc)
+        # adding New Part FC
+        newPartObjectFCName = docname + "_PCB"
+        
+        newPartObjectFC = doc.addObject('App::Part', newPartObjectFCName)
+        newPartObjectFC.Label = newPartObjectFCName
+        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
+        #
+        plytka = plytkaPCB.generate(doc, newPartObjectFC)
         #
         FreeCAD.Console.PrintWarning('\nTotal time: %i[s]\n' % (time.time() - start))
         ######

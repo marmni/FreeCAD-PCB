@@ -247,7 +247,7 @@ class partsManaging(mathFunctions):
             }
         }
         
-    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
+    def addPart(self, newPart, newPartObjectFC, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         #newPart = {
             # 'name': 'E$2', 
             # 'library': 'eagle-ltspice', 
@@ -586,7 +586,7 @@ class partsManaging(mathFunctions):
             step_model.Rot = newPart['rot'] # after setting X/Y
         ##################################################################
         result.append(step_model)
-        self.addPartToGroup(groupParts, step_model)
+        self.addPartToGroup(groupParts, step_model, newPartObjectFC)
         pcb[2].Proxy.addObject(pcb[2], step_model)
         self.updateView()
         return result
@@ -594,11 +594,12 @@ class partsManaging(mathFunctions):
     def partGenerateAnnotation(self, data, ):
         pass
     
-    def addPartToGroup(self, groupParts, step_model):
+    def addPartToGroup(self, groupParts, step_model, newPartObjectFC):
         if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:
             return
         #
         partsFolder = createGroup_Parts()
+        newPartObjectFC.addObject(partsFolder)
         #
         try:
             if groupParts and getPCBheight()[0]:

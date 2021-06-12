@@ -123,18 +123,21 @@ class mainPCB(partsManaging):
             #QtGui.qApp.processEvents()
             QtGui.QApplication.processEvents()
     
-    def generate(self, doc):
+    def generate(self, doc, newPartObjectFC):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc)
+        self.generatePCB(doc, newPartObjectFC)
         # HOLES
         self.generateHoles(doc)
         # PARTS
         if self.wersjaFormatu.dialogMAIN.partsBox.isChecked():
-            self.importParts()
+            self.importParts(newPartObjectFC)
         # LAYERS
         grp = createGroup_Layers()
         grp_2 = createGroup_Areas()
+        
+        newPartObjectFC.addObject(grp)
+        newPartObjectFC.addObject(grp_2)
         pathsLayers = []
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
@@ -233,7 +236,7 @@ class mainPCB(partsManaging):
         if self.wersjaFormatu.dialogMAIN.copperImportPolygons.isChecked():
             self.generatePolygonsOnCopperLayer(pathsLayers)
     
-    def importParts(self):
+    def importParts(self, newPartObjectFC):
         koloroweElemnty = self.wersjaFormatu.dialogMAIN.plytkaPCB_elementyKolory.isChecked()
         adjustParts = self.wersjaFormatu.dialogMAIN.adjustParts.isChecked()
         groupParts = self.wersjaFormatu.dialogMAIN.plytkaPCB_grupujElementy.isChecked()
@@ -246,7 +249,7 @@ class mainPCB(partsManaging):
         
         for i in self.wersjaFormatu.getParts():
             self.printInfo('\n    {0} ({1}): '.format(i["name"], i["package"]))
-            result = self.addPart(i, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
+            result = self.addPart(i, newPartObjectFC, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
         
             if self.wersjaFormatu.dialogMAIN.plytkaPCB_plikER.isChecked() and result[0] == 'Error':
                 partNameTXT = self.generateNewLabel(i["name"])
@@ -463,7 +466,7 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc):
+    def generatePCB(self, doc, newPartObjectFC):
         gruboscPlytki = self.wersjaFormatu.dialogMAIN.gruboscPlytki.value()
         #
         self.printInfo('\nGenerate board: ')
@@ -489,6 +492,7 @@ class mainPCB(partsManaging):
             self.printInfo(u'{0}'.format(e), 'error')
         else:
             self.printInfo('done')
+            newPartObjectFC.addObject(groupBRD)
         
     def generateHoles(self, doc):
         self.printInfo('\nGenerate holes: ')
