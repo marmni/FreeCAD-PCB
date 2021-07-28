@@ -131,10 +131,12 @@ class createPCB(QtGui.QWidget, partsManaging):
         elif self.pcbBorder.text() == self.pcbHoles.text():
             FreeCAD.Console.PrintWarning("One sketch used two times!\n")
         else:
+            newPartObjectFC = self.createDefaultProject(FreeCAD.ActiveDocument.Name)
             groupBRD = createGroup_PCB()
             
             PCBboard = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Board")
             PCBboardObject(PCBboard)
+            PCBboard.Parent = newPartObjectFC
             PCBboard.Thickness = self.gruboscPlytki.value()
             PCBboard.Border = FreeCAD.ActiveDocument.getObject(self.pcbBorder.text())
             PCBboard.Holes = FreeCAD.ActiveDocument.getObject(self.pcbHoles.text())
@@ -143,4 +145,7 @@ class createPCB(QtGui.QWidget, partsManaging):
             FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = self.pcbColor.getColor()
             FreeCAD.ActiveDocument.getObject(self.pcbBorder.text()).ViewObject.Visibility = False
             FreeCAD.ActiveDocument.getObject(self.pcbHoles.text()).ViewObject.Visibility = False
+            #
+            PCBboard.purgeTouched()
+            PCBboard.recompute()
             return True

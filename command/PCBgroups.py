@@ -41,41 +41,41 @@ def createGroup_PCB():
 
 def createGroup_Annotations():
     group = makeUnigueGroup('Annotations')
-    
-    gr = createGroup_Layers()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Layers()
+        gr.addObject(group)
     
     return group
     
 def createGroup_Areas():
     group = makeUnigueGroup('Areas')
-    
-    gr = createGroup_Layers()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Layers()
+        gr.addObject(group)
     
     return group
     
 def createGroup_Dimensions(groupName="Measures"):
     group = makeUnigueGroup(groupName)
-    
-    gr = createGroup_Layers()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Layers()
+        gr.addObject(group)
     
     return group
     
 def createGroup_Others():
     group = makeUnigueGroup('Others')
-    
-    gr = createGroup_Parts()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Parts()
+        gr.addObject(group)
     
     return group
 
 def createGroup_Missing():
     group = makeUnigueGroup('Missing')
-    
-    gr = createGroup_Parts()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Parts()
+        gr.addObject(group)
     
     return group
 
@@ -84,18 +84,18 @@ def createGroup(groupName=""):
     
 def createGroup_Glue():
     group= makeUnigueGroup('Glue')
-    
-    gr = createGroup_Layers()
-    gr.addObject(group)
+    if group:
+        gr = createGroup_Layers()
+        gr.addObject(group)
     
     return group
 
-def setProject():
-    createGroup_Parts()
-    createGroup_Layers()
-    createGroup_PCB()
-    createGroup_Annotations()
-    createGroup_Areas()
+# def setProject():
+    # createGroup_Parts()
+    # createGroup_Layers()
+    # createGroup_PCB()
+    # createGroup_Annotations()
+    # createGroup_Areas()
 
 def makeUnigueGroup(groupName):
     if not FreeCAD.ActiveDocument:

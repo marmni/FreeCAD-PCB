@@ -228,11 +228,11 @@ class PCBgluePath(layerSilkObject):
     def countSeamLength(self, obj):
         obj.Length.Value = 0
         try:
-            for i in obj.Base.Geometry:
+            for i in obj.Base.GeometryFacadeList:
                 if i.Construction:
                     continue
                 
-                obj.Length.Value += i.length()
+                obj.Length.Value += i.Geometry.length()
         except Exception as e:
             pass
             #FreeCAD.Console.PrintWarning("{0}\n".format(e))
@@ -251,31 +251,36 @@ class PCBgluePath(layerSilkObject):
                     h = -0.01
             ##
             self.spisObiektowTXT = []
-            for i in obj.Base.Geometry:
+            #for i in obj.Base.Geometry:
+            for i in obj.Base.GeometryFacadeList:
                 if i.Construction:
                     continue
-                
-                if i.__class__.__name__ == 'LineSegment':
-                    
-                    x1 = i.StartPoint.x
-                    y1 = i.StartPoint.y
-                    x2 = i.EndPoint.x
-                    y2 = i.EndPoint.y
+                #
+                try:
+                    objGeometry = i.Geometry
+                except:
+                    objGeometry = i
+                #
+                if objGeometry.__class__.__name__ == 'LineSegment':
+                    x1 = objGeometry.StartPoint.x
+                    y1 = objGeometry.StartPoint.y
+                    x2 = objGeometry.EndPoint.x
+                    y2 = objGeometry.EndPoint.y
                     #
                     self.addLineWidth(x1, y1, x2, y2, obj.Width.Value)
                     self.setFace(not obj.Flat, h*1000)
-                elif i.__class__.__name__ == 'Circle':
-                    x = i.Center.x
-                    y = i.Center.y
-                    r = i.Radius
+                elif objGeometry.__class__.__name__ == 'Circle':
+                    x = objGeometry.Center.x
+                    y = objGeometry.Center.y
+                    r = objGeometry.Radius
                     #
                     self.addCircle(x, y, r, 0)
                     self.setFace(not obj.Flat, h*1000)
-                elif i.__class__.__name__ == 'ArcOfCircle':
-                    curve = degrees(i.LastParameter - i.FirstParameter)
+                elif objGeometry.__class__.__name__ == 'ArcOfCircle':
+                    curve = degrees(objGeometry.LastParameter - objGeometry.FirstParameter)
                     
-                    points = i.discretize(Distance=i.length()/2)
-                    if i.Circle.Axis.z < 0:
+                    points = objGeometry.discretize(Distance=objGeometry.length()/2)
+                    if objGeometry.Circle.Axis.z < 0:
                         p1 = [points[2].x, points[2].y]
                         p2 = [points[0].x, points[0].y]
                     else:

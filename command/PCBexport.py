@@ -794,8 +794,8 @@ class kicad(exportPCB):
         pcb = getPCBheight()
         if pcb[0]:  # board is available
             for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "Glue" in "_".join(i.Proxy.Type):
-                    if 'tGlue' in "_".join(i.Proxy.Type):
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "glue" in i.Proxy.Type:
+                    if 'glueT' in i.Proxy.Type:
                         layer = 'F.Adhes'
                     else:
                         layer = 'B.Adhes'
@@ -1301,12 +1301,13 @@ class eagle(exportPCB):
         pcb = getPCBheight()
         if pcb[0]:  # board is available
             for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "Glue" in "_".join(i.Proxy.Type):
-                    if 'tGlue' in "_".join(i.Proxy.Type):
+                #if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "glue" in "_".join(i.Proxy.Type):
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and "glue" in i.Proxy.Type:
+                    if 'glueT' in i.Proxy.Type:
                         layer = 35
                     else:
                         layer = 36
-                    
+
                     data = sketcherGetGeometry(i.Base)
                     
                     if data[0]:

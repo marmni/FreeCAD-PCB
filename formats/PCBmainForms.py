@@ -123,10 +123,10 @@ class mainPCB(partsManaging):
             #QtGui.qApp.processEvents()
             QtGui.QApplication.processEvents()
     
-    def generate(self, doc):
+    def generate(self, doc, newPartObjectFC):
         self.printInfo('\nInitializing')
         # BOARD
-        self.generatePCB(doc)
+        self.generatePCB(doc, newPartObjectFC)
         # HOLES
         self.generateHoles(doc)
         # PARTS
@@ -135,6 +135,7 @@ class mainPCB(partsManaging):
         # LAYERS
         grp = createGroup_Layers()
         grp_2 = createGroup_Areas()
+        #
         pathsLayers = []
         for i in range(self.wersjaFormatu.dialogMAIN.spisWarstw.rowCount()):
             if self.wersjaFormatu.dialogMAIN.spisWarstw.cellWidget(i, 0).isChecked():
@@ -408,6 +409,7 @@ class mainPCB(partsManaging):
             if layerVariant == "paths":
                 self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
                 self.wersjaFormatu.getPaths(layerNew, [layerNumber, layerNameO], [True, True, True, False])
+                self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
             else:
                 if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
                     self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
@@ -463,7 +465,7 @@ class mainPCB(partsManaging):
         
         layerGRP.addObject(grp)
     
-    def generatePCB(self, doc):
+    def generatePCB(self, doc, newPartObjectFC):
         gruboscPlytki = self.wersjaFormatu.dialogMAIN.gruboscPlytki.value()
         #
         self.printInfo('\nGenerate board: ')
@@ -479,6 +481,7 @@ class mainPCB(partsManaging):
             PCBboardObject(PCBboard)
             PCBboard.Thickness = gruboscPlytki
             PCBboard.Border = doc.PCB_Border
+            PCBboard.Parent = newPartObjectFC
             viewProviderPCBboardObject(PCBboard.ViewObject)
             groupBRD.addObject(doc.Board)
             FreeCADGui.activeDocument().getObject(PCBboard.Name).ShapeColor = PCBconf.PCB_COLOR

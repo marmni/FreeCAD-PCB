@@ -44,7 +44,7 @@ from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
 from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
-from command.PCBgroups import createGroup_Parts, createGroup_Others, createGroup, createGroup_Missing
+from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
 
 
@@ -69,7 +69,30 @@ class partsManaging(mathFunctions):
     def updateView(self):
         FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
         FreeCADGui.ActiveDocument.ActiveView.fitAll()
+    
+    def createDefaultProject(self, objName):
+        newPartObjectFC = FreeCAD.ActiveDocument.addObject('App::Part', objName + "_PCB")
+        newPartObjectFC.Label = objName + "_PCB"
+        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
         
+        ####
+        grp = createGroup_Parts()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Layers()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_PCB()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Annotations()
+        newPartObjectFC.addObject(grp)
+        
+        grp = createGroup_Areas()
+        newPartObjectFC.addObject(grp)
+        ####
+        return newPartObjectFC
+    
     def getPartShape(self, filePath, step_model, colorizeElements):
         standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
         ################################################################
@@ -599,6 +622,10 @@ class partsManaging(mathFunctions):
             return
         #
         partsFolder = createGroup_Parts()
+        
+        if not FreeCAD.ActiveDocument.Board.Parent.getObject(partsFolder.Name):
+            FreeCAD.ActiveDocument.Board.Parent.addObject(partsFolder)
+            FreeCAD.Console.PrintWarning("Error: {0}\n".format(FreeCAD.ActiveDocument.Board.Parent.Label))
         #
         try:
             if groupParts and getPCBheight()[0]:
