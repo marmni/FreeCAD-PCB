@@ -279,11 +279,16 @@ class dialogMAIN_FORM(QtGui.QDialog, baseModel):
         layRightSide.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding), 5, 1, 1, 1)
         #
         self.splitter = QtGui.QSplitter()
-        self.splitter.setStyleSheet('QSplitter::handle {background: rgba(31.8, 33.3, 33.7, 0.1); cursor: col-resize;} ')
+        #self.splitter.setStyleSheet('QSplitter::handle {background: rgba(31.8, 33.3, 33.7, 0.1); cursor: col-resize;} ')
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(mainWidgetLeftSide)
         self.splitter.addWidget(mainWidgetRightSide)
-        
+        self.splitter.handle(1).setAttribute(QtCore.Qt.WA_Hover, True)
+        self.splitter.setStyleSheet("QSplitter::handle{background: rgba(31.8, 33.3, 33.7, 0.1); cursor: w-resize;}"
+                        "QSplitter::handle:hover{background: rgb(120, 120, 120); cursor: w-resize;}"
+                        "QSplitter::handle:pressed{background-color: rgb(120, 120, 120); cursor: w-resize;}")
+        self.splitter.handle(1).setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+        #
         mainLay = QtGui.QGridLayout()
         mainLay.addWidget(self.splitter, 0, 0, 1, 3)
         mainLay.addItem(QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Expanding), 1, 0, 1, 1)
