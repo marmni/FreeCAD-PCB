@@ -409,6 +409,7 @@ class mainPCB(partsManaging):
             if layerVariant == "paths":
                 self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO], [True, True, True, False])
                 self.wersjaFormatu.getPaths(layerNew, [layerNumber, layerNameO], [True, True, True, False])
+                self.wersjaFormatu.getSilkLayerModels(layerNew, [layerNumber, layerNameO])
             else:
                 if layerVariant == "silk" or layerVariant == "pads" and self.databaseType != "geda":
                     self.wersjaFormatu.getSilkLayer(layerNew, [layerNumber, layerNameO])
