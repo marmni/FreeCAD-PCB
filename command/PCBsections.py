@@ -272,6 +272,9 @@ If library exists but there is no component with the specified name - component 
                         self.exportClass.addLine(x1, y1, x2, y2)
                     else:
                        continue
+                elif j.Curve.__class__.__name__ == "Ellipse":
+                    print("elipse - skipped")
+                    continue
                 elif j.Curve.__class__.__name__ == "BSplineCurve":
                     newData = j.Curve.toBiArcs(0.001)
                     newWires = [Part.Wire([Part.Edge(p) for p in newData])]
@@ -666,7 +669,7 @@ class eagle(exportModel):
         componentName.setAttribute('y', '2')
         componentName.setAttribute('size', '1.27')
         componentName.setAttribute('layer', '25')
-        componentName.setAttribute('ration', '10')
+        #componentName.setAttribute('ration', '10')
         componentName.appendChild(self.dummyFile.createTextNode("<NAME"))
         
         self.package.appendChild(componentName)
@@ -677,7 +680,7 @@ class eagle(exportModel):
         componentValue.setAttribute('y', '-2')
         componentValue.setAttribute('size', '1.27')
         componentValue.setAttribute('layer', '25')
-        componentValue.setAttribute('ration', '10')
+        #componentValue.setAttribute('ration', '10')
         componentValue.appendChild(self.dummyFile.createTextNode("<VALUE"))
         
         self.package.appendChild(componentValue)

@@ -611,7 +611,7 @@ class partsManaging(mathFunctions):
         result.append(step_model)
         self.addPartToGroup(groupParts, step_model)
         pcb[2].Proxy.addObject(pcb[2], step_model)
-        self.updateView()
+        #self.updateView()
         return result
     
     def partGenerateAnnotation(self, data, ):

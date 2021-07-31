@@ -178,10 +178,6 @@ class KiCadv4_PCB(KiCadv3_PCB):
                             }
                             layerNew = self.addStandardShapes(j["data"], layerNew, None, display=[False, False, False, True], parent=parentL)
                             layerNew.addRotation(i['x'], i['y'], i['rot'])
-                            
-                            
-                            
-                            
                         elif j['padShape'] == 'circle':
                             layerNew.addCircle(xs + j['xOF'], ys + j['yOF'], j['dx'] / 2.)
                             layerNew.addRotation(xs, ys, rot_2)
