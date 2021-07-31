@@ -30,7 +30,10 @@ import Part
 import Draft
 from pivy.coin import *
 from math import sqrt, atan2, degrees, sin, cos, radians, pi, hypot
-import OpenSCAD2Dgeom
+try:
+    import OpenSCAD2Dgeom
+except:
+    pass
 from PySide import QtGui
 import unicodedata
 import random
@@ -38,6 +41,7 @@ import random
 from PCBboard import cutToBoardShape, getPCBheight, PCBboardObject, viewProviderPCBboardObject
 from PCBfunctions import mathFunctions
 from PCBconf import *
+
 
 
 PCBboardObject = PCBboardObject
@@ -745,6 +749,13 @@ class layerSilkObject(objectWire):
             shapeID = len(self.spisObiektowTXT) - 1
             if not shapeID in self.signalsList.keys():
                 self.signalsList[shapeID] = signalName
+    
+    def addPlacement(self, point, rot, center):
+        pos_1 = FreeCAD.Base.Vector(point[0], point[1], point[2])
+        center = FreeCAD.Base.Vector(center[0], center[1], center[2])
+        rot = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), rot)
+        
+        self.spisObiektowTXT[-1].Placement = FreeCAD.Placement(pos_1, rot, center)
                 
     def addNewObject(self, obj, signalName=None):
         self.spisObiektowTXT.append(obj)
@@ -870,13 +881,6 @@ class layerSilkObject(objectWire):
     
     def addRotation(self, xs, ys, angle):
         self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 0, 1), angle)
-
-    def addPlacement(self, point, rot, center):
-        pos_1 = FreeCAD.Base.Vector(point[0], point[1], point[2])
-        center = FreeCAD.Base.Vector(center[0], center[1], center[2])
-        rot = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), rot)
-        
-        self.spisObiektowTXT[-1].Placement = FreeCAD.Base.Placement(pos_1, rot, center)
 
     def createElipse(self, x, y, r1, r2):
         if r1 > r2:
@@ -1214,9 +1218,9 @@ class layerSilkObject(objectWire):
             r = self.arcRadius(p1[0], p1[1], p2[0], p2[1], curve)
             ######################################
             # temporary solution
-            if r * 2 < width * 2:
-                FreeCAD.Console.PrintWarning(u"Radius of the arc is smaller than the width. The object will be skipped (temporarily).\n")
-                return False
+            # if r * 2 < width * 2:
+                # FreeCAD.Console.PrintWarning(u"Radius of the arc is smaller than the width. The object will be skipped (temporarily).\n")
+                # return False
             ######################################
             #
             # a = (ys - p1[1]) / (xs - p1[0])
@@ -1227,7 +1231,8 @@ class layerSilkObject(objectWire):
             [xT_5, yT_5] = self.obrocPunkt2([xT_4, yT_4], [xs, ys], curve)
             ########
             ########
-            wir = []
+            #wir = []
+            
             # outer arc
             [xT_3, yT_3] = self.arcMidPoint([xT_1, yT_1], [xT_2, yT_2], curve)
             object_1 = self.createArc3P([xT_1, yT_1], [xT_3, yT_3], [xT_2, yT_2])
