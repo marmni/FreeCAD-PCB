@@ -1153,7 +1153,7 @@ class layerSilkObject(objectWire):
         
         object_1 = self.createLine2(x, y + R, x + R + e / 2, y + R)
         object_2 = self.createLine2(x, y - R, x + R + e / 2, y - R)
-        
+ 
         p1 = [x + R + e / 2, y + R]
         p2 = [x + R + e / 2, y - R]
         p3 = [x + R + e, y]
@@ -1164,7 +1164,7 @@ class layerSilkObject(objectWire):
         p3 = [x - R, y]
         object_4 = self.createArc3P(p1, p3, p2)
         
-        mainObj = Part.Shape([object_1, object_2, object_3, object_4])
+        mainObj = Part.Shape([object_1, object_3, object_4, object_2])
         mainObj = Part.Wire(mainObj.Edges)
         self.spisObiektowTXT.append(mainObj)
     
