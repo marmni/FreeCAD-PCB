@@ -55,7 +55,7 @@ from command.PCBexportKerkythea import exportToKerkytheaGui
 from command.PCBexportPovRay import exportObjectToPovRayGui
 from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
 from command.PCBglue import createGlueGui
-from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssembly
+from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssemblyAll, exportAssemblySel, exportAssemblyPCB
 from command.PCBdrill import createDrillcenter_Gui
 from command.PCBcollision import checkCollisionsGui
 from command.PCBconstraintAreas import createConstraintArea
@@ -186,10 +186,6 @@ class pcbToolBarView(pcbToolBarMain):
         
         scriptCmd_QuickAssembly2 = self.createAction(u"Update assembly", u"Update assembly", ":/data/img/asmUpdate.png")
         QtCore.QObject.connect(scriptCmd_QuickAssembly2, QtCore.SIGNAL("triggered()"), self.quickAssemblyUpdate)
-        
-        scriptCmd_exportAssembly = self.createAction(u"Generate one object from the board", u"Generate one object from the board", ":/data/img/asmUpdate.png")
-        QtCore.QObject.connect(scriptCmd_exportAssembly, QtCore.SIGNAL("triggered()"), self.exportAssembly)
-
         scriptCmd_CheckForCollisions = self.createAction(u"Check for collisions", u"Check for collisions", ":/data/img/collisions.png")
         QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
         
@@ -235,7 +231,6 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_openInstruction_0)
         self.addAction(scriptCmd_QuickAssembly)
         self.addAction(scriptCmd_QuickAssembly2)
-        self.addAction(scriptCmd_exportAssembly)
         self.addAction(scriptCmd_CheckForCollisions)
         self.addToolBar(self)
     
@@ -301,9 +296,6 @@ class pcbToolBarView(pcbToolBarMain):
             for i in pcb[2].Group:
                 if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
                     pM.addPartToGroup(True, i)
-    
-    def exportAssembly(self):
-        exportAssembly()
 
     def quickAssembly(self):
         try:
@@ -527,6 +519,20 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportPCB.png")
         QtCore.QObject.connect(scriptCmd_Export, QtCore.SIGNAL("triggered()"), self.exportPCB)
         ##
+        scriptCmd_exportAssemblyAll = self.createAction(u"Make a compund from all objects", u"Make a compund from all objects", ":/data/img/compoundALL.svg")
+        QtCore.QObject.connect(scriptCmd_exportAssemblyAll, QtCore.SIGNAL("triggered()"), self.exportAssemblyAll)
+        
+        scriptCmd_exportAssemblySel = self.createAction(u"Make a compund from selected objects", u"Make a compund from selected objects", ":/data/img/compoundSEL.svg")
+        QtCore.QObject.connect(scriptCmd_exportAssemblySel, QtCore.SIGNAL("triggered()"), self.exportAssemblySel)
+        
+        scriptCmd_exportAssemblyPCB = self.createAction(u"Make a compund from PCB", u"Make a compund from PCB", ":/data/img/compoundPCB.svg")
+        QtCore.QObject.connect(scriptCmd_exportAssemblyPCB, QtCore.SIGNAL("triggered()"), self.exportAssemblyPCB)
+        
+        groupsMenuExportAsOneObject = QtGui.QMenu(self)
+        groupsMenuExportAsOneObject.addAction(scriptCmd_exportAssemblyAll)
+        groupsMenuExportAsOneObject.addAction(scriptCmd_exportAssemblySel)
+        scriptCmd_exportAssemblyPCB.setMenu(groupsMenuExportAsOneObject)
+        ##
         scriptCmd_ExportBOM = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
         QtCore.QObject.connect(scriptCmd_ExportBOM, QtCore.SIGNAL("triggered()"), self.exportBOM)
         
@@ -582,6 +588,7 @@ class pcbToolBar(pcbToolBarMain):
         QtCore.QObject.connect(scriptCmd_storeNameValueAsParam, QtCore.SIGNAL("triggered()"), self.storeNameValueAsParam)
         ##########
         self.addAction(scriptCmd_Export)
+        self.addAction(scriptCmd_exportAssemblyPCB)
         self.addAction(scriptCmd_ExportBOM)
         self.addAction(scriptCmd_ExportHoleLocations)
         #self.addAction(scriptCmd_ImportSTP)
@@ -741,7 +748,24 @@ class pcbToolBar(pcbToolBarMain):
         ''' export project to one supported file format '''
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             exportPCB_Gui().exec_()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
     
+    def exportAssemblyAll(self):
+        if FreeCAD.activeDocument() and len(FreeCAD.ActiveDocument.Objects):
+            exportAssemblyAll()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+
+    def exportAssemblySel(self):
+        exportAssemblySel()
+        
+    def exportAssemblyPCB(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportAssemblyPCB()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+
     def defConstraintAreaF(self):
         ''' create constraint are dialog '''
         dial = QtGui.QDialog()

@@ -31,6 +31,7 @@ if FreeCAD.GuiUp:
 import Part
 import os
 
+from PCBboard import getPCBheight
 
 #***********************************************************************
 #*                             GUI
@@ -139,11 +140,6 @@ class createAssembly:
         #
         for i in newFile[0].RootObjects:
             comp.addObject(mainFile.copyObject(i, True))
-        
-        
-        
-        
-        
         # visibleObjects = [i for i in newFile[0].Objects if i.ViewObject.Visibility and not i.__class__.__name__ in ['GeoFeature']]
         # allGroupExtension = [i for i in visibleObjects if i.__class__.__name__ == 'GroupExtension' and not hasattr(i, "Proxy")]
         
@@ -210,20 +206,61 @@ class createAssembly:
 
         FreeCAD.ActiveDocument.recompute()
 
+def exportAssemblyAll():
+    if FreeCAD.activeDocument() and len(FreeCAD.ActiveDocument.Objects):
+        exportAssembly(FreeCAD.ActiveDocument.Objects)
+    else:
+        FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
 
-def exportAssembly():
-    pass
-    #doc = FreeCAD.ActiveDocument
+def exportAssemblySel():
+    if FreeCAD.activeDocument() and len(FreeCADGui.Selection.getSelection()):
+        exportAssembly(FreeCADGui.Selection.getSelection())
+    else:
+        FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+    
+def exportAssemblyPCB():
+    pcb = getPCBheight()
+    
+    if FreeCAD.activeDocument() and pcb[0]:
+        exportAssembly(pcb[2].Group + [pcb[2]])
+    else:
+        FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
 
-    #tmpobjs = []
-    #objs = []
-    #for i in doc.Objects:
+def getObjFromGroup(groupObj, data=[]):
+    for i in groupObj:
+        if i.isDerivedFrom("App::DocumentObjectGroup") or i.TypeId in ['App::Part', 'App.DocumentObject']:
+            if i.TypeId == 'App::Part' and not i.Visibility:
+                continue
+            #
+            data = getObjFromGroup(i.Group, data)
+        else:
+            if not i.ViewObject.Visibility or not hasattr(i,'Shape') or i.isDerivedFrom("Sketcher::SketchObject"):
+                continue
+            if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+                continue
+            if not i in data and len(i.Shape.Solids) and i.Visibility:
+                data.append(i)
+    #
+    return data
+
+def exportAssembly(objectsToExport):
+    doc = FreeCAD.ActiveDocument
+    pcb = getPCBheight()
+
+    tmpobjs = []
+    objs = []
+    #
+    for i in getObjFromGroup(objectsToExport, []):
         #if not i.ViewObject.Visibility or not hasattr(i,'Shape') or not hasattr(i,'Proxy'):
-            #continue
-        #if hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
-            #continue
+        #    continue
+        #if not i.ViewObject.Visibility or not hasattr(i,'Shape'):
+        #    continue
+        #if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in [['PCBannotation'], 'PCBpart_E']:
+        #    continue
+        #if i.isDerivedFrom("App::DocumentObjectGroup") or i.TypeId == 'App::Part':
+        #    objectsToExport += getObjFromGroup(i.Group)
+        #    continue
         #if not i.isDerivedFrom("Sketcher::SketchObject") and len(i.Shape.Solids):
-
             ## We are trying to combining all objects into one single compound object. However,
             ## FreeCAD has a bug such that after compound, it will sometimes refuse to display
             ## any color if the compound contain some overlapped pads with holes, even though
@@ -234,48 +271,47 @@ def exportAssembly():
             ##
             ## Only apply this trick to layerSilkObject(pads) and layerPathObject(path) and 
             ## having holes.
-            #if not doc.Board.Display or len(i.Shape.Solids)==1 or \
-                    #(i.Proxy.__class__.__name__ != 'layerSilkObject' and \
-                     #i.Proxy.__class__.__name__ != 'layerPathObject') :
-                #objs.append(i)
-                #continue
-            #subobjs = []
-            #for j in i.Shape.Solids:
-                #tmpobj = doc.addObject('Part::Feature','obj')
-                #tmpobj.Shape = j
-                #tmpobj.ViewObject.ShapeColor = i.ViewObject.ShapeColor
-                #tmpobjs.append(tmpobj)
-                #subobjs.append(tmpobj)
-            #subobj = doc.addObject('Part::Compound','obj')
-            #subobj.Links = subobjs
-            #objs.append(subobj)
-            #tmpobjs.append(subobj)
+        
+        if (pcb[0] and not doc.Board.Display) or len(i.Shape.Solids)==1 or (hasattr(i, "Proxy") and not i.Proxy.__class__.__name__ in ['layerSilkObject', 'layerPathObject']) :
+            objs.append(i)
+            continue
+        subobjs = []
+        for j in i.Shape.Solids:
+            tmpobj = doc.addObject('Part::Feature','obj')
+            tmpobj.Shape = j
+            #tmpobj.ViewObject.ShapeColor = i.ViewObject.ShapeColor
+            tmpobjs.append(tmpobj)
+            subobjs.append(tmpobj)
+        subobj = doc.addObject('Part::Compound','obj')
+        subobj.Links = subobjs
+        objs.append(subobj)
+        tmpobjs.append(subobj)
 
-    #if not len(objs):
-        #FreeCAD.Console.PrintWarning('no parts found')
-        #return
-    #obj = doc.addObject('Part::Compound','Compound')
-    #obj.Links = objs
-    #doc.recompute()
-    #tmpobjs.append(obj)
+    if not len(objs):
+        FreeCAD.Console.PrintWarning('No parts found\n')
+        return
+    obj = doc.addObject('Part::Compound','Compound')
+    obj.Links = objs
+    doc.recompute()
+    tmpobjs.append(obj)
 
-    #import random
-    #newDoc = FreeCAD.newDocument(doc.Name+'_'+str(random.randrange(10000,99999)))
+    import random
+    newDoc = FreeCAD.newDocument(doc.Name+'_'+str(random.randrange(10000,99999)))
 
-    #copy = newDoc.addObject('Part::Feature','Compound')
-    #copy.Shape = obj.Shape
-    #copy.ViewObject.DiffuseColor = obj.ViewObject.DiffuseColor
-    #copy.ViewObject.DisplayMode = 'Shaded'
-    #newDoc.recompute()
+    copy = newDoc.addObject('Part::Feature','Compound')
+    copy.Shape = obj.Shape
+    copy.ViewObject.DiffuseColor = obj.ViewObject.DiffuseColor
+    copy.ViewObject.DisplayMode = 'Shaded'
+    newDoc.recompute()
 
-    #for i in objs:
-        #i.ViewObject.Visibility = True
-    #for i in reversed(tmpobjs):
-        #doc.removeObject(i.Name)
+    for i in objs:
+        i.ViewObject.Visibility = True
+    for i in reversed(tmpobjs):
+        doc.removeObject(i.Name)
 
-    #view = FreeCADGui.getDocument(newDoc.Name).activeView()
-    #view.viewAxometric()
-    #view.fitAll()
+    view = FreeCADGui.getDocument(newDoc.Name).activeView()
+    view.viewAxometric()
+    view.fitAll()
 
 def updateAssembly():
     pass
