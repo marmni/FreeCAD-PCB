@@ -114,7 +114,7 @@ class explodeWizardWidget(QtGui.QWidget):
         self.tableTop = explodeObjectTable()
         self.tableBottom = explodeObjectTable()
         
-        # partial dont work
+        # partial doesn't work
         #self.connect(self.tableTop, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikGora)
         #self.connect(self.tableBottom, QtCore.SIGNAL('itemClicked(QTreeWidgetItem*, int)'), self.klikDol)
         #
