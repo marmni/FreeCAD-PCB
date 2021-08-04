@@ -519,13 +519,13 @@ class pcbToolBar(pcbToolBarMain):
         scriptCmd_Export = self.createAction(u"Export board", u"Export board", ":/data/img/exportPCB.png")
         QtCore.QObject.connect(scriptCmd_Export, QtCore.SIGNAL("triggered()"), self.exportPCB)
         ##
-        scriptCmd_exportAssemblyAll = self.createAction(u"Make a compund from all objects", u"Make a compund from all objects", ":/data/img/compoundALL.svg")
+        scriptCmd_exportAssemblyAll = self.createAction(u"Make a compound from all objects", u"Make a compound from all objects", ":/data/img/compoundALL.svg")
         QtCore.QObject.connect(scriptCmd_exportAssemblyAll, QtCore.SIGNAL("triggered()"), self.exportAssemblyAll)
         
-        scriptCmd_exportAssemblySel = self.createAction(u"Make a compund from selected objects", u"Make a compund from selected objects", ":/data/img/compoundSEL.svg")
+        scriptCmd_exportAssemblySel = self.createAction(u"Make a compound from selected objects", u"Make a compound from selected objects", ":/data/img/compoundSEL.svg")
         QtCore.QObject.connect(scriptCmd_exportAssemblySel, QtCore.SIGNAL("triggered()"), self.exportAssemblySel)
         
-        scriptCmd_exportAssemblyPCB = self.createAction(u"Make a compund from PCB", u"Make a compund from PCB", ":/data/img/compoundPCB.svg")
+        scriptCmd_exportAssemblyPCB = self.createAction(u"Make a compound from PCB", u"Make a compound from PCB", ":/data/img/compoundPCB.svg")
         QtCore.QObject.connect(scriptCmd_exportAssemblyPCB, QtCore.SIGNAL("triggered()"), self.exportAssemblyPCB)
         
         groupsMenuExportAsOneObject = QtGui.QMenu(self)

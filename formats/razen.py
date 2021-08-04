@@ -324,7 +324,7 @@ class Razen_PCB(mainPCB):
                     layerNew.setFace()
                 elif i["shape"] == "circle" and height != width:
                     layerNew.createObject()
-                    layerNew.addElipse(x, y, width, height)
+                    layerNew.addEllipse(x, y, width, height)
                     layerNew.setFace()
                 elif i["shape"] == "polygon":
                     layerNew.createObject()
@@ -423,7 +423,7 @@ class Razen_PCB(mainPCB):
                                 layerNew.setFace()
                             elif j["shape"] == "circle" and dx != dy:
                                 layerNew.createObject()
-                                layerNew.addElipse(x, y, dx / 2., dy / 2.)
+                                layerNew.addEllipse(x, y, dx / 2., dy / 2.)
                                 layerNew.setChangeSide(X1, Y1, warst)
                                 layerNew.addRotation(X1, Y1, ROT)
                                 layerNew.setFace()

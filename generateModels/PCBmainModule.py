@@ -55,7 +55,7 @@ class modelGenerateGUIMain(QtGui.QWidget):
         line = QtGui.QFrame()
         line.setFrameShape(QtGui.QFrame.HLine)
         line.setFrameShadow(QtGui.QFrame.Sunken)
-        
+
         line2 = QtGui.QFrame()
         line2.setFrameShape(QtGui.QFrame.HLine)
         line2.setFrameShadow(QtGui.QFrame.Sunken)
@@ -78,10 +78,10 @@ class modelGenerateGUIMain(QtGui.QWidget):
         self.mainLayout.addItem(QtGui.QSpacerItem(1, 15), 5, 0, 1, 1)
         self.mainLayout.addWidget(line2, 6, 0, 1, 6)
         self.mainLayout.addWidget(self.errorsList, 7, 0, 1, 6)
-        # erros
+        # errors
         self.mainLayout.setRowStretch(100, 100)
         self.mainLayout.setColumnStretch(5, 100)
-        
+
     def addMainImageDim(self, icon):
         modelDim = modelPictureDim(icon, self)
         self.mainLayout.addWidget(modelDim, 2, 0, 1, 6, QtCore.Qt.AlignHCenter 	)
@@ -95,8 +95,8 @@ class modelPictureDim(QtGui.QLabel):
         #
         img = QtGui.QPixmap(iconDirectory)
         self.setPixmap(img)
-        
-        
+
+
 class autVariable(QtGui.QDoubleSpinBox):
      def __init__(self, value=0.0, parent=None):
         QtGui.QDoubleSpinBox.__init__(self)
@@ -116,7 +116,7 @@ class flatButton(QtGui.QPushButton):
         self.setIconSize(QtCore.QSize(32, 32))
         self.setFixedSize(QtCore.QSize(32, 32))
 
-    
-    
-    
-    
+
+
+
+

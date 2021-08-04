@@ -273,7 +273,7 @@ If library exists but there is no component with the specified name - component 
                     else:
                        continue
                 elif j.Curve.__class__.__name__ == "Ellipse":
-                    print("elipse - skipped")
+                    print("ellipse - skipped")
                     continue
                 elif j.Curve.__class__.__name__ == "BSplineCurve":
                     newData = j.Curve.toBiArcs(0.001)

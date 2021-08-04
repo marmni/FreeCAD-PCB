@@ -212,11 +212,11 @@ class FidoCadJ_PCB(mathFunctions):
                 if abs(dx) == abs(dy):
                     out['type'] = 'circle'
                 else:
-                    out['type'] = 'elipse'
+                    out['type'] = 'ellipse'
                 
                 if 'c' in f and abs(dx) == abs(dy):  # circle
                     data.append(out)
-                elif 'e' in f and abs(dx) != abs(dy):  # elipse
+                elif 'e' in f and abs(dx) != abs(dy):  # ellipse
                     data.append(out)
                 else:
                     data.append(out)
@@ -533,7 +533,7 @@ class FidoCadJ_PCB(mathFunctions):
             layerNew.createObject()
             layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
             layerNew.setFace()
-        # circles/elipses
+        # circles/ellipses
         for i in self.getCircles(self.projektBRD, 3) + self.getCircles(self.projektBRD, 3, filled=True):
             if i['filled']:
                 if i['type'] == 'circle':
@@ -542,7 +542,7 @@ class FidoCadJ_PCB(mathFunctions):
                     layerNew.setFace()
                 else:
                     layerNew.createObject()
-                    layerNew.addElipse(i['x'], i['y'], i['dx'] - i['r'] / 2., i['dy'] - i['r'] / 2.)
+                    layerNew.addEllipse(i['x'], i['y'], i['dx'] - i['r'] / 2., i['dy'] - i['r'] / 2.)
                     layerNew.setFace()
             else:  # empty circle
                 if i['type'] == 'circle':
@@ -552,7 +552,7 @@ class FidoCadJ_PCB(mathFunctions):
                 else:
                     pass
                     #layerNew.createObject()
-                    #layerNew.addElipse(i['x'], i['y'], i['dx'], i['dy'], i['width'])
+                    #layerNew.addEllipse(i['x'], i['y'], i['dx'], i['dy'], i['width'])
                     #layerNew.setFace()
         # rectangles
         for i in self.getRectangles(self.projektBRD, 3) + self.getRectangles(self.projektBRD, 3, filled=True):
@@ -698,7 +698,7 @@ class FidoCadJ_PCB(mathFunctions):
                     layerNew.addRotation(Xr, Yr, ROT)
                     layerNew.setChangeSide(Xr, Yr, warst)
                     layerNew.setFace()
-                # circles/elipses
+                # circles/ellipses
                 for k in self.getCircles(j, 3, m=[X1, Y1]) + self.getCircles(j, 3, m=[X1, Y1], filled=True):
                     if k['filled']:
                         if k['type'] == 'circle':
@@ -709,7 +709,7 @@ class FidoCadJ_PCB(mathFunctions):
                             layerNew.setFace()
                         else:
                             layerNew.createObject()
-                            layerNew.addElipse(k['x'], k['y'], k['dx'] - k['r'] / 2., k['dy'] - k['r'] / 2.)
+                            layerNew.addEllipse(k['x'], k['y'], k['dx'] - k['r'] / 2., k['dy'] - k['r'] / 2.)
                             layerNew.addRotation(Xr, Yr, ROT)
                             layerNew.setChangeSide(Xr, Yr, warst)
                             layerNew.setFace()
@@ -791,9 +791,9 @@ class FidoCadJ_PCB(mathFunctions):
                     layerNew.createObject()
                     layerNew.addCircle(xs, ys, r)
                     layerNew.setFace()
-                else:  # elipse
+                else:  # ellipse
                     layerNew.createObject()
-                    layerNew.addElipse(xs, ys, abs(dx), abs(dy))
+                    layerNew.addEllipse(xs, ys, abs(dx), abs(dy))
                     layerNew.setFace()
         ### via/pad
         dane1 = re.findall(r'PA (.+?) (.+?) (.+?) (.+?) (.+?) (.+?) ([1-2]+)', self.projektBRD)
@@ -828,14 +828,14 @@ class FidoCadJ_PCB(mathFunctions):
                     layerNew.createObject()
                     layerNew.addPadLong(X, Y, dx / 2., dy / 2., 0.2, 1)
                     layerNew.setFace()
-                else:  # round / elipse
+                else:  # round / ellipse
                     if abs(dx) == abs(dy):
                         layerNew.createObject()
                         layerNew.addCircle(X, Y, dx / 2.)
                         layerNew.setFace()
                     else:
                         layerNew.createObject()
-                        layerNew.addElipse(X, Y, abs(dx) / 2., abs(dy) / 2.)
+                        layerNew.addEllipse(X, Y, abs(dx) / 2., abs(dy) / 2.)
                         layerNew.setFace()
         #
         elem = re.findall(r'MC (.+?) (.+?) (.+?) (.+?) (.+?)\.(.*)', self.projektBRD)
@@ -1147,7 +1147,7 @@ class FidoCadJ_PCB(mathFunctions):
                                 x2R = self.odbijWspolrzedne(x2R, Xr)
                             
                             PCB.append(['Line', x1R, y1R, x2R, y2R])
-                # empty circle/elipse
+                # empty circle/ellipse
                 for k in self.getCircles(j, 0, ['c'], [X1, Y1]):
                     [xs, ys] = self.obrocPunkt2([k['x'], k['y']], [Xr, Yr], ROT)
                     if warst == 0:

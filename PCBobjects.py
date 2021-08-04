@@ -704,8 +704,8 @@ class layerSilkObject(objectWire):
     def addArc3P(self, p1, p2, p3):
         self.spisObiektowTXT[-1]['objects'].append(['arc3P', p1, p2, p3])
 
-    def addElipse(self, x, y, r1, r2, w=0):
-        self.spisObiektowTXT[-1]['objects'].append(['elipse', x, y, r1, r2, w])
+    def addEllipse(self, x, y, r1, r2, w=0):
+        self.spisObiektowTXT[-1]['objects'].append(['ellipse', x, y, r1, r2, w])
         
     ################
     ################
@@ -882,7 +882,7 @@ class layerSilkObject(objectWire):
     def addRotation(self, xs, ys, angle):
         self.spisObiektowTXT[-1].rotate(FreeCAD.Vector(xs, ys, 0), FreeCAD.Vector(0, 0, 1), angle)
 
-    def createElipse(self, x, y, r1, r2):
+    def createEllipse(self, x, y, r1, r2):
         if r1 > r2:
             return Part.Ellipse(FreeCAD.Vector(x, y, 0), r1, r2)
         else:
@@ -921,7 +921,7 @@ class layerSilkObject(objectWire):
                 
                 # data.append(self.createCircle2(xs, ys, r1))
                 # obj['holes'].append([xs, ys, r2])
-            if i[0] == 'elipse':
+            if i[0] == 'ellipse':
                 x = i[1]
                 y = i[2]
                 r1 = i[3]
@@ -932,9 +932,9 @@ class layerSilkObject(objectWire):
                     obj['rotations'].append([x, y,  90])
                     
                 if w > 0:
-                    data.append(self.createElipse(x, y, r1 + w / 2., r2 + w / 2.))
+                    data.append(self.createEllipse(x, y, r1 + w / 2., r2 + w / 2.))
                 else:
-                    data.append(self.createElipse(x, y, r1, r2))
+                    data.append(self.createEllipse(x, y, r1, r2))
             # elif i[0] == 'line':
                 # x1 = i[1]
                 # y1 = i[2]
