@@ -57,7 +57,7 @@ from command.PCBboundingBox import boundingBox, boundingBoxFromSelection
 from command.PCBglue import createGlueGui
 from command.PCBassembly import createAssemblyGui, updateAssembly, exportAssemblyAll, exportAssemblySel, exportAssemblyPCB
 from command.PCBdrill import createDrillcenter_Gui
-from command.PCBcollision import checkCollisionsGui
+from command.PCBcollision import checkCollisionsGuiALL, checkCollisionsGuiPCB
 from command.PCBconstraintAreas import createConstraintArea
 from command.PCBsections import createSectionsGui
 from command.PCBgenerateModel import generateModelGui
@@ -186,16 +186,22 @@ class pcbToolBarView(pcbToolBarMain):
         
         scriptCmd_QuickAssembly2 = self.createAction(u"Update assembly", u"Update assembly", ":/data/img/asmUpdate.png")
         QtCore.QObject.connect(scriptCmd_QuickAssembly2, QtCore.SIGNAL("triggered()"), self.quickAssemblyUpdate)
-        scriptCmd_CheckForCollisions = self.createAction(u"Check for collisions", u"Check for collisions", ":/data/img/collisions.png")
-        QtCore.QObject.connect(scriptCmd_CheckForCollisions, QtCore.SIGNAL("triggered()"), self.checkForCollisionsF)
+        # collisions
+        scriptCmd_CheckForCollisionsALL = self.createAction(u"Detect collisions between objects", u"Detect collisions between objects", ":/data/img/collisions.svg")
+        QtCore.QObject.connect(scriptCmd_CheckForCollisionsALL, QtCore.SIGNAL("triggered()"), self.checkForCollisionsFALL)
         
+        scriptCmd_CheckForCollisionsPCB = self.createAction(u"Detect collisions with PCB", u"Detect collisions with PCB", ":/data/img/collisions.svg")
+        QtCore.QObject.connect(scriptCmd_CheckForCollisionsPCB, QtCore.SIGNAL("triggered()"), self.checkForCollisionsFPCB)
+        
+        groupsMenu = QtGui.QMenu(self)
+        groupsMenu.addAction(scriptCmd_CheckForCollisionsALL)
+        scriptCmd_CheckForCollisionsPCB.setMenu(groupsMenu)
         # parts groups
         scriptCmd_ungroupParts = self.createAction(u"Ungroup parts", u"Ungroup parts", ":/data/img/ungroup.svg")
         QtCore.QObject.connect(scriptCmd_ungroupParts, QtCore.SIGNAL("triggered()"), self.ungroupParts)
         
         scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/group.svg")
         QtCore.QObject.connect(scriptCmd_groupParts, QtCore.SIGNAL("triggered()"), self.groupParts)
-        
         # instructions
         scriptCmd_openInstruction_0 = self.createAction(u"Open instruction (FC0.18 in progress)", u"Open instruction (FC0.18 in progress)", ":/data/img/info_16x16.png")
         QtCore.QObject.connect(scriptCmd_openInstruction_0, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC018_inProgress_DUMMY.pdf"))
@@ -224,6 +230,7 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_showSignals)
         self.addAction(scriptCmd_ungroupParts)
         self.addAction(scriptCmd_groupParts)
+        self.addAction(scriptCmd_CheckForCollisionsPCB)
         self.addSeparator()
         self.addAction(scriptCmd_ExportToKerkythea)
         self.addAction(scriptCmd_ExportObjectToPovRay)
@@ -231,7 +238,6 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_openInstruction_0)
         self.addAction(scriptCmd_QuickAssembly)
         self.addAction(scriptCmd_QuickAssembly2)
-        self.addAction(scriptCmd_CheckForCollisions)
         self.addToolBar(self)
     
     def openInstruction(self, fileName):
@@ -311,10 +317,21 @@ class pcbToolBarView(pcbToolBarMain):
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
-    def checkForCollisionsF(self):
+    def checkForCollisionsFALL(self):
         try:
             if FreeCAD.activeDocument():
-                FreeCADGui.Control.showDialog(checkCollisionsGui())
+                FreeCADGui.Control.showDialog(checkCollisionsGuiALL())
+            else:
+                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    
+    def checkForCollisionsFPCB(self):
+        try:
+            if FreeCAD.activeDocument() and getPCBheight()[0]:
+                FreeCADGui.Control.showDialog(checkCollisionsGuiPCB())
+            else:
+                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
     
