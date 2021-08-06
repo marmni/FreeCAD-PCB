@@ -203,19 +203,22 @@ class pcbToolBarView(pcbToolBarMain):
         scriptCmd_groupParts = self.createAction(u"Group parts", u"Group parts", ":/data/img/group.svg")
         QtCore.QObject.connect(scriptCmd_groupParts, QtCore.SIGNAL("triggered()"), self.groupParts)
         # instructions
-        scriptCmd_openInstruction_0 = self.createAction(u"Open instruction (FC0.18 in progress)", u"Open instruction (FC0.18 in progress)", ":/data/img/info_16x16.png")
-        QtCore.QObject.connect(scriptCmd_openInstruction_0, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC018_inProgress_DUMMY.pdf"))
+        scriptCmd_openInstruction_0 = self.createAction(u"Open instruction (FC0.19 in progress)", u"Open instruction (FC0.19 in progress)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_0, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC019_inProgress.pdf"))
         
-        scriptCmd_openInstruction_1 = self.createAction(u"Open instruction (FC0.18 in progress)", u"Open instruction (FC0.18 in progress)", ":/data/img/info_16x16.png")
-        QtCore.QObject.connect(scriptCmd_openInstruction_1, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC018_inProgress_DUMMY.pdf"))
+        scriptCmd_openInstruction_1 = self.createAction(u"Open instruction (FC0.19 in progress)", u"Open instruction (FC0.19 in progress)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_1, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC019_inProgress.pdf"))
         
+        scriptCmd_openInstruction_2 = self.createAction(u"Open instruction (FC0.18)", u"Open instruction (FC0.18)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_2, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "OLD/instruction_FC018_inProgress_DUMMY.pdf"))
         
-        scriptCmd_openInstruction_2 = self.createAction(u"Open instruction (FC0.16)", u"Open instruction (FC0.16)", ":/data/img/info_16x16.png")
-        QtCore.QObject.connect(scriptCmd_openInstruction_2, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "instruction_FC016.pdf"))
+        scriptCmd_openInstruction_3 = self.createAction(u"Open instruction (FC0.16)", u"Open instruction (FC0.16)", ":/data/img/info_16x16.png")
+        QtCore.QObject.connect(scriptCmd_openInstruction_3, QtCore.SIGNAL("triggered()"), partial(self.openInstruction, "OLD/instruction_FC016.pdf"))
         
         groupsMenuI = QtGui.QMenu(self)
         groupsMenuI.addAction(scriptCmd_openInstruction_1)
         groupsMenuI.addAction(scriptCmd_openInstruction_2)
+        groupsMenuI.addAction(scriptCmd_openInstruction_3)
         scriptCmd_openInstruction_0.setMenu(groupsMenuI)
         ##########
         self.addAction(scriptCmd_viewShaded)
