@@ -61,6 +61,7 @@ from command.PCBcollision import checkCollisionsGuiALL, checkCollisionsGuiPCB
 from command.PCBconstraintAreas import createConstraintArea
 from command.PCBsections import createSectionsGui
 from command.PCBgenerateModel import generateModelGui
+from command.PCBcreateSimplifiedModel import createSimplifiedModel
 
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
@@ -441,6 +442,9 @@ class pcbToolBar(pcbToolBarMain):
         # crossSectionsMenu.addAction(scriptCmd_crossSections)
         # crossSectionsMenu.addAction(scriptCmd_crossSectionsPCB)
         # scriptCmd_crossSections_M.setMenu(crossSectionsMenu)
+        # create a simplified model
+        scriptCmd_CreateSimplifiedModel = self.createAction(u"Create a simplified model", u"Create a simplified model", ":/data/img/createSimplifiedModel.svg")
+        QtCore.QObject.connect(scriptCmd_CreateSimplifiedModel, QtCore.SIGNAL("triggered()"), self.createSimplifiedModelF)
         # generate model
         scriptCmd_generateModel = self.createAction(u"Generate model", u"Generate model", ":/data/img/generateModel.svg")
         QtCore.QObject.connect(scriptCmd_generateModel, QtCore.SIGNAL("triggered()"), self.generateModelF)
@@ -551,6 +555,7 @@ class pcbToolBar(pcbToolBarMain):
         groupsMenuExportAsOneObject = QtGui.QMenu(self)
         groupsMenuExportAsOneObject.addAction(scriptCmd_exportAssemblyAll)
         groupsMenuExportAsOneObject.addAction(scriptCmd_exportAssemblySel)
+        groupsMenuExportAsOneObject.addAction(scriptCmd_CreateSimplifiedModel)
         scriptCmd_exportAssemblyPCB.setMenu(groupsMenuExportAsOneObject)
         ##
         scriptCmd_ExportBOM = self.createAction(u"Export BOM", u"Export BOM", ":/data/img/exportBOM.png")
@@ -636,7 +641,7 @@ class pcbToolBar(pcbToolBarMain):
         self.addAction(scriptCmd_NextPackage)
         #
         self.addToolBar(self)
-    
+
     def generateModelF(self):
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(generateModelGui())
@@ -829,6 +834,15 @@ class pcbToolBar(pcbToolBarMain):
                     #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
         elif not pcb[0]:
             FreeCAD.Console.PrintWarning("No PCB found\n")
+    
+    def createSimplifiedModelF(self):
+        if FreeCAD.activeDocument():
+            if getPCBheight()[0]:
+                createSimplifiedModel()
+            else:
+                FreeCAD.Console.PrintWarning("No PCB found\n")
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
     
     def createSectionsSelParts(self):
         if FreeCAD.activeDocument():
