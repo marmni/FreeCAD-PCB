@@ -48,6 +48,25 @@ def createBox(parts):
         FreeCAD.ActiveDocument.recompute()
         
         return BoundBox
+        
+def createBoxForModel(elem):
+    if hasattr(elem, "Shape") and hasattr(elem, "Proxy") and hasattr(elem.Proxy, "Type") and not elem.Proxy.Type in ["ShapeString"]:
+        BoundBox = FreeCAD.ActiveDocument.addObject("Part::Box", "PCB_Bounding_Box_1")
+        BoundBox.Label = "PCB Bounding Box 1"
+        BoundBox.Length = elem.Shape.BoundBox.XLength
+        BoundBox.Width = elem.Shape.BoundBox.YLength
+        BoundBox.Height = elem.Shape.BoundBox.ZLength
+        BoundBox.Placement.Base.x = elem.Shape.BoundBox.XMin
+        BoundBox.Placement.Base.y = elem.Shape.BoundBox.YMin
+        BoundBox.Placement.Base.z = elem.Shape.BoundBox.ZMin
+        #FreeCADGui.activeDocument().getObject(BoundBox.Name).ShapeColor = (1.0, 0.0, 0.0, 0.0)
+        #FreeCADGui.activeDocument().getObject(BoundBox.Name).Transparency = 80
+        #FreeCADGui.activeDocument().getObject(BoundBox.Name).BoundingBox = True
+        #FreeCADGui.activeDocument().getObject(BoundBox.Name).LineWidth = 10.00
+        #FreeCADGui.activeDocument().getObject(BoundBox.Name).DisplayMode = "Shaded"
+        #FreeCAD.ActiveDocument.recompute()
+        
+        return BoundBox
 
 def boundingBox():
     return createBox([i.Shape for i in FreeCAD.activeDocument().Objects if i.ViewObject.Visibility and hasattr(i, "Shape")])
