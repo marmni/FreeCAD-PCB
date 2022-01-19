@@ -174,7 +174,7 @@ class EaglePCB(baseModel):
                     if i['side'] == 0:
                         curve *= -1
                     
-                    [x3, y3] = self.arcMidPoint([x1, y1], [x2, y2], j['curve'])
+                    [x3, y3] = self.arcMidPoint([x1, y1], [x2, y2], curve)
                     #arc = Part.Arc(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
                     arc = Part.ArcOfCircle(FreeCAD.Vector(x1, y1, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x2, y2, 0.0))
                     borderObject.addGeometry(arc)
