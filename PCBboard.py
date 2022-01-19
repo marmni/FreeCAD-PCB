@@ -198,7 +198,7 @@ class PCBboardObject:
             except:
                 self.oldHeight = 0
 
-            face = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Wires)
+            face = OpenSCAD2Dgeom.edgestofaces(fp.Border.Shape.Edges)
             ############################################################
             # BASED ON  realthunder PROPOSAL/SOLUTION
             ############################################################
