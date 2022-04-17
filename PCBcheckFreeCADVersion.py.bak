@@ -30,7 +30,7 @@ from PySide import QtGui
 __scriptVersion__ = 5.0
 __dataBaseVersion__ = 2.0
 __pythonVersion__ = 3.6
-__requiredFreeCADVersion__ = (0.18, 0.19)  # (min, max)
+__requiredFreeCADVersion__ = (0.16, 0.16)  # (min, max)
 
 
 def currentFreeCADVersion():
@@ -49,12 +49,9 @@ def checkCompatibility():
             # return [False]
         # else:
         return [True]
-    elif currentFCVersion <= __requiredFreeCADVersion__[0]:
-        FreeCAD.Console.PrintError("PCB Workbench: Error\n\tYour version of FreeCAD is too old. Supported versions => {0}.\n".format(__requiredFreeCADVersion__[0]))
-        return [False]
     else:
-        FreeCAD.Console.PrintWarning("PCB Workbench: Warning\n\tIncompatible FreeCAD version. Supported versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
-        return [True]
+        FreeCAD.Console.PrintWarning("PCB Workbench: Error. Incompatible FreeCAD version. Supported FreeCAD versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
+        return [False]
 
 
 def checkdataBaseVersion():
