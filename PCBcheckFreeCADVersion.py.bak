@@ -56,6 +56,23 @@ def checkCompatibility():
         return [True]
 
 
+# def checkdataBaseVersion(version):
+    # ''' PCBdataBase -> checkVersion() '''
+    # #version = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetFloat("dataBaseVersion", 0.0)
+    # #
+    # if float(version) < __dataBaseVersion__:
+        # dial = QtGui.QMessageBox()
+        # dial.setText(u"Old database format detected - upgrading database format is required.\nThis may take several seconds.")
+        # dial.setWindowTitle("Caution!")
+        # dial.setIcon(QtGui.QMessageBox.Question)
+        # rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
+        # dial.exec_()
+        # #
+        # return [False, version]
+    # else:
+        # return [True, 0]
+
+
 def setDefaultValues():
     ''' InitGui -> Initialize() '''
     data = {

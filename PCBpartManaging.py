@@ -43,7 +43,7 @@ from PCBdataBase import dataBase
 from PCBconf import *
 from PCBboard import getPCBheight
 from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
-from PCBfunctions import wygenerujID, getFromSettings_databasePath, mathFunctions
+from PCBfunctions import wygenerujID, mathFunctions
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
 

@@ -35,7 +35,7 @@ import re
 #
 from PCBdataBase import dataBase
 from PCBconf import defSoftware, partPaths
-from PCBfunctions import getFromSettings_databasePath, kolorWarstwy, prepareScriptCopy, importScriptCopy
+from PCBfunctions import kolorWarstwy, prepareScriptCopy, importScriptCopy
 from PCBcategories import addCategoryGui, removeCategoryGui, updateCategoryGui, setOneCategoryGui, categorySelector
 from PCBpartManaging import partExistPath, partsManaging
 from PCBobjects import *
@@ -215,8 +215,8 @@ class packagesCopyConvertD(QtGui.QDialog):
         self.toC.setCurrentIndex(-1)
 
 
-class addNewPath(QtGui.QDialog):
-    def __init__(self, lista, parent=None):
+class pathManagementWindow(QtGui.QDialog):
+    def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowIcon(QtGui.QIcon(":/data/img/assignModels.png"))
         self.setWindowTitle(u"Paths")
@@ -225,9 +225,10 @@ class addNewPath(QtGui.QDialog):
         #
         self.path = QtGui.QLineEdit('')
         #
-        self.pathsList = QtGui.QListWidget()
-        self.pathsList.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.EditKeyPressed)
+        #self.pathsList = QtGui.QListWidget()
+        #self.pathsList.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked | QtGui.QAbstractItemView.EditKeyPressed)
         #self.pathsList.setStyleSheet('''QListWidget:item:selected:active {background: rgb(215, 243, 255);} ''')
+        self.pathsList = pathsSettingsTable()
         #
         librariesList = QtGui.QComboBox()
         librariesList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLength)
@@ -246,13 +247,14 @@ class addNewPath(QtGui.QDialog):
         self.connect(removePathButton, QtCore.SIGNAL("clicked ()"), self.removePath)
         
         editPathButton = QtGui.QPushButton(u'Edit path')
+        editPathButton.setEnabled(False)
         self.connect(editPathButton, QtCore.SIGNAL("clicked ()"), self.editPath)
         
         checkPathsButton = QtGui.QPushButton(u'Check paths')
         self.connect(checkPathsButton, QtCore.SIGNAL("clicked ()"), self.checkPaths)
         
         deleteColFileButton = QtGui.QPushButton(u'Delete *.col file')
-        deleteColFileButton.setToolTip("For selected models")
+        deleteColFileButton.setToolTip("For selected model")
         self.connect(deleteColFileButton, QtCore.SIGNAL("clicked ()"), self.deleteColFile)
         
         deleteAllColFilesButton = QtGui.QPushButton(u'Delete all *.col files')
@@ -295,12 +297,12 @@ class addNewPath(QtGui.QDialog):
         lay.addWidget(buttons, 4, 0, 1, 3)
         lay.setRowStretch(2, 10)
         #
-        self.loadlist(lista)
-        self.connect(self.pathsList, QtCore.SIGNAL("itemChanged (QListWidgetItem*)"), self.checkPath)
+        #self.loadlist(pathsListFromObject)
+        #self.connect(self.pathsList, QtCore.SIGNAL("itemChanged (QListWidgetItem*)"), self.checkPath)
         self.connect(librariesList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadPath)
         librariesList.setCurrentIndex(0)
         self.loadPath(librariesList.currentText())
-    
+
     def loadPath(self, value):
         try:
             if value == "Whole computer":
@@ -326,50 +328,30 @@ class addNewPath(QtGui.QDialog):
             
             for i in pathsToModels:
                 if i.replace('\\', '/') in path.replace('\\', '/'):
-                    self.addItem(path.replace('\\', '/').replace(i.replace('\\', '/'), '')[1:])  # relative path
+                    self.pathsList.addNewPath(path.replace('\\', '/').replace(i.replace('\\', '/'), '')[1:])  # relative path
                     return
             #
-            self.addItem(path) # absolute path
+            self.pathsList.addNewPath(path) # absolute path
         
     def editPath(self):
         if self.pathsList.currentRow() == -1:
             return
             
         self.pathsList.editItem(self.pathsList.currentItem())
-        
-    def checkPath(self, item):
-        [boolValue, path] = partExistPath(item.text())
-        
-        if boolValue:
-            item.setForeground(QtGui.QBrush(QtGui.QColor(72, 144, 0)))
-            item.setData(QtCore.Qt.UserRole, path)
-            if item.checkState() != QtCore.Qt.Checked:
-                item.setCheckState(QtCore.Qt.Unchecked)
-        else:
-            item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-            item.setCheckState(QtCore.Qt.Checked)
-            item.setData(QtCore.Qt.UserRole, '')
-    
-    def checkPaths(self):
-        for i in range(self.pathsList.count()):
-            self.checkPath(self.pathsList.item(i))
-            
-    def addItem(self, path):
-        item = QtGui.QListWidgetItem(path)
-        #item.setData(QtCore.Qt.UserRole, absolutePath)
-        self.checkPath(item)
-        item.setFlags(QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable)
-        self.pathsList.addItem(item)
 
-    def loadlist(self, lista):
-        for i in  lista.split(';'):
-            if i == '':
+    def checkPaths(self):
+        for i in range(self.pathsList.rowCount()):
+            if self.pathsList.isRowHidden(i):
                 continue
             #
-            self.addItem(i)
+            [boolValue, path] = partExistPath(u"{0}".format(self.pathsList.item(i, 1).text()))
         
-        self.pathsList.setCurrentRow(0)
-    
+            #for j in range(self.pathsList.columnCount()):
+            if not boolValue:
+                self.pathsList.item(i, 1).setBackground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+            else:
+                self.pathsList.item(i, 1).setBackground(QtGui.QBrush(QtGui.QColor(72, 144, 0)))
+            
     def deleteColFile(self):
         if self.pathsList.currentRow() == -1:
             return
@@ -383,7 +365,7 @@ class addNewPath(QtGui.QDialog):
         dial.exec_()
         
         if dial.clickedButton() == delete_YES:
-            [boolValue, path] = partExistPath(self.pathsList.currentItem().text())
+            [boolValue, path] = partExistPath(u"{0}".format(self.pathsList.item(self.pathsList.currentRow(), 1).text()))
             path, extension = os.path.splitext(path)
             
             try:
@@ -401,8 +383,11 @@ class addNewPath(QtGui.QDialog):
         dial.exec_()
         
         if dial.clickedButton() == delete_YES:
-            for i in range(self.pathsList.count()):
-                [boolValue, path] = partExistPath(self.pathsList.item(i).text())
+            for i in range(self.pathsList.rowCount()):
+                if self.pathsList.isRowHidden(i):
+                    continue
+                #
+                [boolValue, path] = partExistPath(u"{0}".format(self.pathsList.item(i, 1).text()))
                 path, extension = os.path.splitext(path)
                 
                 try:
@@ -411,21 +396,7 @@ class addNewPath(QtGui.QDialog):
                     pass
 
     def removePath(self):
-        if self.pathsList.currentRow() == -1:
-            return
-        
-        dial = QtGui.QMessageBox()
-        dial.setText(u"Delete all selected paths?")
-        dial.setWindowTitle("Caution!")
-        dial.setIcon(QtGui.QMessageBox.Question)
-        delete_YES = dial.addButton('Yes', QtGui.QMessageBox.YesRole)
-        dial.addButton('No', QtGui.QMessageBox.RejectRole)
-        dial.exec_()
-        
-        if dial.clickedButton() == delete_YES:
-            for i in range(self.pathsList.count(), 0, -1):
-                if self.pathsList.item(i - 1).checkState() == QtCore.Qt.Checked:
-                    self.pathsList.takeItem(i - 1)
+        self.pathsList.deleteRow()
 
 
 class modelAdjustTable(QtGui.QTableWidget):
@@ -564,32 +535,34 @@ class modelAdjustTable(QtGui.QTableWidget):
         self.setColumnWidth(0, 25)
 
 
-class modelSettingsTable(QtGui.QTableWidget):
+class settingsTable(QtGui.QTableWidget):
     def __init__(self, parent=None):
         QtGui.QTableWidget.__init__(self, parent)
-        
-        self.setColumnCount(9)
-        self.setHorizontalHeaderLabels([u"ID", u"Package name", u"Software", "X", "Y", "Z", "RX", "RY", "RZ"])
+        #
         self.setSortingEnabled(False)
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().hide()
         self.setGridStyle(QtCore.Qt.PenStyle(QtCore.Qt.DashLine))
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.hideColumn(0)
+        #self.hideColumn(0)
         self.setStyleSheet('''
                 border: 1px solid #808080;
             ''')
-            
-    def editModel(self):
-        row = self.currentRow()
-        if row != -1:
-            self.editRow(row)
     
-    def deleteModel(self):
+    def addTableWidgetItem(self, text, num, editable=False):
+        a = QtGui.QTableWidgetItem(str(text))
+        if editable:
+            a.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
+        else:
+            a.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled )
+        a.setTextAlignment(QtCore.Qt.AlignCenter)
+        self.setItem(self.rowCount() - 1, num, a)
+    
+    def deleteRow(self):
         if self.currentRow() != -1:
             dial = QtGui.QMessageBox()
-            dial.setText(u"Delete selected package?")
+            dial.setText(u"Delete selected row?")
             dial.setWindowTitle("Caution!")
             dial.setIcon(QtGui.QMessageBox.Question)
             dial.addButton('No', QtGui.QMessageBox.RejectRole)
@@ -597,14 +570,100 @@ class modelSettingsTable(QtGui.QTableWidget):
             dial.exec_()
                     
             if dial.clickedButton() == usunT:
-                self.deleteRow(self.currentRow())
+                self.hideRow(self.currentRow())   
+
+    def clear(self):
+        for i in range(self.rowCount(), -1, -1):
+            self.removeRow(i)
+
+    def __str__(self):
+        return str(self.getData())
+
+
+class pathsSettingsTable(settingsTable):
+    def __init__(self, parent=None):
+        super(pathsSettingsTable, self).__init__()
+        #
+        self.setColumnCount(3)
+        self.setHorizontalHeaderLabels([u"ID", u"Path", u"Attribute"])
+        self.hideColumn(0)
+        #
+        self.backupData = []
+        
+    def addNewPath(self, path):
+        if path.strip() == "":
+            return
+        #
+        data = {}
+        data['id'] = -1
+        data['path'] = path.strip()
+        data['attribute'] = ""
+        #
+        self.addRows([data])
     
-    def addNewModelCell(self, text, num):
-        a = QtGui.QTableWidgetItem(str(text))
-        a.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        a.setTextAlignment(QtCore.Qt.AlignCenter)
-        self.setItem(self.rowCount() - 1, num, a)
+    def addRows(self, data):
+        ''' '''
+        for i in data:
+            self.insertRow(self.rowCount())
+            #
+            self.addTableWidgetItem(i['id'], 0)
+            self.addTableWidgetItem(i['path'], 1, True)
+            self.addTableWidgetItem(i['attribute'], 2, True)
+            
+            if 'blanked' in i.keys() and i['blanked']:
+                self.hideRow(self.rowCount() - 1) 
+                
+    def getData(self):
+        result = []
+        
+        for i in range(self.rowCount()):
+            data = {}
+            try:
+                data['id'] = int(self.item(i, 0).text())
+            except:
+                data['id'] = -1
+            
+            data['path'] = u"{0}".format(self.item(i, 1).text())
+            data['attribute'] = u"{0}".format(self.item(i, 2).text())
+            data['blanked'] = self.isRowHidden(i)
+            
+            result.append(data)
+        
+        return  result
+        
+    def getDataAsString(self):
+        result = []
+        #
+        for i in range(self.rowCount()):
+            if not self.isRowHidden(i):
+                if u"{0}".format(self.item(i, 2).text()).strip() != "":
+                    result.append(u"{0}".format(self.item(i, 1).text()) + "(" + u"{0}".format(self.item(i, 2).text()).strip() + ")")
+                else:
+                    result.append(u"{0}".format(self.item(i, 1).text()))
+        #
+        return ";".join(result)
+       
+    def createBackup(self):
+        self.backupData = self.getData()
+        
+    def restoreBackup(self):
+        self.clear()
+        self.addRows(self.backupData)
     
+
+class modelSettingsTable(settingsTable):
+    def __init__(self, parent=None):
+        super(modelSettingsTable, self).__init__()
+        #
+        self.setColumnCount(9)
+        self.setHorizontalHeaderLabels([u"ID", u"Package name", u"Software", "X", "Y", "Z", "RX", "RY", "RZ"])
+        self.hideColumn(0)
+            
+    def editModel(self):
+        row = self.currentRow()
+        if row != -1:
+            self.editRow(row)
+
     def copyModel(self):
         row = self.currentRow()
         if row != -1:
@@ -661,10 +720,6 @@ class modelSettingsTable(QtGui.QTableWidget):
             data['rz'] = dial.pozRZ.value()
             
             self.addRows([data])
-                
-    def deleteRow(self, row):
-        #self.removeRow(row)
-        self.hideRow(int(row))
 
     def editRow(self, row):
         dial = addModelDialog(1)
@@ -693,20 +748,16 @@ class modelSettingsTable(QtGui.QTableWidget):
         for i in data:
             self.insertRow(self.rowCount())
             
-            self.addNewModelCell(i['id'], 0)
-            self.addNewModelCell(i['name'], 1)
-            self.addNewModelCell(i['software'], 2)
-            self.addNewModelCell(i['x'], 3)
-            self.addNewModelCell(i['y'], 4)
-            self.addNewModelCell(i['z'], 5)
-            self.addNewModelCell(i['rx'], 6)
-            self.addNewModelCell(i['ry'], 7)
-            self.addNewModelCell(i['rz'], 8)
-        
-    def clear(self):
-        for i in range(self.rowCount(), -1, -1):
-            self.removeRow(i)
-    
+            self.addTableWidgetItem(i['id'], 0)
+            self.addTableWidgetItem(i['name'], 1)
+            self.addTableWidgetItem(i['software'], 2)
+            self.addTableWidgetItem(i['x'], 3)
+            self.addTableWidgetItem(i['y'], 4)
+            self.addTableWidgetItem(i['z'], 5)
+            self.addTableWidgetItem(i['rx'], 6)
+            self.addTableWidgetItem(i['ry'], 7)
+            self.addTableWidgetItem(i['rz'], 8)
+
     def getData(self):
         result = []
         
@@ -729,9 +780,6 @@ class modelSettingsTable(QtGui.QTableWidget):
             result.append(data)
         
         return  result
-
-    def __str__(self):
-        return str(self.getData())
 
 
 class modelsList(QtGui.QTreeWidget):
@@ -913,7 +961,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
                    "description": "",
                    "categoryID" : 0,
                    "datasheet" : "",
-                   "path3DModels" : "",
+                   "paths" : "",
                    "isSocket" : False,
                    "isSocketHeight" : 0.0,
                    "socketID" : 0,
@@ -1159,7 +1207,6 @@ class dodajElement(QtGui.QDialog, partsManaging):
         try:
             self.elementID = model["id"]
             self.packageName.setText(model["name"])
-            self.pathToModel.setText(model["path3DModels"])
             self.modelDescription.setPlainText(model["description"])
             self.datasheetPath.setText(model["datasheet"])
             if model["categoryID"] == 0:
@@ -1169,6 +1216,14 @@ class dodajElement(QtGui.QDialog, partsManaging):
             # software
             self.modelSettings.clear()
             self.modelSettings.addRows(model["software"])
+            # paths
+            self.pathManagementWindow.pathsList.clear()
+            
+            for i in self.sql.getPathsByModelID(self.elementID):
+                self.pathManagementWindow.pathsList.addRows([self.sql.convertToTable(i)])
+            
+            self.pathManagementWindow.pathsList.createBackup()
+            self.pathToModel.setText(self.pathManagementWindow.pathsList.getDataAsString())
             # params
             self.modelAdjust.resetTable()
             if "params" in model.keys():
@@ -1202,15 +1257,14 @@ class dodajElement(QtGui.QDialog, partsManaging):
             except Exception as e:
                 pass
     
-    def addNewPathF(self):
+    def editPaths(self):
         '''  '''
-        dial = addNewPath(self.pathToModel.text())
-        if dial.exec_():
-            path = []
-            for i in range(dial.pathsList.count()):
-                path.append(dial.pathsList.item(i).text())
-            self.pathToModel.setText(';'.join(path))
-
+        if self.pathManagementWindow.exec_():
+            self.pathToModel.setText(self.pathManagementWindow.pathsList.getDataAsString())
+            self.pathManagementWindow.pathsList.createBackup()
+        else:
+            self.pathManagementWindow.pathsList.restoreBackup()
+        
     def loadDatasheet(self):
         ''' load datasheet of selected package '''
         url = str(self.datasheetPath.text()).strip()
@@ -1347,6 +1401,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
                     modelData = self.sql.convertToTable(dane[1])
                     modelData = self.sql.packagesDataToDictionary(modelData)
                     modelData = self.sql.paramsDataToDictionary(modelData)
+                    modelData = self.sql.pathsDataToDictionary(modelData)
                     self.showData(modelData)
             except Exception as e:
                 FreeCAD.Console.PrintWarning("ERROR (LD): {0}.\n".format(e))
@@ -1417,16 +1472,19 @@ class dodajElement(QtGui.QDialog, partsManaging):
         else:
             self.modelPreview.Shape = Part.Shape()
 
-    def checkSockets(self, tabID):
+    def rightSideChangeTab(self, tabID):
         if tabID == 1 and self.socketModelName.count() == 0:
             self.boxAddSocket.setDisabled(True)
         if tabID == 2 and self.modelPreview is not None:  # preview
             self.pathsList.clear()
-            if len(self.pathToModel.text().split(';')):
-                self.pathsList.addItems(self.pathToModel.text().split(';'))
-                self.connect(self.pathsList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadModelPreview)
-                self.pathsList.setCurrentIndex(-1)
-                self.pathsList.setCurrentIndex(0)
+            #
+            if self.elementID:
+                for i in self.pathManagementWindow.pathsList.getData():
+                    if not i["blanked"]:
+                        self.pathsList.addItem(i["path"].strip())
+                        self.connect(self.pathsList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadModelPreview)
+                        self.pathsList.setCurrentIndex(-1)
+                        self.pathsList.setCurrentIndex(0)
             else:
                 self.modelPreview.Shape = Part.Shape()
         else:
@@ -1467,8 +1525,9 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.pathToModel.setReadOnly(True)
         
         pathToModelInfo = flatButton(":/data/img/edit_16x16.png", u"Edit")
-        self.connect(pathToModelInfo, QtCore.SIGNAL("clicked ()"), self.addNewPathF)
+        self.connect(pathToModelInfo, QtCore.SIGNAL("clicked ()"), self.editPaths)
         
+        self.pathManagementWindow = pathManagementWindow()
         #########################
         ## datasheet
         #########################
@@ -1559,7 +1618,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.connect(modelSettingsAdd, QtCore.SIGNAL("clicked ()"), self.modelSettings.addNewModel)
         
         modelSettingsDelete = flatButton(":/data/img/categoryDelete.png", u"Delete selected package")
-        self.connect(modelSettingsDelete, QtCore.SIGNAL("clicked ()"), self.modelSettings.deleteModel)
+        self.connect(modelSettingsDelete, QtCore.SIGNAL("clicked ()"), self.modelSettings.deleteRow)
         
         modelSettingsEdit = flatButton(":/data/img/categoryEdit.png", u"Edit selected package")
         self.connect(modelSettingsEdit, QtCore.SIGNAL("clicked ()"), self.modelSettings.editModel)
@@ -1671,7 +1730,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.RightSide_tab.addTab(rightSide_Preview, u"Preview")
         #self.RightSide_tab.addTab(rightSide_Trash, u"Trash")
         #self.RightSide_tab.
-        self.connect(self.RightSide_tab, QtCore.SIGNAL("currentChanged (int)"), self.checkSockets)
+        self.connect(self.RightSide_tab, QtCore.SIGNAL("currentChanged (int)"), self.rightSideChangeTab)
         
         if self.modelPreview is None:
             self.RightSide_tab.setTabEnabled(2, False)
