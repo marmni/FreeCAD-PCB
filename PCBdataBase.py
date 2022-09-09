@@ -739,6 +739,7 @@ class dataBase:
             #
             self.session.query(Models).filter(Models.socketID == modelID).update({"socketID": 0, "socketIDSocket": False})
             self.session.query(Packages).filter(Packages.modelID == modelID).delete()
+            self.session.query(Paths).filter(Paths.modelID == modelID).delete()
             self.session.query(Models).filter(Models.id == modelID).delete()
             self.session.query(modelsParam).filter(modelsParam.modelID == modelID).delete()
             self.session.commit()
@@ -756,7 +757,7 @@ class dataBase:
             description = self.clearString(data["description"])
             categoryID = int(data["categoryID"])
             datasheet = self.clearString(data["datasheet"])
-            path3DModels = self.clearString(data["path3DModels"])
+            #path3DModels = self.clearString(data["path3DModels"])
             isSocket = data["isSocket"]
             isSocketHeight = float(data["isSocketHeight"])
             #
@@ -767,21 +768,27 @@ class dataBase:
             #
             socketIDSocket = data["socketIDSocket"]
             #
-            if name == '' or path3DModels == '':
+            if name == '':
                 raise MandatoryError()
             #
-            model = Models(name, path3DModels, description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
+            model = Models(name, "", description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
             self.session.add(model)
             self.session.commit()
             self.lastInsertedID = model.id
             self.lastInsertedModelID = model.id
-            #
+            # software
             for i in data["software"]:
                 if i['blanked']:
                     continue
                 else:  # add new package
                     self.addPackage(i, modelID=self.lastInsertedModelID)
-            #
+            # paths
+            for i in data["path3DModels"]:
+                if i['blanked']:
+                    continue
+                else:  # add new path
+                    self.addPath(self.lastInsertedModelID, i['path'], i['attribute'])   
+            # params
             for i in data["params"].keys():
                 if data["params"][i]["active"]:
                     self.addNewParam(model.id, i, data["params"][i])
@@ -899,7 +906,7 @@ class dataBase:
     def updateModel(self, modelID, data):
         try:
             name = self.clearString(data["name"])
-            path3DModels = self.clearString(data["path3DModels"])
+            #path3DModels = self.clearString(data["path3DModels"])
             modelID = int(modelID)
             #
             try:
@@ -907,7 +914,7 @@ class dataBase:
             except:
                 socketID = 0
             #
-            if name == '' or path3DModels == '' or modelID <= 0:
+            if name == '' or modelID <= 0:
                 raise MandatoryError()
             #
             self.session.query(Models).filter(Models.id == modelID).update({
@@ -915,7 +922,7 @@ class dataBase:
                     "description": self.clearString(data["description"]),
                     "categoryID": int(data["categoryID"]),
                     "datasheet": self.clearString(data["datasheet"]),
-                    "path3DModels": path3DModels,
+                    "path3DModels": "",
                     "isSocket": data["isSocket"],
                     "isSocketHeight": float(data["isSocketHeight"]),
                     "socketID": socketID,
@@ -923,7 +930,7 @@ class dataBase:
             })
             #
             self.session.commit()
-            #
+            # packages
             for i in data["software"]:
                 if i['blanked']:
                     if int(i['id']) == -1:
@@ -935,7 +942,19 @@ class dataBase:
                         self.updatePackage(int(i['id']), i)
                     else:  # add package
                         self.addPackage(i, modelID=modelID)
-            #
+            # paths
+            for i in data["path3DModels"]:
+                if i['blanked']:
+                    if int(i['id']) == -1:
+                        continue
+                    else:  # del path
+                        self.deletePath(int(i['id']))
+                else:
+                    if int(i['id']) != -1:  # update path
+                        self.updatePath(int(i['id']), i)
+                    else:  # add path
+                        self.addPath(modelID, i['path'], i['attribute'])
+            # params
             for i in data["params"].keys():
                 if data["params"][i]["id"] == -1 and data["params"][i]["active"]:  # add new param
                     self.addNewParam(modelID, i, data["params"][i])

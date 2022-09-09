@@ -279,6 +279,7 @@ class pathManagementWindow(QtGui.QDialog):
         layPathsListWidget.setStyleSheet('''#lay_path_widget {background-color:#fff; border:1px solid rgb(199, 199, 199); padding: 5px;} QListWidget {border:1px solid rgb(223, 223, 223);}''')
         layPathsLis = QtGui.QGridLayout(layPathsListWidget)
         layPathsLis.addWidget(self.pathsList, 0, 0, 8, 1)
+        layPathsLis.addWidget(QtGui.QLabel("Double click to edit text"), 9, 0, 1, 1)
         layPathsLis.addWidget(editPathButton, 0, 1, 1, 1)
         layPathsLis.addWidget(removePathButton, 1, 1, 1, 1)
         layPathsLis.addWidget(separator(), 2, 1, 1, 1)
@@ -287,6 +288,7 @@ class pathManagementWindow(QtGui.QDialog):
         layPathsLis.addWidget(deleteColFileButton, 5, 1, 1, 1)
         layPathsLis.addWidget(deleteAllColFilesButton, 6, 1, 1, 1)
         layPathsLis.setContentsMargins(0, 0, 0, 0)
+        layPathsLis.setRowStretch(7, 10)
         #
         lay = QtGui.QGridLayout(self)
         lay.addWidget(self.pathChooser, 0, 0, 3, 2)
@@ -983,7 +985,8 @@ class dodajElement(QtGui.QDialog, partsManaging):
                    "description": str(self.modelDescription.toPlainText()),
                    "categoryID": self.modelCategory.categoryID,
                    "datasheet": str(self.datasheetPath.text()).strip(),
-                   "path3DModels": str(self.pathToModel.text()).strip(),
+                   #"path3DModels": str(self.pathToModel.text()).strip(),
+                   "path3DModels": self.pathManagementWindow.pathsList.getData(),
                    "isSocket": self.boxSetAsSocketa.isChecked(),
                    "isSocketHeight": float(self.socketHeight.value()),
                    "socketID": self.socketModelName.itemData(self.socketModelName.currentIndex(), QtCore.Qt.UserRole),
@@ -1095,20 +1098,16 @@ class dodajElement(QtGui.QDialog, partsManaging):
                     elif dial.clickedButton() == delete_NO:
                         continue
                 ##
-                dane = self.sql.getModelByID(objectID)
-                if dane[0]:
-                    modelData = self.sql.convertToTable(dane[1])
-                    for p in modelData["path3DModels"].split(';'):
-                        if p == '':
-                            continue
-                        
-                        [boolValue, path] = partExistPath(p)
-                        path, extension = os.path.splitext(path)
-                        
-                        try:
-                            os.remove(path + ".col") 
-                        except:
-                            pass
+                for d in self.sql.getPathsByModelID(objectID):
+                    data = self.sql.convertToTable(d)
+                    #
+                    [boolValue, path] = partExistPath(data["path"])
+                    path, extension = os.path.splitext(path)
+                    
+                    try:
+                        os.remove(path + ".col") 
+                    except:
+                        pass
             ##########
         except Exception as e:
             FreeCAD.Console.PrintWarning("Error1: {0} \n".format(e))
@@ -1478,7 +1477,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         if tabID == 2 and self.modelPreview is not None:  # preview
             self.pathsList.clear()
             #
-            if self.elementID:
+            if self.pathToModel.text().strip() != "":
                 for i in self.pathManagementWindow.pathsList.getData():
                     if not i["blanked"]:
                         self.pathsList.addItem(i["path"].strip())
@@ -1487,6 +1486,15 @@ class dodajElement(QtGui.QDialog, partsManaging):
                         self.pathsList.setCurrentIndex(0)
             else:
                 self.modelPreview.Shape = Part.Shape()
+            # if self.elementID:
+                # for i in self.pathManagementWindow.pathsList.getData():
+                    # if not i["blanked"]:
+                        # self.pathsList.addItem(i["path"].strip())
+                        # self.connect(self.pathsList, QtCore.SIGNAL("currentIndexChanged (const QString&)"), self.loadModelPreview)
+                        # self.pathsList.setCurrentIndex(-1)
+                        # self.pathsList.setCurrentIndex(0)
+            # else:
+                # self.modelPreview.Shape = Part.Shape()
         else:
             self.pathsList.clear()
             self.boxAddSocket.setDisabled(False)
@@ -1766,6 +1774,7 @@ class dodajElement(QtGui.QDialog, partsManaging):
         self.connect(modelsListSaveCopy, QtCore.SIGNAL("clicked ()"), self.prepareCopy)
         
         modelsListImportDatabase = flatButtonLarge(":/data/img/databaseImport.svg", u"Import database")
+        modelsListImportDatabase.setEnabled(False)
         self.connect(modelsListImportDatabase, QtCore.SIGNAL("clicked ()"), self.importDatabase)
         
         modelsListReload = flatButtonLarge(":/data/img/databaseReload.svg", u"Reload database")
