@@ -246,6 +246,8 @@ class gEDA_PCB(baseModel):
                 if i[0] == 'FREECAD': # use different 3D model for current package
                     if i[1].strip() == "":
                         FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(k["name"]))
+                    elif i[1].strip().startswith("--"):
+                        k['pathAttribute'] = i[1].strip()
                     else:
                         FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(k["name"], i[1].strip(), k['package']))
                         k['package'] = i[1].strip()
@@ -556,6 +558,7 @@ class gEDA_PCB(baseModel):
                     'name': data[2], 
                     'library': "", 
                     'package': data[3], 
+                    'pathAttribute': '',
                     'value': '', 
                     'x': self.setUnit(data[4]), 
                     'y': 0 - self.setUnit(data[5]), 

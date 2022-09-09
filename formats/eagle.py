@@ -223,6 +223,7 @@ class EaglePCB(baseModel):
                     'name': name, 
                     'library': i.getAttribute('library'), 
                     'package': package, 
+                    'pathAttribute': '',
                     'value': i.getAttribute('value'), 
                     'x': float(i.getAttribute('x')), 
                     'y': float(i.getAttribute('y')), 
@@ -538,6 +539,8 @@ class EaglePCB(baseModel):
                 if attr.getAttribute('name') == 'FREECAD': # use different 3D model for current package
                     if attr.getAttribute('value').strip() == "":
                         FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(i["name"]))
+                    elif attr.getAttribute('value').strip().startswith("--"):
+                        i['pathAttribute'] = attr.getAttribute('value').strip()
                     else:
                         FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
                         i['package'] = attr.getAttribute('value').strip()
@@ -627,6 +630,7 @@ class EaglePCB(baseModel):
                 # 'name': 'E$2', 
                 # 'library': 'eagle-ltspice', 
                 # 'package': 'R0806', 
+                # 'pathAttribute': '--RED'
                 # 'value': '', 
                 # 'x': 19.0, 
                 # 'y': 5.5, 

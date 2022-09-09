@@ -206,8 +206,11 @@ class LibrePCB(baseModel):
                 elemData = self.setProjectFile(elem["data"], loadFromFile=False)
                 ####################################
                 if elem["freecadPackage"]:
-                    FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(elem["name"], elem["freecadPackage"], elem["package"]))
-                    elem["package"] = elem["freecadPackage"]
+                    if elem["freecadPackage"].startswith("--"):
+                        elem["pathAttribute"] = elem["freecadPackage"]
+                    else:
+                        FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(elem["name"], elem["freecadPackage"], elem["package"]))
+                        elem["package"] = elem["freecadPackage"]
                 ####################################
                 for j in self.getAnnotations(elemData, 'param'):
                     if "{{NAME}}" in j["text"]:
@@ -509,6 +512,7 @@ class LibrePCB(baseModel):
                         "rot": float(rot),
                         "side": side,
                         "package": package,
+                        'pathAttribute': '',
                         "packageID": packageID,
                         "footprintID": footprintID,
                         "name": name,

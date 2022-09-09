@@ -226,7 +226,8 @@ class partsManaging(mathFunctions):
         return {
             'name': '', 
             'library': '', 
-            'package': '', 
+            'package': '',
+            'pathAttribute': '',
             'value': '', 
             'x': 0, 
             'y': 0, 
@@ -275,6 +276,7 @@ class partsManaging(mathFunctions):
             # 'name': 'E$2', 
             # 'library': 'eagle-ltspice', 
             # 'package': 'R0806', 
+            # 'pathAttribute': '--RED'
             # 'value': '', 
             # 'x': 19.0, 
             # 'y': 5.5, 
@@ -325,7 +327,7 @@ class partsManaging(mathFunctions):
         ###############################################################
         # checking if 3D model exist
         ###############################################################
-        fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']))
+        fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']), newPart['pathAttribute'])
         if fileData[0]:
             if fileData[2] > 0:
                 modelData = self.__SQL__.getModelByID(fileData[2])
@@ -965,7 +967,7 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.connect()
 
-    def partExist(self, package, model, showDial=True):
+    def partExist(self, package, model, pathAttribute='', showDial=True):
         if not self.databaseType:
             return [False]
         
@@ -1019,24 +1021,50 @@ class partsManaging(mathFunctions):
                 
                 if modelData[0]:
                     modelData = self.__SQL__.convertToTable(modelData[1])
-                    filePos = modelData["path3DModels"]
-                    
-                    # multi models definition for one part
+                    modelPaths = self.__SQL__.getPathsByModelID(package.modelID)
+                    #
                     if isinstance(model, str):
                         model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
                         #if len(filePos.split(';')) > 1:
                         #return [False]
-                    if len(filePos.split(';')) > 1 and showDial:
-                        #active = FreeCAD.ActiveDocument.Label
-                        dial = modelTypes(model, filePos.split(';'))
+                    #
+                    filePos = ""
+                    pathsList = []
+                    
+                    for j in modelPaths:
+                        j = self.__SQL__.convertToTable(j)
+                            
+                        pathsList.append(j["path"])
+                        #
+                        if pathAttribute.strip() != "":
+                            if "--" + j["attribute"] == pathAttribute.strip():
+                                filePos = j["path"]
+                    
+                    if filePos == "":
+                        filePos = pathsList[0] # def. model path
                         
-                        if dial.exec_():
-                            filePos = str(dial.modelsList.currentItem().text())
-                        else:
-                            return [False]
-                        #FreeCAD.setActiveDocument(active)
-                        #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-                        #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+                        if len(pathsList) > 1 and showDial: # multi models definition for one part
+                            dial = modelTypes(model, pathsList)
+                                
+                            if dial.exec_():
+                                filePos = str(dial.modelsList.currentItem().text())
+                            else:
+                                pass
+                                # return [False]
+                                
+                    # filePos = modelData["path3DModels"]
+                    # # multi models definition for one part
+                    # if len(filePos.split(';')) > 1 and showDial:
+                        # #active = FreeCAD.ActiveDocument.Label
+                        # dial = modelTypes(model, filePos.split(';'))
+                        
+                        # if dial.exec_():
+                            # filePos = str(dial.modelsList.currentItem().text())
+                        # else:
+                            # return [False]
+                        # #FreeCAD.setActiveDocument(active)
+                        # #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+                        # #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
                     ######################################
                     [boolValue, path] = partExistPath(filePos)
                     if boolValue:
