@@ -536,12 +536,15 @@ class EaglePCB(baseModel):
             for attr in i['dataElement'].getElementsByTagName('attribute'):
                 # <uros@isotel.eu> fix to get a FREECAD attribute out, it's overall all ugly since original
                 # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
-                if attr.getAttribute('name') == 'FREECAD': # use different 3D model for current package
+                if attr.getAttribute('name') in ['FREECAD', 'FCM', 'FCMV']: # use different 3D model for current package
                     if attr.getAttribute('value').strip() == "":
                         FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(i["name"]))
-                    elif attr.getAttribute('value').strip().startswith("--"):
+                    elif (attr.getAttribute('name') in ['FREECAD', 'FCMV'] and attr.getAttribute('value').strip().startswith("--")) or attr.getAttribute('name') == 'FCMV':
                         i['pathAttribute'] = attr.getAttribute('value').strip()
-                    else:
+                        
+                        if not i['pathAttribute'].startswith("--"):
+                            i['pathAttribute'] = "--" + i['pathAttribute']
+                    elif attr.getAttribute('name') in ['FREECAD', 'FCM']:
                         FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
                         i['package'] = attr.getAttribute('value').strip()
                         #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:

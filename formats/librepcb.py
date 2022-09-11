@@ -502,7 +502,7 @@ class LibrePCB(baseModel):
                     
                     freecadPackage = None
                     try:
-                        freecadPackage = re.sub('[^a-zA-Z0-9 _\+\.\-]+', '', re.search(r'\(attribute\s+"FREECAD".+?\(value\s+"(.+?)"\)\)', component).groups()[0])
+                        freecadPackage = re.sub('[^a-zA-Z0-9 _\+\.\-]+', '', re.search(r'\(attribute\s+"[FREECAD|FCM|FCMV]".+?\(value\s+"(.+?)"\)\)', component).groups()[0])
                     except:
                         pass
                     #

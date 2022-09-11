@@ -243,12 +243,15 @@ class gEDA_PCB(baseModel):
         #
         for k in self.elements:
             for i in re.findall(r'Attribute\("(.*?)" "(.*?)"\)', k['dataElement'], re.MULTILINE|re.DOTALL):
-                if i[0] == 'FREECAD': # use different 3D model for current package
+                if i[0] in ['FREECAD', 'FCM', 'FCMV']: # use different 3D model for current package
                     if i[1].strip() == "":
                         FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(k["name"]))
-                    elif i[1].strip().startswith("--"):
+                    elif (i[0].strip() in ['FREECAD', 'FCMV'] and i[1].strip().startswith("--")) or i[0].strip() == 'FCMV':
                         k['pathAttribute'] = i[1].strip()
-                    else:
+                        
+                        if not k['pathAttribute'].startswith("--"):
+                            k['pathAttribute'] = "--" + k['pathAttribute']
+                    elif i[0].strip() in ['FREECAD', 'FCM']:
                         FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(k["name"], i[1].strip(), k['package']))
                         k['package'] = i[1].strip()
                         #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
