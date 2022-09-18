@@ -159,6 +159,7 @@ class HYP_PCB(baseModel):
                 'value': i[1], 
                 'x': self.setUnit(i[5]), 
                 'y': self.setUnit(i[6]),
+                'pathAttribute': '',
                 'locked': False,
                 'populated': False, 
                 'smashed': False, 

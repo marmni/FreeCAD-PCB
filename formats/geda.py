@@ -33,7 +33,7 @@ except:
 import re
 from math import radians
 #
-from PCBconf import softLayers
+from PCBconf import softLayers, spisTekstow
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from formats.baseModel import baseModel
@@ -245,23 +245,15 @@ class gEDA_PCB(baseModel):
             for i in re.findall(r'Attribute\("(.*?)" "(.*?)"\)', k['dataElement'], re.MULTILINE|re.DOTALL):
                 if i[0] in ['FREECAD', 'FCM', 'FCMV']: # use different 3D model for current package
                     if i[1].strip() == "":
-                        FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(k["name"]))
-                    elif (i[0].strip() in ['FREECAD', 'FCMV'] and i[1].strip().startswith("--")) or i[0].strip() == 'FCMV':
+                        FreeCAD.Console.PrintWarning(spisTekstow["loadModelEmptyAttributeInfo"].format(k["name"]))
+                    elif (i[0].strip() == 'FREECAD' and i[1].strip().startswith("--")) or i[0].strip() == 'FCMV':
                         k['pathAttribute'] = i[1].strip()
                         
                         if not k['pathAttribute'].startswith("--"):
                             k['pathAttribute'] = "--" + k['pathAttribute']
                     elif i[0].strip() in ['FREECAD', 'FCM']:
-                        FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(k["name"], i[1].strip(), k['package']))
+                        FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(k["name"], i[1].strip(), k['package']))
                         k['package'] = i[1].strip()
-                        #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                        #    FreeCAD.Console.PrintWarning(u"\tIncorrect package '{1}' set for the element {0}.\n".format(i["name"], attr.getAttribute('value').strip()))
-                        
-                        #if self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                            # FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
-                            # package = attr.getAttribute('value').strip()
-                        # else:
-                            # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
                 elif i[0] == 'VALUE':
                     if not i[1].strip() == "":
                         k['value'] = i[1].strip()

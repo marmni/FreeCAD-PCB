@@ -431,3 +431,10 @@ spisKolorow = {
     7: (0.0, 1.0, 1.0),
     8: (1.0, 1.0, 1.0)
 }
+
+
+# STRINGS -> TMP SOLUTION
+spisTekstow = {
+    "loadModelEmptyAttributeInfo" : u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n",
+    "loadModelImportDifferentPackageInfo" : u"Package '{1}' will be used for the element {0} (instead of {2}).\n"
+}

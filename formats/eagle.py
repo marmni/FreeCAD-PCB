@@ -29,7 +29,7 @@ import FreeCAD
 import re
 from xml.dom import minidom
 #
-from PCBconf import softLayers, eagleColorsDefinition
+from PCBconf import softLayers, eagleColorsDefinition, spisTekstow
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from formats.baseModel import baseModel
@@ -538,23 +538,15 @@ class EaglePCB(baseModel):
                 # code is using regex to parse xml instead of dom parser - all regex should be replaced with the DOM
                 if attr.getAttribute('name') in ['FREECAD', 'FCM', 'FCMV']: # use different 3D model for current package
                     if attr.getAttribute('value').strip() == "":
-                        FreeCAD.Console.PrintWarning(u"Empty attribute 'FREECAD' found for the element {0}. Default package will be used.\n".format(i["name"]))
-                    elif (attr.getAttribute('name') in ['FREECAD', 'FCMV'] and attr.getAttribute('value').strip().startswith("--")) or attr.getAttribute('name') == 'FCMV':
+                        FreeCAD.Console.PrintWarning(spisTekstow["loadModelEmptyAttributeInfo"].format(i["name"]))
+                    elif (attr.getAttribute('name')== 'FREECAD' and attr.getAttribute('value').strip().startswith("--")) or attr.getAttribute('name') == 'FCMV':
                         i['pathAttribute'] = attr.getAttribute('value').strip()
                         
                         if not i['pathAttribute'].startswith("--"):
                             i['pathAttribute'] = "--" + i['pathAttribute']
                     elif attr.getAttribute('name') in ['FREECAD', 'FCM']:
-                        FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
+                        FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(i["name"], attr.getAttribute('value').strip(), i['package']))
                         i['package'] = attr.getAttribute('value').strip()
-                        #if not self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                        #    FreeCAD.Console.PrintWarning(u"\tIncorrect package '{1}' set for the element {0}.\n".format(i["name"], attr.getAttribute('value').strip()))
-                        
-                        #if self.parent.partExist(['', attr.getAttribute('value').strip()], '')[0]:
-                            # FreeCAD.Console.PrintWarning(u"Package '{1}' will be used for the element {0} (instead of {2}).\n".format(i["name"], attr.getAttribute('value').strip(), i['package']))
-                            # package = attr.getAttribute('value').strip()
-                        # else:
-                            # FreeCAD.Console.PrintWarning(u"Incorrect package '{1}' set for the element {0}. Default package will be used.\n".format(i["name"], attr.getAttribute('value').strip()))
                 elif attr.getAttribute('name') in ['NAME', 'VALUE'] and i['smashed']:
                     data = self.getAnnotations([attr], mode='param')[0]
                     

@@ -117,6 +117,7 @@ class IDFv3_PCB(IDFv2_PCB):
                         'value': '', 
                         'x': float(param[3]) * self.mnoznik, 
                         'y': float(param[4]) * self.mnoznik,
+                        'pathAttribute': '',
                         'locked': False,
                         'populated': False, 
                         'smashed': False, 

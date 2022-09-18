@@ -495,6 +495,7 @@ class FreePCB(baseModel):
                         'value': value, 
                         'x': float(partPos[0]) * mnoznik, 
                         'y': float(partPos[1]) * mnoznik, 
+                        'pathAttribute': '',
                         'locked': locked,
                         'populated': False, 
                         'smashed': False, 
