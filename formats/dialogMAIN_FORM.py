@@ -64,6 +64,7 @@ class dialogMAIN_FORM(QtGui.QDialog, baseModel):
         #######
         self.gruboscPlytki = QtGui.QDoubleSpinBox()
         self.gruboscPlytki.setSingleStep(0.1)
+        self.gruboscPlytki.setRange(0.2, 10)
         self.gruboscPlytki.setValue(freecadSettings.GetFloat("boardThickness", 1.5))
         self.gruboscPlytki.setSuffix(u" mm")
         #######

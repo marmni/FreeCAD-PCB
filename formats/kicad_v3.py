@@ -31,7 +31,7 @@ import re
 from math import sqrt
 #import os
 #
-from PCBconf import softLayers
+from PCBconf import softLayers, spisTekstow
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from formats.baseModel import baseModel

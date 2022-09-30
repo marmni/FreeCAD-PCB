@@ -28,7 +28,7 @@
 import FreeCAD
 import re
 #
-from PCBconf import softLayers
+from PCBconf import softLayers, spisTekstow
 from PCBobjects import *
 from formats.kicad_v3 import KiCadv3_PCB
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
