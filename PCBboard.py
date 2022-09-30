@@ -107,7 +107,7 @@ class PCBboardObject:
         obj.setEditorMode("Placement", 2)
         obj.setEditorMode("Label", 2)
         #  board
-        obj.addProperty("App::PropertyFloatConstraint", "Thickness", "PCB", "Thickness").Thickness = (1.6, 0.5, 10, 0.5)
+        obj.addProperty("App::PropertyFloatConstraint", "Thickness", "PCB", "Thickness").Thickness = (1.6, 0.2, 10, 0.5)
         obj.addProperty("App::PropertyLink", "Border", "PCB", "Border")
         #  holes
         obj.addProperty("App::PropertyBool", "Display", "Holes", "Display").Display = True
@@ -162,8 +162,8 @@ class PCBboardObject:
                 pass
 
     def updatePosition_Z(self, fp):
-        if fp.Thickness < 0.5:
-            fp.Thickness = 0.5
+        if fp.Thickness < 0.2:
+            fp.Thickness = 0.2
         #
         for i in fp.Group:
             try:
@@ -190,8 +190,8 @@ class PCBboardObject:
             # elif not fp.AutoUpdate:
                 # return
             #
-            if fp.Thickness < 0.5:
-                fp.Thickness = 0.5
+            if fp.Thickness < 0.2:
+                fp.Thickness = 0.2
             #
             try:
                 self.oldHeight = fp.Shape.BoundBox.ZMax

@@ -190,6 +190,7 @@ class IDFv2_PCB(baseModel):
                         'x': float(param[3]) * self.mnoznik, 
                         'y': float(param[4]) * self.mnoznik,
                         'locked': False,
+                        'pathAttribute': '',
                         'populated': False, 
                         'smashed': False, 
                         'rot': float(param[5]), 

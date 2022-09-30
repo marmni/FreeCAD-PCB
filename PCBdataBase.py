@@ -43,6 +43,7 @@ from sqlalchemy.orm import relationship, backref
 import PCBcheckFreeCADVersion
 
 __currentPath__ = os.path.abspath(os.path.join(os.path.dirname(__file__), ''))
+__dataBaseVersion__ = 3.0
 Base = declarative_base()
 
 
@@ -98,6 +99,21 @@ class Categories(Base):
         return "<Categories('%s','%s')>" % (self.name, self.description)
 
 
+class Settings(Base):
+    __tablename__ = "settings"
+    #
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    value = Column(String, nullable=False)
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return "<Settings('%s','%s')>" % (self.name, self.value)
+
+
 class Models(Base):
     __tablename__ = "models"
     #
@@ -125,6 +141,23 @@ class Models(Base):
 
     def __repr__(self):
         return "<Models('%s','%s')>" % (self.name, self.description)
+        
+
+class Paths(Base):
+    __tablename__ = "paths"
+    #
+    id = Column(Integer, primary_key=True)
+    modelID = Column(Integer, nullable=False)
+    path = Column(String, nullable=False)
+    attribute = Column(Integer)
+
+    def __init__(self, modelID, path, attribute=""):
+        self.modelID = modelID
+        self.path = path
+        self.attribute = attribute
+
+    def __repr__(self):
+        return "<Paths('%s')>" % (self.path)
 
 
 class Packages(Base):
@@ -194,14 +227,98 @@ class dataBase:
         self.session = None
         self.lastInsertedID = None
         self.lastInsertedModelID = None
+    
+    def checkVersion(self):
+        dbFileVersion = float(self.dbVersion())
+        
+        if dbFileVersion < __dataBaseVersion__:
+            dial = QtGui.QMessageBox()
+            dial.setText(u"Old database format detected - upgrading database format is required.\nThis may take several seconds.")
+            dial.setWindowTitle("Caution!")
+            dial.setIcon(QtGui.QMessageBox.Question)
+            rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
+            dial.exec_()
+            #
+            return [False, dbFileVersion]
+        else:
+            return [True, 0]
+        
+    def dbVersion(self):
+        query = self.session.query(Settings).filter(Settings.name == "dbVersion")
+        #
+        if query.count() == 0:
+            setting = Settings("dbVersion", 2)
+            self.session.add(setting)
+            self.session.commit()
+            return 2
+        #
+        return query[0].value
 
-    def cfg2db(self, databasePath):
-        ''' convert from cfg to db format - local '''
+    def connect(self, newPath=False):
+        ''' '''
+        try:
+            from PCBfunctions import getFromSettings_databasePath
+            databasePath = getFromSettings_databasePath()
+            #
+            if newPath:
+                engine = create_engine('sqlite:///{0}'.format(newPath))
+            else:
+                engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath().replace('cfg', 'db')))  # relative path
+            #
+            Base.metadata.create_all(engine)
+            Session = sessionmaker(bind=engine)
+            self.session = Session()
+            self.connection = engine.connect()
+        except Exception as e:
+            return False
+        ###############
+        # CHECK DB VERSION -> UPDATE
+        correctDBVersionBool = False
+        
+        while not correctDBVersionBool:
+            FreeCAD.Console.PrintWarning("Read database\n")
+            #
+            if databasePath.endswith(".cfg"):
+                dial = QtGui.QMessageBox()
+                dial.setText(u"Old database format detected - upgrading database format is required (to DB v2).\nThis may take several seconds.")
+                dial.setWindowTitle("Caution!")
+                dial.setIcon(QtGui.QMessageBox.Question)
+                rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
+                dial.exec_()
+                #
+                self.updateV1toV2(databasePath)
+                FreeCAD.Console.PrintWarning("Read database\n")
+            #
+            dbVersion = self.checkVersion()
+            if not dbVersion[0]:
+                if dbVersion[1] == 2: # update to v3
+                    ##############
+                    # create new table "Paths"
+                    self.updateV2toV3(databasePath)
+                    ##############
+                    correctDBVersionBool = True
+                    FreeCAD.Console.PrintWarning("DONE! Updated from v2 to v3.\n")
+            else:
+                correctDBVersionBool = True
+        ###############
+        self.packagesChangeSoftware("IDF v3", "IDF")
+        return True    
+
+    def convertToTable(self, data):
+        result = {}
+        #
+        for i, j in data.__dict__.items():
+            if not i.startswith("_sa_"):
+                result[i] = j
+        return result
+
+    def updateV1toV2(self, databasePath):
+        ''' convert from cfg to db format v2 - local '''
         try:
             dataBaseCFG = dataBase_CFG()  # old cfg file
             dataBaseCFG.read(databasePath)
         except Exception as e:
-            FreeCAD.Console.PrintWarning("ERROR cfg2db 1: {0}.\n".format(self.errorsDescription(e)))
+            FreeCAD.Console.PrintWarning("ERROR updateV1toV2 1: {0}.\n".format(self.errorsDescription(e)))
             return False
         else:
             FreeCAD.Console.PrintWarning("Reading old database\n")
@@ -272,7 +389,7 @@ class dataBase:
                     self.session.query(Models).filter(Models.name == i[0]).update({"socketID": socket[1].id})
             #
             self.session.commit()
-            FreeCAD.Console.PrintWarning("DONE!.\n")
+            FreeCAD.Console.PrintWarning("DONE! Updated from v1 to v2.\n")
             #
             # database file update - position/name
             if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("databasePath", "").strip() != '':
@@ -286,50 +403,93 @@ class dataBase:
             # deleting old categories
             # if FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetString("partsCategories", '').strip() != '':
                 # FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetString('partsCategories', json.dumps(""))
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
-            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", PCBcheckFreeCADVersion.__dataBaseVersion__)
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", 2)
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("Version", 2)
+            ###
+            FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").SetFloat("dataBaseVersion", 2)
             return True
         except Exception as e:
             FreeCAD.Console.PrintWarning("ERROR 3: {0}.\n".format(e))
 
-    def checkVersion(self):
-        if not PCBcheckFreeCADVersion.checkdataBaseVersion():
+    def updateV2toV3(self, databasePath):
+        # db file copy
+        shutil.copy(databasePath, databasePath + "_oldBackupV2")
+        ###############
+        for i in self.getAllModels():
+            for j in i.path3DModels.split(';'):
+                if j.strip() != "":
+                    self.addPath(i.id, j.strip(), "")
+            # delete column "path3DModels" from table "models"
+            self.session.query(Models).filter(Models.id == i.id).update({"path3DModels": ""})
+            self.session.commit()
+        #
+        self.session.query(Settings).filter(Settings.name == "dbVersion").update({"value": 3})
+        self.session.commit()
+    
+    def addPath(self, modelID, path, attribute):
+        ''' '''
+        try:
+            modelID = int(modelID)
+            path = self.clearString(path)
+            attribute = self.clearString(attribute)
+            #
+            param = Paths(modelID, path, attribute)
+            self.session.add(param)
+            self.session.commit()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (A_PARAM): {0} (add path).\n".format(e))
+            return [False]
+    
+    def deletePath(self, pathID):
+        try:
+            self.session.query(Paths).filter(Paths.id == int(pathID)).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (DP): {0} (delete path).\n".format(self.errorsDescription(e)))
             return False
         else:
             return True
 
-    def connect(self, newPath=False):
-        ''' '''
+    def updatePath(self, pathID, data):
         try:
-            from PCBfunctions import getFromSettings_databasePath
-            databasePath = getFromSettings_databasePath()
+            pathID = int(pathID)
+            path = self.clearString(data["path"])
+            attribute = self.clearString(data["attribute"])
             #
-            if newPath:
-                engine = create_engine('sqlite:///{0}'.format(newPath))
-            else:
-                engine = create_engine('sqlite:///{0}'.format(getFromSettings_databasePath().replace('cfg', 'db')))  # relative path
+            if path == '' or pathID <= 0:
+                raise MandatoryError()
             #
-            Base.metadata.create_all(engine)
-            Session = sessionmaker(bind=engine)
-            self.session = Session()
-            self.connection = engine.connect()
+            self.session.query(Paths).filter(Paths.id == pathID).update({
+                    "path": path,
+                    "attribute": attribute
+            })
             #
-            if databasePath.endswith(".cfg"):
-                dial = QtGui.QMessageBox()
-                dial.setText(u"Old database format detected - upgrading database format is required. This may take several seconds.")
-                dial.setWindowTitle("Caution!")
-                dial.setIcon(QtGui.QMessageBox.Question)
-                rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
-                dial.exec_()
-                #
-                self.cfg2db(databasePath)
-            #
-            self.packagesChangeSoftware("IDF v3", "IDF")
-            #
-            FreeCAD.Console.PrintWarning("Read database\n")
+            self.session.commit()
         except Exception as e:
+            self.session.rollback()
+            FreeCAD.Console.PrintWarning("ERROR (UP): {0} (update path).\n".format(self.errorsDescription(e)))
             return False
-        return True
+    
+    def getPathsByModelID(self, modelID):
+        try:
+            query = self.session.query(Paths).filter(Paths.modelID == int(modelID))
+            #
+            if query.count() == 0:
+                return []
+            #
+            return query
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("ERROR (GPBM_ID): {0} (get paths).\n".format(self.errorsDescription(e)))
+            return []
+            
+    def pathsDataToDictionary(self, modelData):
+        modelData['paths'] = []
+        #
+        for i in self.getPathsByModelID(modelData['id']):
+            modelData['paths'].append(self.convertToTable(i))
+        #
+        return modelData
 
     def packagesChangeSoftware(self, dataFrom, dataTo):
         try:
@@ -377,14 +537,6 @@ class dataBase:
                 return error.message
             else:
                 return error
-
-    def convertToTable(self, data):
-        result = {}
-        #
-        for i, j in data.__dict__.items():
-            if not i.startswith("_sa_"):
-                result[i] = j
-        return result
 
     def findPackage(self, name, software, returnAll=False):
         try:
@@ -587,6 +739,7 @@ class dataBase:
             #
             self.session.query(Models).filter(Models.socketID == modelID).update({"socketID": 0, "socketIDSocket": False})
             self.session.query(Packages).filter(Packages.modelID == modelID).delete()
+            self.session.query(Paths).filter(Paths.modelID == modelID).delete()
             self.session.query(Models).filter(Models.id == modelID).delete()
             self.session.query(modelsParam).filter(modelsParam.modelID == modelID).delete()
             self.session.commit()
@@ -604,7 +757,7 @@ class dataBase:
             description = self.clearString(data["description"])
             categoryID = int(data["categoryID"])
             datasheet = self.clearString(data["datasheet"])
-            path3DModels = self.clearString(data["path3DModels"])
+            #path3DModels = self.clearString(data["path3DModels"])
             isSocket = data["isSocket"]
             isSocketHeight = float(data["isSocketHeight"])
             #
@@ -615,21 +768,27 @@ class dataBase:
             #
             socketIDSocket = data["socketIDSocket"]
             #
-            if name == '' or path3DModels == '':
+            if name == '':
                 raise MandatoryError()
             #
-            model = Models(name, path3DModels, description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
+            model = Models(name, "", description, categoryID, datasheet, isSocket, isSocketHeight, socketID, socketIDSocket)
             self.session.add(model)
             self.session.commit()
             self.lastInsertedID = model.id
             self.lastInsertedModelID = model.id
-            #
+            # software
             for i in data["software"]:
                 if i['blanked']:
                     continue
                 else:  # add new package
                     self.addPackage(i, modelID=self.lastInsertedModelID)
-            #
+            # paths
+            for i in data["path3DModels"]:
+                if i['blanked']:
+                    continue
+                else:  # add new path
+                    self.addPath(self.lastInsertedModelID, i['path'], i['attribute'])   
+            # params
             for i in data["params"].keys():
                 if data["params"][i]["active"]:
                     self.addNewParam(model.id, i, data["params"][i])
@@ -747,7 +906,7 @@ class dataBase:
     def updateModel(self, modelID, data):
         try:
             name = self.clearString(data["name"])
-            path3DModels = self.clearString(data["path3DModels"])
+            #path3DModels = self.clearString(data["path3DModels"])
             modelID = int(modelID)
             #
             try:
@@ -755,7 +914,7 @@ class dataBase:
             except:
                 socketID = 0
             #
-            if name == '' or path3DModels == '' or modelID <= 0:
+            if name == '' or modelID <= 0:
                 raise MandatoryError()
             #
             self.session.query(Models).filter(Models.id == modelID).update({
@@ -763,7 +922,7 @@ class dataBase:
                     "description": self.clearString(data["description"]),
                     "categoryID": int(data["categoryID"]),
                     "datasheet": self.clearString(data["datasheet"]),
-                    "path3DModels": path3DModels,
+                    "path3DModels": "",
                     "isSocket": data["isSocket"],
                     "isSocketHeight": float(data["isSocketHeight"]),
                     "socketID": socketID,
@@ -771,7 +930,7 @@ class dataBase:
             })
             #
             self.session.commit()
-            #
+            # packages
             for i in data["software"]:
                 if i['blanked']:
                     if int(i['id']) == -1:
@@ -783,7 +942,19 @@ class dataBase:
                         self.updatePackage(int(i['id']), i)
                     else:  # add package
                         self.addPackage(i, modelID=modelID)
-            #
+            # paths
+            for i in data["path3DModels"]:
+                if i['blanked']:
+                    if int(i['id']) == -1:
+                        continue
+                    else:  # del path
+                        self.deletePath(int(i['id']))
+                else:
+                    if int(i['id']) != -1:  # update path
+                        self.updatePath(int(i['id']), i)
+                    else:  # add path
+                        self.addPath(modelID, i['path'], i['attribute'])
+            # params
             for i in data["params"].keys():
                 if data["params"][i]["id"] == -1 and data["params"][i]["active"]:  # add new param
                     self.addNewParam(modelID, i, data["params"][i])

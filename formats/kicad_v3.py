@@ -31,7 +31,7 @@ import re
 from math import sqrt
 #import os
 #
-from PCBconf import softLayers
+from PCBconf import softLayers, spisTekstow
 from PCBobjects import *
 from formats.dialogMAIN_FORM import dialogMAIN_FORM
 from formats.baseModel import baseModel
@@ -786,6 +786,24 @@ class KiCadv3_PCB(baseModel):
                 package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
                 package = re.sub('locked|placed|pla', '', package).split(':')[-1]
                 package = package.replace('"', '').strip()
+                # use different 3D model for current package
+                userText = re.findall(r'\(fp_text user\s+(.*)\s+\(at\s+', i)
+                
+                if any(k for k in ['FREECAD', 'FCM', 'FCMV'] if k in "__".join(userText)):
+                    for j in userText:
+                        if any(k for k in ['FREECAD', 'FCM', 'FCMV'] if k in j):
+                            [userTextName, userTextValue] = j.replace('"', '').strip().split("=")
+                            #
+                            if userTextValue.strip() == "":
+                                FreeCAD.Console.PrintWarning(spisTekstow["loadModelEmptyAttributeInfo"].format(name))
+                            elif (userTextName == 'FREECAD' and userTextValue.strip().startswith("--")) or userTextName == 'FCMV':
+                                pathAttribute = userTextValue.strip()
+                                
+                                if not pathAttribute.startswith("--"):
+                                    pathAttribute = "--" + pathAttribute
+                            elif userTextName in ['FREECAD', 'FCM']:
+                                FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(name, userTextValue.strip(), package))
+                                package = userTextValue.strip()
                 ##3D package from KiCad
                 #try:
                     #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
@@ -818,6 +836,7 @@ class KiCadv3_PCB(baseModel):
                     'library': library, 
                     'package': package, 
                     'value': value, 
+                    'pathAttribute': pathAttribute,
                     'x': x, 
                     'y': y, 
                     'rot': rot,

@@ -28,7 +28,6 @@ import FreeCAD
 from PySide import QtGui
 
 __scriptVersion__ = 5.0
-__dataBaseVersion__ = 2.0
 __pythonVersion__ = 3.6
 __requiredFreeCADVersion__ = (0.18, 0.19)  # (min, max)
 
@@ -57,27 +56,10 @@ def checkCompatibility():
         return [True]
 
 
-def checkdataBaseVersion():
-    ''' PCBdataBase -> checkVersion() '''
-    version = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/PCB").GetFloat("dataBaseVersion", 0.0)
-    #
-    if float(version) < __dataBaseVersion__:
-        dial = QtGui.QMessageBox()
-        dial.setText(u"Old database format detected - upgrading database format is required. This may take several seconds.")
-        dial.setWindowTitle("Caution!")
-        dial.setIcon(QtGui.QMessageBox.Question)
-        rewT = dial.addButton('Ok', QtGui.QMessageBox.YesRole)
-        dial.exec_()
-        #
-        return False
-    else:
-        return True
-
-
 def setDefaultValues():
     ''' InitGui -> Initialize() '''
     data = {
-        "dataBaseVersion": ['f', __dataBaseVersion__],
+        
         "scriptVersion": ['f', __scriptVersion__]
     }
 
