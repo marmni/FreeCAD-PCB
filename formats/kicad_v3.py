@@ -503,49 +503,75 @@ class KiCadv3_PCB(baseModel):
         #
         return data
     
-    def generateArcData(self, xs, ys, x1, y1, x2, y2, curve, width, layer, oType, strokeType, parentCoord):
-        xs = float(xs)
-        ys = float(ys)
-        x1 = float(x1)
-        y1 = float(y1)
-        if curve != "none":
-            curve = float(curve)
-        
-        if x2 == "none" and y2 == "none":
-            [x2, y2] = self.obrocPunkt2([x1, y1], [xs, ys], curve)
-        else:
-            x2 = float(x2)
-            y2 = float(y2)
-        
-        if width.strip() != '':
-            width = float(width) 
-        else:
-            width = 0
+    
+    def generateArcData(self, pointS, pointE, pointM, pointC, curve, width, layer, oType, strokeType, parentCoord):
+        try:
+            if width.strip() != '':
+                width = float(width) 
+            else:
+                width = 0
             
-        y1 *= -1
-        y2 *= -1
-        
-        if parentCoord[0] != 0:
-            x1 += parentCoord[0]
-            x2 += parentCoord[0]
-        if parentCoord[1] != 0:
-            y1 += parentCoord[1]
-            y2 += parentCoord[1]
-        
-        return {
-                'xs': xs,
-                'ys': ys * -1,
-                'x1': x1,
-                'y1': y1,
-                'x2': x2,
-                'y2': y2,
-                'curve': curve,
-                'width': width,
-                'layer': layer,
-                'type': oType,
-                'strokeType': strokeType,
-            }
-        
+            [xS, yS] = pointS # start point
+            xS = float(xS)
+            yS = float(yS)
+            #
+            [xC, yC] = pointC # arc center
+            
+            if xC != None and yC != None: # center point + start point + angle
+                xC = float(xC)
+                yC = float(yC)
+            
+                curve = float(curve)
+                
+                [xE, yE] = self.obrocPunkt2([xS, yS], [xC, yC], curve)
+                [xM, yM] = self.arcMidPoint([xS, yS], [xE, yE], curve)
+            else: # start point + end point + mid point
+                [xM, yM] = pointM # middle point
+                xM = float(xM)
+                yM = float(yM)
+                
+                [xE, yE] = pointE # end point
+                xE = float(xE)
+                yE = float(yE)
+                
+                [xC, yC] = self.arcCenter(xS, yS, xM, yM, xE, yE)
+                curve = self.arcGetAngle([xC, yC], [xS, yS], [xE, yE])
+            ####
+            yE *= -1
+            yM *= -1
+            yS *= -1
+            yC *= -1
+            
+            if parentCoord[0] != 0:
+                xS += parentCoord[0]
+                xE += parentCoord[0]
+                xM += parentCoord[0]
+                xC += parentCoord[0]
+            if parentCoord[1] != 0:
+                yS += parentCoord[1]
+                yE += parentCoord[1]
+                yM += parentCoord[1]
+                yC += parentCoord[1]
+            #
+            #print("start = [{0}, {1}] , middle = [{2}, {3}], end = [{4}, {5}] ".format(xS, yS, xM, yM, xE, yE))
+            return {
+                    'xS': xS,
+                    'yS': yS,
+                    'xE': xE,
+                    'yE': yE,
+                    'xM': xM,
+                    'yM': yM,
+                    'xC': xC,
+                    'yC': yC,
+                    'curve': curve,
+                    'width': width,
+                    'layer': layer,
+                    'type': oType,
+                    'strokeType': strokeType,
+                }
+        except Exception as e:
+            print(e)
+
     def getArc(self, layer, source, oType, parentCoord=[0,0]):
         data = []
         #
@@ -554,20 +580,69 @@ class KiCadv3_PCB(baseModel):
         
         if len(dane1):
             for i in dane1:
-                data.append(self.generateArcData(i[0], i[1], i[2], i[3], "none", "none", i[4], i[6], layer, oType, "default", parentCoord))
+                data.append(self.generateArcData([i[2], i[3]], [None, None], [None, None], [i[0], i[1]], i[4], i[6], layer, oType, "default", parentCoord))
         else:
             # (gr_arc (start 91.44 152.4) (mid 114.442776 144.97418) (end 100.123907 164.448278) (stroke (width 0.1) (type default)) (layer "Edge.Cuts") (tstamp 9d6ffd10-7291-4092-96bd-06b7c34444b8))
             dane1 = re.findall(r'\({1}(\s+locked\s+|\s+)\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(mid\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(stroke\s+\(width\s+([0-9\.]*?)\)\s+\(type\s+([a-zA-Z]*)\)\)\s+\(layer\s+{0}\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
         
             if len(dane1):
                 for i in dane1:
-                    data.append(self.generateArcData(i[1], i[2], i[3], i[4], i[5], i[6], "none", i[7], layer, oType, i[8], parentCoord))
+                    data.append(self.generateArcData([i[1], i[2]], [i[5], i[6]], [i[3], i[4]], [None, None], None, i[7], layer, oType, i[8], parentCoord))
                     pass
         #
         return data
     
+    
+    def generateRectangleData(self, x1, y1, x2, y2, width, fill, layer, oType, strokeType, parentCoord):
+        x1 = float(x1)
+        y1 = float(y1) * (-1)
+        x2 = float(x2)
+        y2 = float(y2) * (-1)
+        width = float(width)
+        
+        if [x1, y1] == [x2, y2]:
+            x2 += 0.01
+            y2 += 0.01
+        if parentCoord[0] != 0:
+            x1 += parentCoord[0]
+            x2 += parentCoord[0]
+        if parentCoord[1] != 0:
+            y1 += parentCoord[1]
+            y2 += parentCoord[1]
+        
+        if width == 0:
+            width = 0.01
+        
+        return {
+                'x1': x1,
+                'y1': y1,
+                'x2': x2,
+                'y2': y2,
+                'width': width,
+                'layer': layer,
+                'type': oType,
+                "fill": fill,
+                'strokeType': strokeType,
+            }
+    
     def getRectangle(self, layer, source, oType, parentCoord=[0,0]):
-        pass
+        data = []
+        #
+        # (gr_rect locked (start 101.6 106.68) (end 116.84 116.84) (stroke (width 0.1) (type solid)) (fill solid) (layer "Edge.Cuts") (tstamp 20cd4c63-6b2c-45d2-9152-b9e73c1a089d))
+        dane1 = re.findall(r'\({1}(\s+locked\s+|\s+)\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(stroke\s+\(width\s+([0-9\.]*?)\)\s+\(type\s+([a-zA-Z]*)\)\)\s+\(fill\s+([a-zA-Z]*)\)\s+\(layer\s+{0}\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
+        
+        if len(dane1):
+            for i in dane1:
+                data.append(self.generateRectangleData(i[1], i[2], i[3], i[4], i[5], i[7], layer, oType, i[6], parentCoord))
+        else:
+            # (fp_rect (start -1.27 -1.27) (end 8.89 1.27) (layer "F.SilkS") (width 0.12) (fill none) (tstamp bdafabda-3f00-4f9f-ad3b-f8d3c1591c87))
+            dane1 = re.findall(r'\({1}(\s+locked\s+|\s+)\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)\s+\(width\s+([0-9\.]*?)\)\s+\(fill\s+([a-zA-Z]*)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
+        
+            if len(dane1):
+                for i in dane1:
+                    data.append(self.generateRectangleData(i[1], i[2], i[3], i[4], i[5], i[6], layer, oType, None, parentCoord))
+        #
+        return data
     
     def getPCB(self, borderObject):
         # lines
@@ -578,21 +653,17 @@ class KiCadv3_PCB(baseModel):
             borderObject.addGeometry(Part.Circle(FreeCAD.Vector(i['x'], i['y']), FreeCAD.Vector(0, 0, 1), i['r']))
         # arc
         for i in self.getArc(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_arc'):
-            if i['curve'] == "none":
-                arc = Part.Arc(FreeCAD.Vector(i['xs'], i['ys'], 0.0), FreeCAD.Vector(i["x1"], i["y1"], 0.0), FreeCAD.Vector(i['x2'], i['y2'], 0.0))
-            else:
-                [x3, y3] = self.arcMidPoint([i['x2'], i['y2']], [i['x1'], i['y1']], i['curve'])
-                arc = Part.Arc(FreeCAD.Vector(i['x2'], i['y2'], 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(i['x1'], i['y1'], 0.0))
+            arc = Part.Arc(FreeCAD.Vector(i['xS'], i['yS'], 0.0), FreeCAD.Vector(i['xM'], i['yM'], 0.0), FreeCAD.Vector(i['xE'], i['yE'], 0.0))
             borderObject.addGeometry(arc)
-        # rectangles -> v4
+        # rectangles -> kicad v4
         for i in self.getRectangle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_rect'):
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x1'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y1'], 0)))
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x2'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y2'], 0)))
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x2'], i['y2'], 0), FreeCAD.Vector(i['x1'], i['y2'], 0)))
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x1'], i['y2'], 0), FreeCAD.Vector(i['x1'], i['y1'], 0)))
-        
         ############
-        ###### obj
+        ############
+        ###### get Edge.Cuts from objects
         lType = re.escape(self.getLayerName(self.borderLayerNumber))
         
         for j in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -629,12 +700,21 @@ class KiCadv3_PCB(baseModel):
                 borderObject.addGeometry(Part.Circle(FreeCAD.Vector(x, y), FreeCAD.Vector(0, 0, 1), i['r']))
             # arc
             for i in self.getArc(lType, j, 'fp_arc', [X1, Y1]):
+                [xS, yS] = self.obrocPunkt2([i['xS'], i['yS']], [X1, Y1], ROT)
+                [xM, yM] = self.obrocPunkt2([i['xM'], i['yM']], [X1, Y1], ROT)
+                [xE, yE] = self.obrocPunkt2([i['xE'], i['yE']], [X1, Y1], ROT)
+            
+                arc = Part.Arc(FreeCAD.Vector(xS, yS, 0.0), FreeCAD.Vector(xM, yM, 0.0), FreeCAD.Vector(xE, yE, 0.0))
+                borderObject.addGeometry(arc)
+            # rectangle -> kicad v4
+            for i in self.getRectangle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'fp_rect', [X1, Y1]):
                 [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
                 [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
-                
-                [x3, y3] = self.arcMidPoint([x2, y2], [x1, y1], i['curve'])
-                arc = Part.Arc(FreeCAD.Vector(x2, y2, 0.0), FreeCAD.Vector(x3, y3, 0.0), FreeCAD.Vector(x1, y1, 0.0))
-                borderObject.addGeometry(arc)
+            
+                borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y1, 0), FreeCAD.Vector(x2, y1, 0)))
+                borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x2, y1, 0), FreeCAD.Vector(x2, y2, 0)))
+                borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x2, y2, 0), FreeCAD.Vector(x1, y2, 0)))
+                borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(x1, y2, 0), FreeCAD.Vector(x1, y1, 0)))
                 
     def getLayerName(self, value):
         for i, j in self.spisWarstw.items():
@@ -775,6 +855,64 @@ class KiCadv3_PCB(baseModel):
         else:
             return "silk"
 
+    def getPolygon(self, polygonL, X=0, Y=0):
+        poin = []
+        for k in range(len(polygonL)):
+            x1 = float(polygonL[k][0])
+            y1 = float(polygonL[k][1])
+            
+            try:
+                x2 = float(polygonL[k + 1][0])
+                y2 = float(polygonL[k + 1][1])
+            except:
+                x2 = float(polygonL[0][0])
+                y2 = float(polygonL[0][1])
+            
+            if not [x1, y1] == [x2, y2]:  # remove points, only lines
+                x1 = x1 + X
+                y1 = y1 + Y
+                x2 = x2 + X
+                y2 = y2 + Y
+                
+                poin.append(['Line', x1, y1, x2, y2])
+        return poin
+    
+    def getPolygons(self, section, oType, layer=False):
+        # (gr_poly (pts (xy 69.85 176.53) (xy 58.42 176.53) (xy 59.69 168.91) (xy 63.5 173.99) (xy 67.31 166.37)) (layer F.SilkS) (width 0.1))
+        '''
+        (gr_poly locked
+        (pts
+          (xy 109.22 86.36)
+          (xy 119.38 86.36)
+          (xy 119.38 93.98)
+          (xy 109.22 99.06)
+          (xy 106.68 88.9)
+          (xy 111.76 93.98)
+        )
+        
+        (stroke (width 0.15) (type solid)) (fill solid) (layer "F.Paste") (tstamp db32f21e-4fc8-47a6-8e33-b3bbf2e9fbd9))
+        '''
+        
+        if layer:
+            data = re.findall(r'\({1}\s+\(pts\s+[xy0-9.\(\)\s+-]*\s+\(layer\s+{0}\)'.format(layer, oType), section, re.MULTILINE|re.DOTALL)
+        else:
+            data = re.findall(r'\(gr_poly\s+\(pts\s+[xy0-9.\(\)\s+-]*', section, re.MULTILINE|re.DOTALL)
+        
+        dataOut = []
+        #
+        for i in data:
+            pol = []
+            pts = re.findall('\(xy\s+[-.0-9]*\s+[-.0-9]*\)', i, re.MULTILINE|re.DOTALL)
+            for j in range(len(pts)):
+                [cord, x, y] = pts[j].replace(")", "").split(" ")
+                x = float(x)
+                y = float(y) * -1
+                
+                pol.append([x, y])
+            dataOut.append(pol)
+        #
+        return dataOut
+
     def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None):
         if parent:
             X = parent['x']
@@ -785,32 +923,70 @@ class KiCadv3_PCB(baseModel):
             Y = 0
             oType = 'gr_'
 
-        # linie/luki
+        # line/arc
         if display[0]:
             for i in self.getLine(layerNumber, dane, oType + 'line', [X, Y]):
                 layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
                 if parent:
                     layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 layerNew.setFace()
                 
             for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
-                if layerNew.addArcWidth([i['x1'], i['y1']], [i['x2'], i['y2']], -i['curve'], i['width']):
+                if layerNew.addArcWidth([i['xS'], i['yS']], [i['xE'], i['yE']], -i['curve'], i['width'], cap='round', p3=[i['xM'], i['yM']]):    
                     if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                        layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                        layerNew.addRotation(X, Y, parent['rot'])
                     layerNew.setFace()
-        # okregi
+        # circle
         if display[1]:
             for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
                 layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
                 if parent:
-                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                    layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                    layerNew.addRotation(X, Y, parent['rot'])
+                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 layerNew.setFace()
                 
                 if i['width'] > 0:
                     layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
+        # polygon
+        if display[3]:
+            for i in self.getPolygons(dane, oType + 'poly', layerNumber):
+                if parent:
+                    layerNew.addPolygon(self.getPolygon(i, X, Y))
+                    layerNew.addRotation(X, Y, parent['rot'])
+                else:
+                    layerNew.addPolygon(self.getPolygon(i))
+                
+                layerNew.setFace()
+        # rectangle
+        if display[2]:
+            for i in self.getRectangle(layerNumber, dane, oType + 'rect', [X, Y]):
+                if i["fill"] == "none":
+                    layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y1'], i['width'])
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setFace()
+                    #
+                    layerNew.addLineWidth(i['x2'], i['y1'], i['x2'], i['y2'], i['width'])
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setFace()
+                    #
+                    layerNew.addLineWidth(i['x2'], i['y2'], i['x1'], i['y2'], i['width'])
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setFace()
+                    #
+                    layerNew.addLineWidth(i['x1'], i['y2'], i['x1'], i['y1'], i['width'])
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setFace()
+                else:
+                    layerNew.addRectangle(i['x1'], i['y1'], i['x2'], i['y2'])
+                    
+                    if parent:
+                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.setFace()
 
     def getPaths(self, layerNew, layerNumber, display):
         for i in re.findall(r'\[start\]\(segment\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(width\s+([0-9\.-]*?)\)\s+\(layer\s+{0}\)(.*?)\[stop\]'.format(layerNumber[1]), self.projektBRD, re.MULTILINE|re.DOTALL):
