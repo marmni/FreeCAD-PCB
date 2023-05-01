@@ -315,41 +315,47 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
                     #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 layerNew.setFace()
-           
-
-    def getRectangle(self, layer, source, oType, m=[0,0]):
+    
+    
+    def generateRectangleData(self, x1, y1, x2, y2, width, fill, layer, oType, strokeType, parentCoord):
+        x1 = float(x1)
+        y1 = float(y1) * (-1)
+        x2 = float(x2)
+        y2 = float(y2) * (-1)
+        width = float(width)
+        
+        if [x1, y1] == [x2, y2]:
+            x2 += 0.01
+            y2 += 0.01
+        if parentCoord[0] != 0:
+            x1 += parentCoord[0]
+            x2 += parentCoord[0]
+        if parentCoord[1] != 0:
+            y1 += parentCoord[1]
+            y2 += parentCoord[1]
+        
+        if width == 0:
+            width = 0.01
+        
+        return {
+                'x1': x1,
+                'y1': y1,
+                'x2': x2,
+                'y2': y2,
+                'width': width,
+                'layer': layer,
+                'type': oType,
+                "fill": fill,
+                'strokeType': strokeType,
+            }
+    
+    def getRectangle(self, layer, source, oType, parentCoord=[0,0]):
         data = []
         #
-        dane1 = re.findall(r'\({1}\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)(\s+\(angle\s+[0-9\.-]*?\)\s+|\s+)\(layer\s+{0}\)\s+\(width\s+([0-9\.]*?)\)\s+\(fill\s+([a-z]*?)\)(\s+\(tstamp\s+.+?\)|)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
+        # (gr_rect locked (start 101.6 106.68) (end 116.84 116.84) (stroke (width 0.1) (type solid)) (fill solid) (layer "Edge.Cuts") (tstamp 20cd4c63-6b2c-45d2-9152-b9e73c1a089d))
+        dane1 = re.findall(r'\({1}(\s+locked\s+|\s+)\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(stroke\s+\(width\s+([0-9\.]*?)\)\s+\(type\s+([a-zA-Z]*)\)\)\s+\(fill\s+([a-zA-Z]*)\)\s+\(layer\s+{0}\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
         for i in dane1:
-            x1 = float(i[0])
-            y1 = float(i[1]) * (-1)
-            x2 = float(i[2])
-            y2 = float(i[3]) * (-1)
-            width = float(i[5])
-            
-            if [x1, y1] == [x2, y2]:
-                continue
-            if m[0] != 0:
-                x1 += m[0]
-                x2 += m[0]
-            if m[1] != 0:
-                y1 += m[1]
-                y2 += m[1]
-            
-            if width == 0:
-                width = 0.01
-            
-            data.append({
-                    'x1': x1,
-                    'y1': y1,
-                    'x2': x2,
-                    'y2': y2,
-                    'width': width,
-                    'layer': layer,
-                    'type': oType,
-                    "fill": i[6]
-                })
+            data.append(self.generateRectangleData(i[1], i[2], i[3], i[4], i[5], i[7], layer, oType, i[6], parentCoord))
         #
         return data
     
