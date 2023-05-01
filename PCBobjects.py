@@ -1037,6 +1037,21 @@ class layerSilkObject(objectWire):
     # shapes
     ################
     
+    def addEmptyRectangle(self, x1, y1, x2, y2, width):
+        if x1 == x2 and y1 == y2:
+            self.spisObiektowTXT.append(None)
+            return
+            # self.spisObiektowTXT[-1]['objects'].append(['skip', "point [{0}, {1}] detected instead rectangle".format(x1, y1)])
+        else:
+            object_1 = self.createLine(x1, y1, x2, y1)
+            object_2 = self.createLine(x2, y1, x2, y2)
+            object_3 = self.createLine(x2, y2, x1, y2)
+            object_4 = self.createLine(x1, y2, x1, y1)
+            
+            mainObj = Part.Shape([object_1, object_2, object_3, object_4])
+            mainObj = Part.Wire(mainObj.Edges)
+            self.spisObiektowTXT.append(mainObj)
+    
     def addRectangle(self, x1, y1, x2, y2):
         if x1 == x2 and y1 == y2:
             self.spisObiektowTXT.append(None)

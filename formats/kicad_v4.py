@@ -290,7 +290,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 
                 if i['width'] > 0:
                     layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
-        ## polygon
+        # polygon
         if display[3]:
             for i in self.getPolygons(dane, oType + 'poly', layerNumber):
                 if parent:
@@ -301,6 +301,57 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 
                 layerNew.setFace()
                 return layerNew
+        # kwadraty
+        if display[2]:
+            for i in self.getRectangle(layerNumber, dane, oType + 'rect', [X, Y]):
+                if i["fill"] == "none":
+                    layerNew.addEmptyRectangle(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
+                    
+                    print("jest")
+                else:
+                    layerNew.addRectangle(i['x1'], i['y1'], i['x2'], i['y2'])
+                    
+                if parent:
+                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.setFace()
+           
+
+    def getRectangle(self, layer, source, oType, m=[0,0]):
+        data = []
+        #
+        dane1 = re.findall(r'\({1}\s+\(start\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(end\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)(\s+\(angle\s+[0-9\.-]*?\)\s+|\s+)\(layer\s+{0}\)\s+\(width\s+([0-9\.]*?)\)\s+\(fill\s+([a-z]*?)\)(\s+\(tstamp\s+.+?\)|)\)'.format(layer, oType), source, re.MULTILINE|re.DOTALL)
+        for i in dane1:
+            x1 = float(i[0])
+            y1 = float(i[1]) * (-1)
+            x2 = float(i[2])
+            y2 = float(i[3]) * (-1)
+            width = float(i[5])
+            
+            if [x1, y1] == [x2, y2]:
+                continue
+            if m[0] != 0:
+                x1 += m[0]
+                x2 += m[0]
+            if m[1] != 0:
+                y1 += m[1]
+                y2 += m[1]
+            
+            if width == 0:
+                width = 0.01
+            
+            data.append({
+                    'x1': x1,
+                    'y1': y1,
+                    'x2': x2,
+                    'y2': y2,
+                    'width': width,
+                    'layer': layer,
+                    'type': oType,
+                    "fill": i[6]
+                })
+        #
+        return data
     
     def getPolygon(self, polygonL, X=0, Y=0):
         poin = []
@@ -347,7 +398,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
 
     def getElements(self):
         if len(self.elements) == 0:
-            for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+            for i in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
                 [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
                 layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
                 
@@ -359,7 +410,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 x = float(x)
                 y = float(y) * (-1)
                 ########
-                package = re.search(r'\s+(.+?)\(layer', i).groups()[0]
+                package = re.search(r'^(.+?)\(layer', i).groups()[0]
                 package = re.sub('locked|placed|pla', '', package).split(':')[-1]
                 package = package.replace('"', '').strip()
                 

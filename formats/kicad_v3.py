@@ -29,6 +29,10 @@ import FreeCAD
 import Part
 import re
 from math import sqrt
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 #import os
 #
 from PCBconf import softLayers, spisTekstow
@@ -103,7 +107,10 @@ class KiCadv3_PCB(baseModel):
             self.spisWarstw[i[1]] = int(i[0])
 
     def getSettings(self, paramName):
-        return re.search(r'\({0} (.*?)\)'.format(paramName), self.projektBRD).groups()[0]
+        try:
+            return re.search(r'\({0} (.*?)\)'.format(paramName), self.projektBRD).groups()[0]
+        except:
+            return False
     
     def getDimensions(self):
         wymiary = []
@@ -319,19 +326,20 @@ class KiCadv3_PCB(baseModel):
         # vias
         if types['V']:
             via_drill = float(self.getSettings('via_drill'))
-            for i in re.findall(r'\(via\s+\(at\s+(.*?)\s+(.*?)\)\s+\(size\s+.*?\)\s+(\(drill\s+(.*?)\)|)', self.projektBRD):
-                x = float(i[0])
-                y = float(i[1]) * (-1)
+            if via_drill:
+                for i in re.findall(r'\(via\s+\(at\s+(.*?)\s+(.*?)\)\s+\(size\s+.*?\)\s+(\(drill\s+(.*?)\)|)', self.projektBRD):
+                    x = float(i[0])
+                    y = float(i[1]) * (-1)
 
-                if i[3] == '':
-                    r = via_drill / 2.
-                else:
-                    r = float(i[3]) / 2.
-                
-                holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
+                    if i[3] == '':
+                        r = via_drill / 2.
+                    else:
+                        r = float(i[3]) / 2.
+                    
+                    holesList = self.addHoleToObject(holesObject, Hmin, Hmax, types['IH'], x, y, r, holesList)
         # pads
         if types['P']:
-            for i in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+            for i in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
                 [X1, Y1, ROT] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
                 #
                 X1 = float(X1)
@@ -518,7 +526,7 @@ class KiCadv3_PCB(baseModel):
         ###### obj
         lType = re.escape(self.getLayerName(self.borderLayerNumber))
         
-        for j in re.findall(r'\[start\]\(module(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+        for j in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
             [X1, Y1, ROT] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', j).groups()
             layer = re.search(r'\(layer\s+(.+?)\)', j).groups()[0]
             
@@ -571,7 +579,7 @@ class KiCadv3_PCB(baseModel):
         for i in data:
             try:
                 txt = re.search(r'\s(.*?)\s\(at', i).groups(0)[0].replace('"', '').replace('\r\n', '\n').replace('\r', '\n').replace('\\n', '\n')
-                [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', i).groups()
+                [x, y, rot, fix] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)(\s+[a-z]*?|)\)', i).groups()
                 layer = re.search(r'\(layer\s+(.+?)\)', i).groups()[0]
                 size = re.search(r'\(size\s+([0-9\.]*?)\s+[0-9\.]*?\)', i).groups()[0]
                 justify = re.findall(r'( \(justify .*?\)|)\)', i)[-1].strip()
