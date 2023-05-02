@@ -28,7 +28,7 @@
 import FreeCAD
 import Part
 import re
-from math import sqrt
+from math import sqrt, atan2, sin, cos, atan, tan
 try:
     import builtins
 except:
@@ -113,24 +113,103 @@ class KiCadv3_PCB(baseModel):
             return False
     
     def getDimensions(self):
+        '''
+        (dimension (type aligned) (layer "F.Cu") (tstamp 713966d2-586d-40a1-acb1-f49df642ddf4)
+            (pts (xy 68.58 170.18) (xy 68.58 152.4))
+            (height 10.16)
+            (gr_text "17,7800 mm" (at 76.94 161.29 90) (layer "F.Cu") (tstamp 713966d2-586d-40a1-acb1-f49df642ddf4)
+              (effects (font (size 1.5 1.5) (thickness 0.3)))
+            )
+            (format (prefix "") (suffix "") (units 3) (units_format 1) (precision 4))
+            (style (thickness 0.2) (arrow_length 1.27) (text_position_mode 0) (extension_height 0.58642) (extension_offset 0.5) keep_text_aligned)
+        )
+        
+        (dimension (type aligned) (layer "F.Cu") (tstamp 35367287-7476-4773-817d-1b88a9bd54c6)
+            (pts (xy 60.96 139.7) (xy 81.28 139.7))
+            (height -10.16)
+            (gr_text "d20,3200 mmf" (at 71.12 127.74) (layer "F.Cu") (tstamp 35367287-7476-4773-817d-1b88a9bd54c6)
+              (effects (font (size 1.5 1.5) (thickness 0.3)))
+            )
+            (format (prefix "d") (suffix "f") (units 3) (units_format 1) (precision 4))
+            (style (thickness 1) (arrow_length 2) (text_position_mode 0) (extension_height 0.58642) (extension_offset 0.5) keep_text_aligned)
+        )
+        
+        (dimension 25.4 (width 0.15) (layer Dwgs.User)
+            (gr_text "25,400 mm" (at 83.82 133.32) (layer Dwgs.User)
+              (effects (font (size 1 1) (thickness 0.15)))
+            )
+            (feature1 (pts (xy 96.52 142.24) (xy 96.52 134.033579)))
+            (feature2 (pts (xy 71.12 142.24) (xy 71.12 134.033579)))
+            (crossbar (pts (xy 71.12 134.62) (xy 96.52 134.62)))
+            (arrow1a (pts (xy 96.52 134.62) (xy 95.393496 135.206421)))
+            (arrow1b (pts (xy 96.52 134.62) (xy 95.393496 134.033579)))
+            (arrow2a (pts (xy 71.12 134.62) (xy 72.246504 135.206421)))
+            (arrow2b (pts (xy 71.12 134.62) (xy 72.246504 134.033579)))
+          )
+        '''
         wymiary = []
         #
         for i in re.findall(r'\[start\]\(dimension\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
-            [x1, y1] = re.search(r'\(feature1\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
-            [x2, y2] = re.search(r'\(feature2\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
-            [x3, y3] = re.search(r'\(crossbar\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
-            #
-            x1 = float(x1)
-            y1 = float(y1) * (-1)
-            x2 = float(x2)
-            y2 = float(y2) * (-1)
-            x3 = float(x3)
-            y3 = float(y3) * (-1)
-            
-            if x1 > x2:
-                wymiary.append([x2, y2, x1, y1, x3, y3, ''])
-            else:
-                wymiary.append([x1, y1, x2, y2, x3, y3, ''])
+            try:
+                [x1, y1] = re.search(r'\(feature1\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
+                [x2, y2] = re.search(r'\(feature2\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
+                [x3, y3] = re.search(r'\(crossbar\s+\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+[0-9\.-]*?\s+[0-9\.-]*?\)\)\)', i, re.MULTILINE|re.DOTALL).groups()
+                lineWidth = float(re.search(r'\(width\s+([0-9\.-]*?)\)', i).groups()[0])
+                #
+                x1 = float(x1)
+                y1 = float(y1) * (-1)
+                x2 = float(x2)
+                y2 = float(y2) * (-1)
+                x3 = float(x3)
+                y3 = float(y3) * (-1)
+                
+                if x1 > x2:
+                    wymiary.append([x2, y2, x1, y1, x3, y3, '', lineWidth])
+                else:
+                    wymiary.append([x1, y1, x2, y2, x3, y3, '', lineWidth])
+            except:
+                try:
+                    [x1, y1, x2, y2] = re.search(r'\(pts\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\s+\(xy\s+([0-9\.-]*?)\s+([0-9\.-]*?)\)\)', i, re.MULTILINE|re.DOTALL).groups()
+                   
+                    lineWidth = float(re.search(r'\(style\s+\(thickness\s+([0-9\.-]*?)\)', i).groups()[0])
+                    distance = float(re.search(r'\(height\s+([0-9\.-]*?)\)', i).groups()[0])
+                    #
+                    x1 = float(x1)
+                    y1 = float(y1)
+                    x2 = float(x2)
+                    y2 = float(y2)
+                    #
+                    if x2 - x1 == 0:  # vertical line
+                        x3 = x1 + distance * -1
+                        y3 = y1
+                    else:
+                        a = (y2 - y1) / (x2 - x1)
+                        #
+                        if a == 0:  # horizontal line
+                            x3 = x1
+                            y3 = y1 + distance
+                        else:
+                            #alfa = atan(a)
+                            alfa = tan(a)
+                            #
+                            if y1 > y2:
+                                x3 = x1 + distance * cos(alfa)
+                                y3 = y1 + distance * sin(alfa) * -1
+                            else:
+                                x3 = x1 + distance * cos(alfa)
+                                y3 = y1 + distance * sin(alfa)
+                    #
+                    y1 *= -1
+                    y2 *= -1
+                    y3 *= -1
+                    #
+                    wymiary.append([x1, y1, x2, y2, x3, y3, '', lineWidth])
+                
+                except Exception as e:
+                    print(e)
+                
+                
+                
         #
         return wymiary
     
@@ -184,7 +263,7 @@ class KiCadv3_PCB(baseModel):
             self.getElements()
             #
             for i in self.elements:
-                for j in self.getPadsList(i['dataElement']):
+                for j in self.generatePadData(i['dataElement']):
                     if("np_" in j['padType'].lower()):  # mounting holes
                         continue
                     #
@@ -258,65 +337,86 @@ class KiCadv3_PCB(baseModel):
                             layerNew.setChangeSide(i['x'], i['y'], i['side'])
                             layerNew.setFace()
 
-    def getPadsList(self, model):
+    def generatePadData(self, model):
         pads = []
         #
+        # (pad "1" thru_hole circle (at 0 0) (size 1.524 1.524) (drill 0.762) (layers F&B.Cu *.Mask) (tstamp 7e99d2ed-97f3-4a23-8dd2-09e4c1a87a06))
+        # (pad "" np_thru_hole circle (at -7.62 5.08) (size 1.7 1.7) (drill 1.7) (layers "*.Cu" "*.Mask") (tstamp b9bf0a0e-cea8-4b10-a154-eb26345d35a7))
+        # (pad 1 thru_hole circle (at 0 0) (size 1.778 1.778) (drill 1.143) (layers *.Cu *.Mask))
+        
         dane2 = re.findall(r'\(pad .* ', model, re.MULTILINE|re.DOTALL)
         if len(dane2):
             dane2 = dane2[0].strip().split('(pad')
         
             for j in dane2:
                 if j != '':
-                    [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', j).groups()
-                    pType= re.search(r'^.*?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad type - SMD/thru_hole/connect
-                    pShape = re.search(r'^.+?\s+.+?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad shape - circle/rec/oval/trapezoid
-                    [dx, dy] = re.search(r'\(size\s+([0-9\.-]+?)\s+([0-9\.-]+?)\)', j).groups(0)  #
-                    #layers = re.search(r'\(layers\s+(.+?)\)', j).groups(0)[0]  #
-                    layers = re.search(r'\(layers\s?(.*?|)\)', j).groups(0)[0].strip()  #
-                    data = re.search(r'\(drill(\s+[a-zA-Z]*?|)(\s+[-0-9\.]*?|)(\s+[-0-9\.]*?|)(\s+\(offset\s+(.*?)\s+(.*?)\)|)\)', j)
-                    #
-                    x = float(x)
-                    y = float(y) * (-1)
-                    dx = float(dx)
-                    dy = float(dy)
-                    if rot == '':
-                        rot = 0.0
-                    else:
-                        rot = float(rot)
-                        
-                    if layers == "":
-                        layers = ' '.join(self.spisWarstw.keys())
-                        
-                        
-                    if data == None:
-                        drill = 0.0
-                        hType = None
-                        [xOF, yOF] = [0.0, 0.0]
-                    else:
-                        data = data.groups()
-                        
-                        if pType == 'smd':
+                    try:
+                        [x, y, rot] = re.search(r'\(at\s+([0-9\.-]*?)\s+([0-9\.-]*?)(\s+[0-9\.-]*?|)\)', j).groups()
+                        pType= re.search(r'^.*?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad type - SMD/thru_hole/connect
+                        pShape = re.search(r'^.+?\s+.+?\s+([a-zA-Z_]+?)\s+', j).groups(0)[0]  # pad shape - circle/rec/oval/trapezoid
+                        [dx, dy] = re.search(r'\(size\s+([0-9\.-]+?)\s+([0-9\.-]+?)\)', j).groups(0)  #
+                        #layers = re.search(r'\(layers\s+(.+?)\)', j).groups(0)[0]  #
+                        layers = re.search(r'\(layers\s?(.*?|)\)', j).groups(0)[0].strip()  #
+                        data = re.search(r'\(drill(\s+[a-zA-Z]*?|)(\s+[-0-9\.]*?|)(\s+[-0-9\.]*?|)(\s+\(offset\s+(.*?)\s+(.*?)\)|)\)', j)
+                        #
+                        x = float(x)
+                        y = float(y) * (-1)
+                        dx = float(dx)
+                        dy = float(dy)
+                        if rot == '':
+                            rot = 0.0
+                        else:
+                            rot = float(rot)
+                            
+                        if layers == "":
+                            layers = ' '.join(self.spisWarstw.keys())
+                            
+                            
+                        if data == None:
                             drill = 0.0
                             hType = None
+                            [xOF, yOF] = [0.0, 0.0]
                         else:
-                            hType = data[0].strip()
-                            if hType == '':
-                                hType = 'circle'
-                                drill = float(data[1]) / 2.0
+                            data = data.groups()
+                            
+                            if pType == 'smd':
+                                drill = 0.0
+                                hType = None
                             else:
-                                drill = "{0} {1}".format(data[1], data[2])
-                        
-                        if not data[4] or data[4].strip() == '':
-                            xOF = 0.0
-                        else:
-                            xOF = float(data[4])
-                        
-                        if not data[5] or data[5].strip() == '':
-                            yOF = 0.0
-                        else:
-                            yOF = float(data[5])
-                    ##
-                    pads.append({'x': x, 'y': y, 'rot': rot, 'padType': pType, 'padShape': pShape, 'r': drill, 'dx': dx, 'dy': dy, 'holeType': hType, 'xOF': xOF, 'yOF': yOF, 'layers': layers, 'data': j})
+                                hType = data[0].strip()
+                                if hType == '':
+                                    hType = 'circle'
+                                    drill = float(data[1]) / 2.0
+                                else:
+                                    drill = "{0} {1}".format(data[1], data[2])
+                            
+                            if not data[4] or data[4].strip() == '':
+                                xOF = 0.0
+                            else:
+                                xOF = float(data[4])
+                            
+                            if not data[5] or data[5].strip() == '':
+                                yOF = 0.0
+                            else:
+                                yOF = float(data[5])
+                        ##
+                        pads.append({
+                            'x': x, 
+                            'y': y, 
+                            'rot': rot, 
+                            'padType': pType, 
+                            'padShape': pShape, 
+                            'r': drill, 
+                            'dx': dx, 
+                            'dy': dy, 
+                            'holeType': hType, 
+                            'xOF': xOF, 
+                            'yOF': yOF, 
+                            'layers': layers, 
+                            'data': j
+                        })
+                    except Exception as e:
+                        print(e)
         #
         return pads
 
@@ -349,7 +449,7 @@ class KiCadv3_PCB(baseModel):
                 else:
                     ROT = float(ROT)
                 ##
-                for j in self.getPadsList(i):
+                for j in self.generatePadData(i):
                     if j['padType'] != 'smd' and j['r'] != 0.0:
                         if j['holeType'] == "circle":
                             [xR, yR] = self.obrocPunkt([j['x'], j['y']], [X1, Y1], ROT)
@@ -592,7 +692,6 @@ class KiCadv3_PCB(baseModel):
         #
         return data
     
-    
     def generateRectangleData(self, x1, y1, x2, y2, width, fill, layer, oType, strokeType, parentCoord):
         x1 = float(x1)
         y1 = float(y1) * (-1)
@@ -655,7 +754,7 @@ class KiCadv3_PCB(baseModel):
         for i in self.getArc(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_arc'):
             arc = Part.Arc(FreeCAD.Vector(i['xS'], i['yS'], 0.0), FreeCAD.Vector(i['xM'], i['yM'], 0.0), FreeCAD.Vector(i['xE'], i['yE'], 0.0))
             borderObject.addGeometry(arc)
-        # rectangles -> kicad v4
+        # rectangles
         for i in self.getRectangle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'gr_rect'):
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x1'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y1'], 0)))
             borderObject.addGeometry(Part.LineSegment(FreeCAD.Vector(i['x2'], i['y1'], 0), FreeCAD.Vector(i['x2'], i['y2'], 0)))
@@ -706,7 +805,7 @@ class KiCadv3_PCB(baseModel):
             
                 arc = Part.Arc(FreeCAD.Vector(xS, yS, 0.0), FreeCAD.Vector(xM, yM, 0.0), FreeCAD.Vector(xE, yE, 0.0))
                 borderObject.addGeometry(arc)
-            # rectangle -> kicad v4
+            # rectangle
             for i in self.getRectangle(self.getLayerName(self.borderLayerNumber), self.projektBRD, 'fp_rect', [X1, Y1]):
                 [x1, y1] = self.obrocPunkt2([i['x1'], i['y1']], [X1, Y1], ROT)
                 [x2, y2] = self.obrocPunkt2([i['x2'], i['y2']], [X1, Y1], ROT)
@@ -877,7 +976,7 @@ class KiCadv3_PCB(baseModel):
                 poin.append(['Line', x1, y1, x2, y2])
         return poin
     
-    def getPolygons(self, section, oType, layer=False):
+    def generatePolygonData(self, section, oType, layer=False):
         # (gr_poly (pts (xy 69.85 176.53) (xy 58.42 176.53) (xy 59.69 168.91) (xy 63.5 173.99) (xy 67.31 166.37)) (layer F.SilkS) (width 0.1))
         '''
         (gr_poly locked
@@ -892,24 +991,43 @@ class KiCadv3_PCB(baseModel):
         
         (stroke (width 0.15) (type solid)) (fill solid) (layer "F.Paste") (tstamp db32f21e-4fc8-47a6-8e33-b3bbf2e9fbd9))
         '''
-        
-        if layer:
-            data = re.findall(r'\({1}\s+\(pts\s+[xy0-9.\(\)\s+-]*\s+\(layer\s+{0}\)'.format(layer, oType), section, re.MULTILINE|re.DOTALL)
-        else:
-            data = re.findall(r'\(gr_poly\s+\(pts\s+[xy0-9.\(\)\s+-]*', section, re.MULTILINE|re.DOTALL)
-        
         dataOut = []
+        # if layer:
+            # data = re.findall(r'\[start\]\({1}\s+(.+?)\s+\(layer\s+{0}\)(.+?)\[stop\]'.format(layer, oType), section, re.MULTILINE|re.DOTALL)
+        # else:
+            # data = re.findall(r'\[start\]\(gr_poly\s+(.+?)\[stop\]', section, re.MULTILINE|re.DOTALL)
+        data = re.findall(r'\[start\]\({0}\s+(.+?)\[stop\]'.format(oType), section, re.MULTILINE|re.DOTALL)
         #
         for i in data:
-            pol = []
+            if isinstance(i, tuple):
+                i = " ".join(i)
+            #
+            oLayer = re.findall(r'\(layer\s+(.+?)\)', i)[0]
+            if layer and oLayer != layer:
+                continue
+            #
+            width = float(re.findall(r'\(width\s+([0-9\.-]*?)\)', i)[0])
+            
+            fill = re.findall(r'\(fill\s+([a-zA-Z]*?)\)', i)
+            if len(fill):
+                fill = fill[0]
+            else:
+                fill = "solid"
+            #
+            points = []
             pts = re.findall('\(xy\s+[-.0-9]*\s+[-.0-9]*\)', i, re.MULTILINE|re.DOTALL)
             for j in range(len(pts)):
                 [cord, x, y] = pts[j].replace(")", "").split(" ")
                 x = float(x)
                 y = float(y) * -1
                 
-                pol.append([x, y])
-            dataOut.append(pol)
+                points.append([x, y])
+            #
+            dataOut.append({
+                "fill":  fill,
+                "width": width,
+                "points": points,
+            })
         #
         return dataOut
 
@@ -918,74 +1036,67 @@ class KiCadv3_PCB(baseModel):
             X = parent['x']
             Y = parent['y']
             oType = 'fp_'
+            Rot = parent['rot']
         else:
             X = 0
             Y = 0
             oType = 'gr_'
+            Rot = 0
 
         # line/arc
         if display[0]:
             for i in self.getLine(layerNumber, dane, oType + 'line', [X, Y]):
                 layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y2'], i['width'])
-                if parent:
-                    layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
-                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.addRotation(X, Y, Rot)
                 layerNew.setFace()
                 
             for i in self.getArc(layerNumber, dane, oType + 'arc', [X, Y]):
                 if layerNew.addArcWidth([i['xS'], i['yS']], [i['xE'], i['yE']], -i['curve'], i['width'], cap='round', p3=[i['xM'], i['yM']]):    
-                    if parent:
-                        layerNew.addRotation(X, Y, parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
         # circle
         if display[1]:
             for i in self.getCircle(layerNumber, dane, oType + 'circle', [X, Y]):
                 layerNew.addCircle(i['x'], i['y'], i['r'], i['width'])
-                if parent:
-                    layerNew.addRotation(X, Y, parent['rot'])
-                    #layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
+                layerNew.addRotation(X, Y, Rot)
                 layerNew.setFace()
                 
                 if i['width'] > 0:
                     layerNew.circleCutHole(i['x'], i['y'], i['r'] - i['width'] / 2.)
         # polygon
         if display[3]:
-            for i in self.getPolygons(dane, oType + 'poly', layerNumber):
-                if parent:
-                    layerNew.addPolygon(self.getPolygon(i, X, Y))
-                    layerNew.addRotation(X, Y, parent['rot'])
+            for i in self.generatePolygonData(dane, oType + 'poly', layerNumber):
+                if i["fill"] == "solid":
+                    layerNew.addPolygon(self.getPolygon(i["points"], X, Y))
+                    layerNew.addRotation(X, Y, Rot)  
+                    layerNew.setFace()
                 else:
-                    layerNew.addPolygon(self.getPolygon(i))
-                
-                layerNew.setFace()
+                    for j in self.getPolygon(i["points"], X, Y):
+                        layerNew.addLineWidth(j[1], j[2], j[3], j[4], i['width'])
+                        layerNew.addRotation(X, Y, Rot)
+                        layerNew.setFace()  
         # rectangle
         if display[2]:
             for i in self.getRectangle(layerNumber, dane, oType + 'rect', [X, Y]):
                 if i["fill"] == "none":
                     layerNew.addLineWidth(i['x1'], i['y1'], i['x2'], i['y1'], i['width'])
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
                     #
                     layerNew.addLineWidth(i['x2'], i['y1'], i['x2'], i['y2'], i['width'])
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
                     #
                     layerNew.addLineWidth(i['x2'], i['y2'], i['x1'], i['y2'], i['width'])
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
                     #
                     layerNew.addLineWidth(i['x1'], i['y2'], i['x1'], i['y1'], i['width'])
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
                 else:
                     layerNew.addRectangle(i['x1'], i['y1'], i['x2'], i['y2'])
-                    
-                    if parent:
-                        layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
+                    layerNew.addRotation(X, Y, Rot)
                     layerNew.setFace()
 
     def getPaths(self, layerNew, layerNumber, display):
@@ -1001,7 +1112,7 @@ class KiCadv3_PCB(baseModel):
                 layerNew.setFace()
     
     def getSilkLayer(self, layerNew, layerNumber, display=[True, True, True, True]):
-        self.addStandardShapes(self.projektBRD, layerNew, layerNumber[1], display)
+        self.addStandardShapes(self.projektBRD, layerNew, layerNumber[1], [True, True, True, True])
     
     def getSilkLayerModels(self, layerNew, layerNumber):
         self.getElements()

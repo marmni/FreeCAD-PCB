@@ -136,14 +136,13 @@ class KiCadv4_PCB(KiCadv3_PCB):
             self.getElements()
             #
             for i in self.elements:
-                for j in self.getPadsList(i['dataElement']):
+                for j in self.generatePadData(i['dataElement']):
                     if("np_" in j['padType'].lower()):  # mounting holes
                         continue
                     #
                     xs = j['x'] + i['x']
                     ys = j['y'] + i['y']
                     numerWarstwy = j['layers'].split(' ')
-                    
                     rot_2 = i['rot'] - j['rot']
                     
                     # kicad_pcb v3 TOP:         self.getLayerName(15) in numerWarstwy and layerNumber == 107
@@ -155,7 +154,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                         dodaj = True
                     elif self.databaseType == "kicad_v4" and ((self.getLayerName(0) in numerWarstwy and layerNumber[0] == 107) or (self.getLayerName(31) in numerWarstwy and layerNumber[0] == 108)):
                         dodaj = True
-                    elif '*.Cu' in numerWarstwy:
+                    elif any(x in ['*.Cu', '"*.Cu"', 'F&B.Cu', '"F&B.Cu"'] for x in numerWarstwy):
                         dodaj = True
                     #####
                     if dodaj:

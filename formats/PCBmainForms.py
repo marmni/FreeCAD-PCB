@@ -450,13 +450,21 @@ class mainPCB(partsManaging):
             y3 = i[5]
             dtype = i[6]
             
+            if len(i) > 7:
+                lineWidth = i[7]
+                
+                if lineWidth == 0:
+                    lineWidth = 1
+            else:
+                lineWidth = 1
+            
             if dtype in ["angle"]:
                 continue
             
             #dim = Draft.makeDimension(FreeCAD.Vector(x1, y1, gruboscPlytki), FreeCAD.Vector(x2, y2, gruboscPlytki), FreeCAD.Vector(x3, y3, gruboscPlytki))
-            dim = Draft.make_linear_dimension(FreeCAD.Vector(x1, y1, gruboscPlytki), FreeCAD.Vector(x2, y2, gruboscPlytki), FreeCAD.Vector(x3, y3, gruboscPlytki))
+            dim = Draft.make_linear_dimension(FreeCAD.Vector(x1, y1, gruboscPlytki + 0.1), FreeCAD.Vector(x2, y2, gruboscPlytki + 0.1), FreeCAD.Vector(x3, y3, gruboscPlytki + 0.1))
             dim.ViewObject.LineColor = layerColor
-            dim.ViewObject.LineWidth = 1.00
+            dim.ViewObject.LineWidth = lineWidth 
             dim.ViewObject.ExtLines = 0.00
             dim.ViewObject.FontSize = 2.00
             dim.ViewObject.ArrowSize = '0.5 mm'
