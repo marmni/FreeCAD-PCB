@@ -79,6 +79,12 @@ class dialogMAIN(dialogMAIN_FORM):
         # pad
         dane[107] = {"name": softLayers[self.databaseType][107]["description"], "color": softLayers[self.databaseType][107]["color"]}
         dane[108] = {"name": softLayers[self.databaseType][108]["description"], "color": softLayers[self.databaseType][108]["color"]}
+        # ConstraintAreas
+        dane[900] = {"name": softLayers[self.databaseType][900]["description"], "color": softLayers[self.databaseType][900]["color"]}
+        dane[901] = {"name": softLayers[self.databaseType][901]["description"], "color": softLayers[self.databaseType][901]["color"]}
+        dane[902] = {"name": softLayers[self.databaseType][902]["description"], "color": softLayers[self.databaseType][902]["color"]}
+        dane[903] = {"name": softLayers[self.databaseType][903]["description"], "color": softLayers[self.databaseType][903]["color"]}
+        dane[904] = {"name": softLayers[self.databaseType][904]["description"], "color": softLayers[self.databaseType][904]["color"]}
         ####################
         ####################
         return dane
