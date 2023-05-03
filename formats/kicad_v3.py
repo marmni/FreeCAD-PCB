@@ -80,6 +80,10 @@ class dialogMAIN(dialogMAIN_FORM):
         # pad
         dane[107] = {"name": softLayers[self.databaseType][107]["description"], "color": softLayers[self.databaseType][107]["color"]}
         dane[108] = {"name": softLayers[self.databaseType][108]["description"], "color": softLayers[self.databaseType][108]["color"]}
+        # ConstraintAreas
+        dane[902] = {"name": softLayers[self.databaseType][902]["description"], "color": softLayers[self.databaseType][903]["color"]}
+        dane[903] = {"name": softLayers[self.databaseType][903]["description"], "color": softLayers[self.databaseType][904]["color"]}
+        dane[904] = {"name": softLayers[self.databaseType][904]["description"], "color": softLayers[self.databaseType][905]["color"]}
         ####################
         ####################
         return dane
@@ -887,57 +891,59 @@ class KiCadv3_PCB(baseModel):
     def getConstraintAreas(self, layerNumber):
         areas = []
         #
-        if 'topSide' in PCBconstraintAreas[softLayers[self.databaseType][layerNumber][1]][1]:  # gorna warstwa
-            if self.databaseType == 'kicad':
-                lType = re.escape(self.getLayerName(15))
-            else:
-                lType = re.escape(self.getLayerName(0))
-        elif 'bottomSide' in PCBconstraintAreas[softLayers[self.databaseType][layerNumber][1]][1]:  # dolna warstwa
-            if self.databaseType == 'kicad':
-                lType = re.escape(self.getLayerName(0))
-            else:
-                lType = re.escape(self.getLayerName(31))
-        else:
-            lType = '.*?'
-        ###  polygon
-        for i in re.findall(r'\[start\]\(zone\s+.+?\s+\(layer {0}\)(.*?)\s+\)\[stop\]'.format(lType), self.projektBRD, re.MULTILINE|re.DOTALL):
-            data = re.search(r'\(keepout\s+\(tracks\s+(.*?)\)\s+\(vias\s+(.*?)\)\s+\(copperpour\s+(.*?)\)\)', i, re.MULTILINE|re.DOTALL)
-            if data:
-                info = [j for j in data.groups()]
-            else:
-                continue
-        
-            #900: ["tKeepout", "tPlaceKeepout"],
-            #901: ["bKeepout", "bPlaceKeepout"],
-            #902: ["tRouteKeepout", "tRouteKeepout"],
-            #903: ["bRouteKeepout", "bRouteKeepout"],
-            #904: ["ViaKeepout", "vRouteKeepout"],
-            if layerNumber in [900, 901] and info[0] == 'allowed' and info[1] == 'allowed':
-                continue
-            
-            if layerNumber in [902, 903] and not info[0] == 'not_allowed':  # RouteKeepout
-                continue
-            elif layerNumber == 904 and not info[1] == 'not_allowed':
-                continue
-            #
-            points = re.findall(r'\(xy\s+(.*?)\s+(.*?)\)', i)
-            areas.append(['polygon', []])
-
-            for j in range(len(points)):
-                x1 = float(points[j][0])
-                y1 = float(points[j][1]) * (-1)
-                
-                if j + 2 > len(points):
-                    x2 = float(points[0][0])
-                    y2 = float(points[0][1]) * (-1)
+        for i in re.findall(r'\[start\]\(zone\s+.+?\s+\(layer(s\s+|\s+)(["FB\&]*\.Cu["]*)\)(.*?)\s+\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
+            try:
+                #data = re.search(r'\(keepout\s+\(tracks\s+(.*?)\)\s+\(vias\s+(.*?)\)\s+\(copperpour\s+(.*?)\)\)', i[2], re.MULTILINE|re.DOTALL)
+                data = re.search(r'\(keepout\s+(.*?)\)\)', i[2], re.DOTALL)
+                if data:
+                    #info = [j for j in data.groups()]
+                    info = {i[0]: i[1] for i in re.findall(r'\(([a-zA-Z]*)\s+([a-zA-Z_]*)', data.groups()[0])}
                 else:
-                    x2 = float(points[j + 1][0])
-                    y2 = float(points[j + 1][1]) * (-1)
-                
-                areas[-1][-1].append(['Line', x1, y1, x2, y2])
+                    continue
+                #
+                layer = i[1].strip()
+                #
+                #900: ["tKeepout", "tPlaceKeepout"],
+                #901: ["bKeepout", "bPlaceKeepout"],
+                #902: ["tRouteKeepout", "tRouteKeepout"],
+                #903: ["bRouteKeepout", "bRouteKeepout"],
+                #904: ["ViaKeepout", "vRouteKeepout"],
+                # (keepout (tracks not_allowed) (vias not_allowed) (copperpour allowed))
+                # (keepout (tracks not_allowed) (vias not_allowed) (pads allowed) (copperpour allowed) (footprints not_allowed))
+                if "F" in layer and "B" in layer:
+                    pass
+                elif "F" in layer and layerNumber in [901, 903]: # only top/both
+                    continue
+                elif "B" in layer and layerNumber in [900, 902]: # only bottom/both
+                    continue
+               
+                if layerNumber == 904 and info["vias"] == 'allowed':
+                    continue
+                elif layerNumber in [902, 903] and info["tracks"] == 'allowed':
+                    continue
+                elif layerNumber in [900, 901] and info["footprints"] == 'allowed':
+                    continue
+                #
+                points = re.findall(r'\(xy\s+(.*?)\s+(.*?)\)', i[2])
+                areas.append(['polygon', []])
+
+                for j in range(len(points)):
+                    x1 = float(points[j][0])
+                    y1 = float(points[j][1]) * (-1)
+                    
+                    if j + 2 > len(points):
+                        x2 = float(points[0][0])
+                        y2 = float(points[0][1]) * (-1)
+                    else:
+                        x2 = float(points[j + 1][0])
+                        y2 = float(points[j + 1][1]) * (-1)
+                    
+                    areas[-1][-1].append(['Line', x1, y1, x2, y2])
+            except Exception as e:
+                print(e)
         #
         return areas
-    
+        
     def defineFunction(self, layerNumber):
         if layerNumber in [107, 108]:  # pady
             return "pads"

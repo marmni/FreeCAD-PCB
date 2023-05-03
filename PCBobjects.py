@@ -1458,10 +1458,13 @@ class constraintAreaObject:
         self.Type = typeL
         self.pcbHeight = 1.5
         
-        if not self.Type in ['tRestrict', 'bRestrict', 'vRestrict', 'vRouteOutline', 'vPlaceOutline']:
-            obj.addProperty("App::PropertyLength", "Height", "Base", "Height of the element").Height = 0.5
+        obj.addProperty("App::PropertyLength", "Height", "Base", "Height of the element").Height = 0.5
         obj.addProperty("App::PropertyLink", "Base", "Draft", "The base object is the wire is formed from 2 objects")
         obj.setEditorMode("Placement", 2)
+        
+        if self.Type in ['tRestrict', 'bRestrict', 'vRestrict', 'vRouteOutline', 'vPlaceOutline']:
+            obj.setEditorMode("Height", 1)
+        
         obj.Proxy = self
     
     def updatePosition_Z(self, fp, thickness):

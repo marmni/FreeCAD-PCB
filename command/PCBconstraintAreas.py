@@ -62,6 +62,8 @@ def createConstraintArea(obj, typeCA, height=0):
             a.Base = obj
             if height != 0:
                 a.Height = height
+            else:
+                a.Height = 0.5
             viewProviderConstraintAreaObject(a.ViewObject)
             layerObj.updatePosition_Z(a, pcb[1])
             
