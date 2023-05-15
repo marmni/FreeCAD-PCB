@@ -268,11 +268,11 @@ class mainPCB(partsManaging):
             ser = doc.addObject('Sketcher::SketchObject', "Sketch_{0}".format(layerName))
             ser.ViewObject.Visibility = False
             for k in j:
-                if k[0] == 'line':
+                if k[0].lower() == 'line':
                     ser.addGeometry(Part.LineSegment(FreeCAD.Vector(k[1], k[2], 0), FreeCAD.Vector(k[3], k[4], 0)))
-                elif k[0] == 'circle':
+                elif k[0].lower() == 'circle':
                     ser.addGeometry(Part.Circle(FreeCAD.Vector(k[1], k[2]), FreeCAD.Vector(0, 0, 1), k[3]))
-                elif k[0] == 'arc':
+                elif k[0].lower() == 'arc':
                     x1 = k[1]
                     y1 = k[2]
                     x2 = k[3]
