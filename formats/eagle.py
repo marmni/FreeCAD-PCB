@@ -245,23 +245,54 @@ class EaglePCB(baseModel):
         except:
             return ''
     
-    def getPolygons(self, section, layer):
+    def generatePolygonData(self, section, layer):
         if not isinstance(layer, list):
             layer = [layer]
             
-        data = []
-        for lay in layer:
-            pol = []
-            for i in section.getElementsByTagName("polygon"):
-                if int(i.getAttribute('layer')) == lay:
-                    for j in i.getElementsByTagName("vertex"):
-                        x = float(j.getAttribute('x'))
-                        y = float(j.getAttribute('y'))
-                        curve = j.getAttribute('curve')
+        dataOut = []
+        #
+        try:
+            for lay in layer:
+                pol = []
+                for i in section.getElementsByTagName("polygon"):
+                    if int(i.getAttribute('layer')) == lay:
+                        width = float(i.getAttribute('width'))
+                        #
+                        points = []
+                        for j in i.getElementsByTagName("vertex"):
+                            x = float(j.getAttribute('x'))
+                            y = float(j.getAttribute('y'))
+                            curve = j.getAttribute('curve')
+                            #
+                            points.append([x, y, curve, i])
+                        #
+                        dataOut.append({
+                            "fill":  None,
+                            "width": width,
+                            "points": points,
+                        }) 
+        except Exception as e:
+            print(e)
+        #
+        return dataOut
+
+    # def getPolygons(self, section, layer):
+        # if not isinstance(layer, list):
+            # layer = [layer]
+            
+        # data = []
+        # for lay in layer:
+            # pol = []
+            # for i in section.getElementsByTagName("polygon"):
+                # if int(i.getAttribute('layer')) == lay:
+                    # for j in i.getElementsByTagName("vertex"):
+                        # x = float(j.getAttribute('x'))
+                        # y = float(j.getAttribute('y'))
+                        # curve = j.getAttribute('curve')
                         
-                        pol.append([x, y, curve, i])
-                    data.append(pol)
-        return data
+                        # pol.append([x, y, curve, i])
+                    # data.append(pol)
+        # return data
     
     def getRectangle(self, section, layer, m=[0,0]):
         if not isinstance(layer, list):
@@ -302,7 +333,8 @@ class EaglePCB(baseModel):
                         'ys': ys,
                         'rot': rot,
                         'layer': lay,
-                        'data': i
+                        'data': i,
+                        'width': 0.1,
                     })
         
         return data
@@ -743,8 +775,8 @@ class EaglePCB(baseModel):
         for i in self.getRectangle(self.projektBRD.getElementsByTagName("plain")[0], layerNumber):
             areas.append(['rect', i['x1'], i['y1'], i['x2'], i['y2'], 0, i['rot']])
         # polygon
-        for i in self.getPolygons(self.projektBRD.getElementsByTagName("plain")[0], layerNumber):
-            areas.append(['polygon', self.getPolygon(i)])
+        for i in self.generatePolygonData(self.projektBRD.getElementsByTagName("plain")[0], layerNumber):
+            areas.append(['polygon', self.getPolygon(i["points"])])
         #
         return areas
     
@@ -765,20 +797,23 @@ class EaglePCB(baseModel):
                 glue[i['width']] = []
             
             glue[i['width']].append(['circle', i['x'], i['y'], i['r']])
-        ## rectangle
-        #for i in self.getRectangle(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
-            #if not 1 in glue.keys():
-                #glue[1] = []
+        # rectangle
+        for i in self.getRectangle(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
             
-            #glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y1']])
-            #glue[i['width']].append(['line', i['x2'], i['y1'], i['x2'], i['y2']])
-            #glue[i['width']].append(['line', i['x2'], i['y2'], i['x1'], i['y2']])
-            #glue[i['width']].append(['line', i['x1'], i['y2'], i['x1'], i['y1']])
+            glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y1']])
+            glue[i['width']].append(['line', i['x2'], i['y1'], i['x2'], i['y2']])
+            glue[i['width']].append(['line', i['x2'], i['y2'], i['x1'], i['y2']])
+            glue[i['width']].append(['line', i['x1'], i['y2'], i['x1'], i['y1']])
+        # polygon
+        for i in self.generatePolygonData(self.projektBRD.getElementsByTagName("plain")[0], [layerNumber[0]]):
+            for j in self.getPolygon(i["points"]):
+                if not i['width'] in glue.keys():
+                    glue[i['width']] = []
             
-            #glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y2']])
-            #glue[i['width']].append(['line', i['x1'], i['y2'], i['x2'], i['y1']])
-            
-        #
+                glue[i['width']].append(j)
+        ##
         return glue
     
     def addStandardShapes(self, dane, layerNew, layerNumber, display=[True, True, True, True], parent=None, getSignals=False):
@@ -834,7 +869,7 @@ class EaglePCB(baseModel):
                 layerNew.setFace()
         ## polygon
         if display[3]:
-            for i in self.getPolygons(dane, layerNumber):
+            for i in self.generatePolygonData(dane, layerNumber):
                 #if getSignals:
                     #signalName = i[0][-1].parentNode.getAttribute('name')
                     # pol = self.getPolygon(i)
@@ -851,11 +886,11 @@ class EaglePCB(baseModel):
                         # #Part.show(polygonN)
                 # else:
                 if parent:
-                    layerNew.addPolygon(self.getPolygon(i, parent['x'], parent['y']))
+                    layerNew.addPolygon(self.getPolygon(i["points"], parent['x'], parent['y']))
                     layerNew.addRotation(parent['x'], parent['y'], parent['rot'])
                     layerNew.setChangeSide(parent['x'], parent['y'], parent['side'])
                 else:
-                    layerNew.addPolygon(self.getPolygon(i))
+                    layerNew.addPolygon(self.getPolygon(i["points"]))
                 
                 if getSignals:
                     isolate = self.getSettings('mdWireWire')

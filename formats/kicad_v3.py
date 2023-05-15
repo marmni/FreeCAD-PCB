@@ -210,10 +210,7 @@ class KiCadv3_PCB(baseModel):
                     wymiary.append([x1, y1, x2, y2, x3, y3, '', lineWidth])
                 
                 except Exception as e:
-                    print(e)
-                
-                
-                
+                    print(e)      
         #
         return wymiary
     
@@ -236,7 +233,23 @@ class KiCadv3_PCB(baseModel):
             if not i['width'] in glue.keys():
                 glue[i['width']] = []
             
-            glue[i['width']].append(['arc', i['x2'], i['y2'], i['x1'], i['y1'], i['curve'], True])
+            glue[i['width']].append(['arc', i['xS'], i['yS'], i['xE'], i['yE'], i['curve'], True])
+        # rectangles
+        for i in self.getRectangle(layerNumber[1], self.projektBRD, "gr_rect"):
+            if not i['width'] in glue.keys():
+                glue[i['width']] = []
+            
+            glue[i['width']].append(['line', i['x1'], i['y1'], i['x2'], i['y1']])
+            glue[i['width']].append(['line', i['x2'], i['y1'], i['x2'], i['y2']])
+            glue[i['width']].append(['line', i['x2'], i['y2'], i['x1'], i['y2']])
+            glue[i['width']].append(['line', i['x1'], i['y2'], i['x1'], i['y1']])
+        # polygon
+        for i in self.generatePolygonData(self.projektBRD, 'gr_poly', layerNumber[1]):
+            for j in self.getPolygon(i["points"]):
+                if not i['width'] in glue.keys():
+                    glue[i['width']] = []
+            
+                glue[i['width']].append(j)
         ##
         return glue
 
