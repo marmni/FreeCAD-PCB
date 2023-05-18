@@ -259,6 +259,32 @@ class KiCadv4_PCB(KiCadv3_PCB):
         for i in self.elements:
             self.addStandardShapes(i['dataElement'], layerNew, layerNumber[1], display=[True, True, True, True], parent=i)
     
+    def getFootprintMultiData(self, inputString, findValue):
+        data = []
+        #
+        stringCount = len(re.findall(findValue, inputString))
+        ###################################################
+        # based on "realthunder" solution
+        # https://github.com/marmni/FreeCAD-PCB/pull/1/commits/0be0cde5f41d4c0f65fe793ad1db337f9d370a9e
+        ###################################################
+        for i in range(0, stringCount):
+            m = re.search(findValue, inputString)
+            #
+            end = m.start()
+            counter = 0
+            for c in inputString[m.start():]:
+                if c == '(': counter+=1
+                if c == ')': 
+                    counter-=1
+                    if counter == 0:
+                        break
+                end+=1
+            #
+            data.append(inputString[m.start():end])
+            inputString = inputString[end:]
+        #
+        return data
+    
     def getElements(self):
         if len(self.elements) == 0:
             for i in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -296,14 +322,40 @@ class KiCadv4_PCB(KiCadv3_PCB):
                             elif userTextName in ['FREECAD', 'FCM']:
                                 FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(name, userTextValue.strip(), package))
                                 package = userTextValue.strip()
-                ##3D package from KiCad
-                #try:
-                    #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                    #if package3D and self.partExist(os.path.basename(package3D), "", False):
-                        #package = os.path.basename(package3D)
-                #except:
-                    #pass
-                ########
+                ####################################
+                #3D package from KiCad
+                package3Data = []
+                for j in self.getFootprintMultiData(i, r"\(model"):
+                    path = re.search(r'"(.*?)"', j, re.MULTILINE|re.DOTALL).groups()[0]
+                    
+                    if len(path.split('\\')) == 1:
+                        path = path.split('/')
+                    else:
+                        path = path.split('\\')
+                    
+                    kicad3dModelVar = path[0]
+                    kicad3dModelDir = os.path.normcase("/".join(path[1:]))
+                    #
+                    [offsetX, offsetY, offsetZ] = re.search(r'\(offset\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    [rotX, rotY, rotZ] = re.search(r'\(rotate\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    [scaleX, scaleY, scaleZ] = re.search(r'\(scale\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    #
+                    package3Data.append({
+                        "kicad3dModelVar": kicad3dModelVar,
+                        "kicad3dModelDir": os.path.splitext(kicad3dModelDir)[0],
+                        "kicad3dModelExt": os.path.splitext(kicad3dModelDir)[1],
+                        "offsetX": float(offsetX),
+                        "offsetY": float(offsetY),
+                        "offsetZ": float(offsetZ),
+                        "rotX": float(rotX),
+                        "rotY": float(rotY),
+                        "rotZ": float(rotZ),
+                        "scaleX": float(scaleX),
+                        "scaleY": float(scaleY),
+                        "scaleZ": float(scaleZ),
+                    })
+                ####################################
+                ####################################
                 library = package
                 #
                 if rot == '':
@@ -329,5 +381,6 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     'rot': rot,
                     'side': side, 
                     'dataElement': i, 
-                    'mirror': mirror
+                    'mirror': mirror,
+                    'package3Data': package3Data,
                 })
