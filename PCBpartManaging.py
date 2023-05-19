@@ -271,7 +271,7 @@ class partsManaging(mathFunctions):
             }
         }
         
-    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
+    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0, kicadModels=None):
         #newPart = {
             # 'name': 'E$2', 
             # 'library': 'eagle-ltspice', 
@@ -328,6 +328,15 @@ class partsManaging(mathFunctions):
         # checking if 3D model exist
         ###############################################################
         fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']), newPart['pathAttribute'])
+        '''
+        fileDAta = [
+            True, 
+            pathToFile, 
+            modelData['id'], 
+            {'ry': 0.0, 'z': 0.02, 'x': 0.0, 'software': 'Eagle', 'modelID': 32, 'rz': 0.0, 'rx': 0.0, 'y': 0.02, 'name': 'R1206', 'id': 66}, 
+            modelData['categoryID']
+        ]
+        '''
         if fileData[0]:
             if fileData[2] > 0:
                 modelData = self.__SQL__.getModelByID(fileData[2])

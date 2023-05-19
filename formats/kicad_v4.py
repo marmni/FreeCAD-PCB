@@ -50,11 +50,8 @@ class dialogMAIN(dialogMAIN_FORM):
         self.generateLayers([44, 45])
         self.spisWarstw.sortItems(1)
         #
-        #self.kicadModels = QtGui.QCheckBox(u"Load kicad models (if there are any")
-
-        #lay = QtGui.QHBoxLayout()
-        #lay.addWidget(self.kicadModels)
-        #self.lay.addLayout(lay, 12, 0, 1, 6)
+        self.kicadModels = QtGui.QCheckBox(u"Load KiCad models from file")
+        self.layParts.addWidget(self.kicadModels, 4, 1, 1, 1)
     
     def getBoardThickness(self):
         return float(re.findall(r'\(thickness (.+?)\)', self.projektBRD)[0])
@@ -300,11 +297,12 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 y = float(y) * (-1)
                 ########
                 package = re.search(r'^(.+?)\(layer', i).groups()[0]
-                package = re.sub('locked|placed|pla', '', package).split(':')[-1]
-                package = package.replace('"', '').strip()
+                package = re.sub('locked|placed|pla', '', package).split(':')
                 
-                pathAttribute = ""
+                library = package[0].replace('"', '').strip()
+                package = package[-1].replace('"', '').strip()
                 # use different 3D model for current package
+                pathAttribute = ""
                 userText = re.findall(r'\(fp_text user\s+(.*)\s+\(at\s+', i)
                 
                 if any(k for k in ['FREECAD', 'FCM', 'FCMV'] if k in "__".join(userText)):
@@ -345,7 +343,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                         "kicad3dModelDir": os.path.splitext(kicad3dModelDir)[0],
                         "kicad3dModelExt": os.path.splitext(kicad3dModelDir)[1],
                         "offsetX": float(offsetX),
-                        "offsetY": float(offsetY),
+                        "offsetY": float(offsetY) * (-1),
                         "offsetZ": float(offsetZ),
                         "rotX": float(rotX),
                         "rotY": float(rotY),
@@ -356,7 +354,6 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     })
                 ####################################
                 ####################################
-                library = package
                 #
                 if rot == '':
                     rot = 0.0
@@ -369,9 +366,9 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 else:
                     side = 0  # BOTTOM
                     mirror = 'Local Y axis'
-                
+               
                 self.elements.append({
-                    'name': name, 
+                    'name': name,
                     'library': library, 
                     'package': package, 
                     'value': value, 
