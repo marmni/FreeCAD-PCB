@@ -241,17 +241,13 @@ class mainPCB(partsManaging):
         partMinX = self.wersjaFormatu.dialogMAIN.partMinX.value()
         partMinY = self.wersjaFormatu.dialogMAIN.partMinY.value()
         partMinZ = self.wersjaFormatu.dialogMAIN.partMinZ.value()
-        
-        kicadModels = None
-        if self.databaseType == "kicad_v4":
-            kicadModels = self.wersjaFormatu.dialogMAIN.kicadModels.isChecked()
         #
         self.printInfo('\nImporting parts: ')
         errors = []
         
         for i in self.wersjaFormatu.getParts():
             self.printInfo('\n    {0} ({1}): '.format(i["name"], i["package"]))
-            result = self.addPart(i, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ, kicadModels)
+            result = self.addPart(i, koloroweElemnty, adjustParts, groupParts, partMinX, partMinY, partMinZ)
         
             if self.wersjaFormatu.dialogMAIN.plytkaPCB_plikER.isChecked() and result[0] == 'Error':
                 partNameTXT = self.generateNewLabel(i["name"])

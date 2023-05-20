@@ -271,7 +271,7 @@ class partsManaging(mathFunctions):
             }
         }
         
-    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0, kicadModels=None):
+    def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         #newPart = {
             # 'name': 'E$2', 
             # 'library': 'eagle-ltspice', 
@@ -332,14 +332,13 @@ class partsManaging(mathFunctions):
         fileDAta = [
             True, 
             pathToFile, 
-            modelData['id'], 
-            {'ry': 0.0, 'z': 0.02, 'x': 0.0, 'software': 'Eagle', 'modelID': 32, 'rz': 0.0, 'rx': 0.0, 'y': 0.02, 'name': 'R1206', 'id': 66}, 
-            modelData['categoryID']
+            {'ry': 0.0, 'z': 0.02, 'x': 0.0, 'software': 'Eagle', 'modelID': 32, 'rz': 0.0, 'rx': 0.0, 'y': 0.02, 'name': 'R1206', 'id': 66}
         ]
         '''
+        
         if fileData[0]:
-            if fileData[2] > 0:
-                modelData = self.__SQL__.getModelByID(fileData[2])
+            if fileData[2]['modelID'] > 0:
+                modelData = self.__SQL__.getModelByID(fileData[2]['modelID'])
                 
                 if modelData[0]:
                     modelData = self.__SQL__.convertToTable(modelData[1])
@@ -350,21 +349,21 @@ class partsManaging(mathFunctions):
             #
             newPart['rot'] = self.adjustRotation(newPart['rot'])
             filePath = fileData[1]
-            correctingValue_X = fileData[3]['x']  # pos_X
-            correctingValue_Y = fileData[3]['y']  # pos_Y
-            correctingValue_Z = fileData[3]['z']  # pos_Z
-            correctingValue_RX = fileData[3]['rx']  # pos_RX
-            correctingValue_RY = fileData[3]['ry']  # pos_RY
-            correctingValue_RZ = fileData[3]['rz']  # pos_RZ
+            correctingValue_X = fileData[2]['x']  # pos_X
+            correctingValue_Y = fileData[2]['y']  # pos_Y
+            correctingValue_Z = fileData[2]['z']  # pos_Z
+            correctingValue_RX = fileData[2]['rx']  # pos_RX
+            correctingValue_RY = fileData[2]['ry']  # pos_RY
+            correctingValue_RZ = fileData[2]['rz']  # pos_RZ
             ############################################################
             # ADDING OBJECT
             ############################################################
-            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[3]['name']))
+            step_model = doc.addObject("Part::FeaturePython", "{0} ({1})".format(partNameTXT, fileData[2]['name']))
             step_model.Label = partNameTXT
             step_model = self.getPartShape(filePath, step_model, koloroweElemnty)
             #
             obj = partObject(step_model)
-            step_model.Package = u"{0}".format(fileData[3]['name'])
+            step_model.Package = u"{0}".format(fileData[2]['name'])
             ############################################################
             # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
             ############################################################
@@ -405,7 +404,7 @@ class partsManaging(mathFunctions):
             #################################################################
             addSocket = False
             
-            if modelData['socketIDSocket'] and self.allSocket == 0 and modelData['socketID'] != fileData[2]:
+            if modelData['socketIDSocket'] and self.allSocket == 0 and modelData['socketID'] != fileData[2]['modelID']:
                 socketData = self.__SQL__.convertToTable(self.__SQL__.getModelByID(modelData['socketID'])[1])
                 
                 if socketData["isSocket"]:
@@ -976,118 +975,91 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.connect()
 
-    def partExist(self, package, model, pathAttribute='', showDial=True):
+    def partExist(self, package, modelName, pathAttribute='', showDial=True):
         if not self.databaseType:
             return [False]
-        
+        #
         try:
+            filePos = ""
+            pathsList = []
             databaseType = self.databaseType
+            #################
+            # get packages from kicad file
+            if databaseType == 'kicad_v4':
+                if self.wersjaFormatu.dialogMAIN.kicadModels.isChecked():
+                    pass
+            #################
+            # get packages from database
             if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
-            #
-            #modelInfo = getExtensionInfo(info, 'model')
-            #if modelInfo:  # kicad users
-                #[found, path] = partExistPath(modelInfo['path'])
-                #if found:
-                    #at = modelInfo['at']
-                    #modelInfo.pop('at')
-                    #rotate = modelInfo['rotate']
-                    #modelInfo.pop('rotate')
-
-                    ##if databaseType == 'kicad': 
-                        ## This is what I think how FreeCAD-PCB places objects.
-                        ## 
-                        ## 1) After loading the model, it will move the object so that it centers at the origin.
-                        ## 2) Rotate the object with the angles stored in the database using x, y and z as rotation 
-                        ##    axis. In other word, FreeCAD-PCB stores the rotation as yaw, pitch and roll.
-                        ## 3) Move the object to its final position using the translation stored in the database.
-                        ##
-                        ## However, kicad has no step 1), which is why we need to adjust the placement as follow.
-                        ## Do a yaw, pitch, roll rotation of the object center vector. Add the resulting vector
-                        ## to the translation.
-                        ##pos = FreeCAD.Placement(\
-                                    ##FreeCAD.Base.Vector(0.0,0.0,0.0), \
-                                    ##FreeCAD.Rotation(rotate[0], rotate[1], rotate[2]), \
-                                    ##FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shape.BoundBox.Center)
-                        ##at[0] += pos.x
-                        ##at[1] += pos.y
-                        ##at[2] += pos.z
-
-                    #modelSoft = [name,supSoftware[databaseType]['name']]
-                    #modelSoft.extend(at)
-                    #modelSoft.extend(rotate)
-                    #modelInfo['soft'] = str([modelSoft])
-
-                    #return [True, path, '', modelSoft, -1]; 
-            #################
+            
             if databaseType == "idf":
                 package = self.__SQL__.findPackage(package, "IDF")
             else:
                 package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
-            #
+            
             if package:
-                modelData = self.__SQL__.getModelByID(package.modelID)
+                packageData = self.__SQL__.convertToTable(package)
+                '''packageData = {
+                    'ry': 0.0, 
+                    'z': 0.02, 
+                    'x': 0.0, 
+                    'software': 'Eagle', 
+                    'modelID': 32, 
+                    'rz': 0.0, 
+                    'rx': 0.0, 
+                    'y': 0.02, 
+                    'name': 'R1206', 
+                    'id': 66}
+                '''
                 
-                if modelData[0]:
-                    modelData = self.__SQL__.convertToTable(modelData[1])
-                    modelPaths = self.__SQL__.getPathsByModelID(package.modelID)
-                    #
-                    if isinstance(model, str):
-                        model = unicodedata.normalize('NFKD', model).encode('ascii', 'ignore')
-                        #if len(filePos.split(';')) > 1:
-                        #return [False]
-                    #
-                    filePos = ""
-                    pathsList = []
-                    
-                    for j in modelPaths:
+                if self.__SQL__.getModelByID(package.modelID)[0]:
+                    #############################
+                    # model paths
+                    for j in self.__SQL__.getPathsByModelID(package.modelID):
                         j = self.__SQL__.convertToTable(j)
-                            
-                        pathsList.append(j["path"])
                         #
+                        pathsList.append([j["path"], packageData])
+                        #############################
+                        # use specific path stored in attr -> PRIO1
                         if pathAttribute.strip() != "":
                             if "--" + j["attribute"] == pathAttribute.strip():
                                 filePos = j["path"]
-                    
-                    if filePos == "":
-                        filePos = pathsList[0] # def. model path
+            #################
+            # multi models definition for one part
+            if len(pathsList) == 0:
+                return [False]
+            #
+            if filePos == "":
+                filePos = pathsList[0][0] # default model path
+                packageData = pathsList[0][1] # default model data
+                
+                if isinstance(modelName, str):
+                    modelName = unicodedata.normalize('NFKD', modelName).encode('ascii', 'ignore')
+                #
+                if len(pathsList) > 1 and showDial: # multi models definition for one part (+models from file for kicad)
+                    dial = modelTypes(modelName, pathsList)
                         
-                        if len(pathsList) > 1 and showDial: # multi models definition for one part
-                            dial = modelTypes(model, pathsList)
-                                
-                            if dial.exec_():
-                                filePos = str(dial.modelsList.currentItem().text())
-                            else:
-                                pass
-                                # return [False]
-                                
-                    # filePos = modelData["path3DModels"]
-                    # # multi models definition for one part
-                    # if len(filePos.split(';')) > 1 and showDial:
-                        # #active = FreeCAD.ActiveDocument.Label
-                        # dial = modelTypes(model, filePos.split(';'))
-                        
-                        # if dial.exec_():
-                            # filePos = str(dial.modelsList.currentItem().text())
-                        # else:
-                            # return [False]
-                        # #FreeCAD.setActiveDocument(active)
-                        # #FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-                        # #FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-                    ######################################
-                    [boolValue, path] = partExistPath(filePos)
-                    if boolValue:
-                        return [True, path, modelData['id'], self.__SQL__.convertToTable(package), modelData['categoryID']]
+                    if dial.exec_():
+                        filePos = str(dial.modelsList.currentItem().text())
+                        packageData = dial.modelsList.currentItem().data(QtCore.Qt.UserRole)
                     else:
-                        return [False]
+                        pass
+            ######################################
+            if filePos != "":
+                [boolValue, path] = partExistPath(filePos)
+                
+                if boolValue:
+                    return [True, path, packageData]
                 else:
                     return [False]
+            else:
+                return [False]
+            #
             return [False]
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error partExist(): {0} \n".format(e))
             return [False]
-            #FreeCAD.Console.PrintWarning(u"Error 2: {0} \n".format(e))
-            #return [False]
 
 
 def partExistPath(filePos):
@@ -1134,14 +1106,17 @@ def getExtensionInfo(info, name):
 
 
 class modelTypes(QtGui.QDialog):
-    def __init__(self, model, paths, parent=None):
+    def __init__(self, modelName, paths, parent=None):
         QtGui.QDialog.__init__(self, parent)
 
         self.setWindowTitle(u'Choose model')
         #
         self.modelsList = QtGui.QListWidget()
         for i in paths:
-            self.modelsList.addItem(i)
+            item = QtGui.QListWidgetItem(i[0])
+            item.setData(QtCore.Qt.UserRole, i[1])
+            
+            self.modelsList.addItem(item)
         
         self.modelsList.setCurrentRow(0)
         #
@@ -1154,6 +1129,6 @@ class modelTypes(QtGui.QDialog):
         #
         lay = QtGui.QGridLayout(self)
         lay.addWidget(QtGui.QLabel(u"Choose one of available models for part"), 0, 0, 1, 1)
-        lay.addWidget(QtGui.QLabel(u"<div style='font-weight:bold;'>{0}</div>".format(model)), 1, 0, 1, 1, QtCore.Qt.AlignHCenter)
+        lay.addWidget(QtGui.QLabel(u"<div style='font-weight:bold;'>{0}</div>".format(modelName)), 1, 0, 1, 1, QtCore.Qt.AlignHCenter)
         lay.addWidget(self.modelsList, 2, 0, 1, 1)
         lay.addWidget(buttons, 2, 1, 1, 1)
