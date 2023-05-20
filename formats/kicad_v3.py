@@ -1187,13 +1187,6 @@ class KiCadv3_PCB(baseModel):
                             elif userTextName in ['FREECAD', 'FCM']:
                                 FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(name, userTextValue.strip(), package))
                                 package = userTextValue.strip()
-                ##3D package from KiCad
-                #try:
-                    #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                    #if package3D and self.partExist(os.path.basename(package3D), "", False):
-                        #package = os.path.basename(package3D)
-                #except:
-                    #pass
                 ########
                 library = package
                 #

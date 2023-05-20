@@ -324,10 +324,11 @@ class partsManaging(mathFunctions):
         result = ['OK']
         
         partNameTXT = self.generateNewLabel(newPart['name'])
+        newPart["partNameTXT"] = partNameTXT
         ###############################################################
         # checking if 3D model exist
         ###############################################################
-        fileData = self.partExist(newPart['package'], u"{0} {1} ({2})".format(partNameTXT, newPart['value'], newPart['package']), newPart['pathAttribute'])
+        fileData = self.partExist(newPart)
         '''
         fileDAta = [
             True, 
@@ -975,7 +976,7 @@ class partsManaging(mathFunctions):
         self.__SQL__ = dataBase()
         self.__SQL__.connect()
 
-    def partExist(self, package, modelName, pathAttribute='', showDial=True):
+    def partExist(self, newModelData, showDial=True):
         if not self.databaseType:
             return [False]
         #
@@ -987,16 +988,30 @@ class partsManaging(mathFunctions):
             # get packages from kicad file
             if databaseType == 'kicad_v4':
                 if self.wersjaFormatu.dialogMAIN.kicadModels.isChecked():
-                    pass
+                    for i in newModelData["package3Data"]:
+                        kicadPackageData = {
+                            'ry': i['rotY'], 
+                            'z': i['offsetZ'], 
+                            'x': i['offsetX'], 
+                            'software': 'KiCad', 
+                            'modelID': -1, 
+                            'rz': i['rotZ'], 
+                            'rx': i['rotX'], 
+                            'y': i['offsetY'], 
+                            'name': newModelData['name'], 
+                            'id': -1
+                        }
+                        
+                        pathsList.append([i['kicad3dModelDir'], kicadPackageData])
             #################
             # get packages from database
             if databaseType in ['kicad', 'kicad_v4']:
                 databaseType = 'kicad'
             
             if databaseType == "idf":
-                package = self.__SQL__.findPackage(package, "IDF")
+                package = self.__SQL__.findPackage(newModelData['package'], "IDF")
             else:
-                package = self.__SQL__.findPackage(package, exportData[databaseType]['name'])
+                package = self.__SQL__.findPackage(newModelData['package'], exportData[databaseType]['name'])
             
             if package:
                 packageData = self.__SQL__.convertToTable(package)
@@ -1022,8 +1037,8 @@ class partsManaging(mathFunctions):
                         pathsList.append([j["path"], packageData])
                         #############################
                         # use specific path stored in attr -> PRIO1
-                        if pathAttribute.strip() != "":
-                            if "--" + j["attribute"] == pathAttribute.strip():
+                        if newModelData['pathAttribute'].strip() != "":
+                            if "--" + j["attribute"] == newModelData['pathAttribute'].strip():
                                 filePos = j["path"]
             #################
             # multi models definition for one part
@@ -1033,9 +1048,9 @@ class partsManaging(mathFunctions):
             if filePos == "":
                 filePos = pathsList[0][0] # default model path
                 packageData = pathsList[0][1] # default model data
-                
-                if isinstance(modelName, str):
-                    modelName = unicodedata.normalize('NFKD', modelName).encode('ascii', 'ignore')
+                #
+                modelName = u"{0} {1} ({2})".format(newModelData["partNameTXT"], newModelData['value'], newModelData['package'])
+                modelName = unicodedata.normalize('NFKD', modelName).encode('ascii', 'ignore')  
                 #
                 if len(pathsList) > 1 and showDial: # multi models definition for one part (+models from file for kicad)
                     dial = modelTypes(modelName, pathsList)
