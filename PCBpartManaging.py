@@ -42,7 +42,7 @@ from PySide import QtCore, QtGui
 from PCBdataBase import dataBase
 from PCBconf import *
 from PCBboard import getPCBheight
-from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E
+from PCBobjects import partObject, viewProviderPartObject, partObject_E, viewProviderPartObject_E, viewProviderPartObjectExternal
 from PCBfunctions import wygenerujID, mathFunctions
 from command.PCBgroups import *
 from command.PCBannotations import createAnnotation
@@ -346,7 +346,7 @@ class partsManaging(mathFunctions):
                 else:
                     modelData = {'sockedID': 0, 'socketIDSocket': False}
             else:
-                modelData = {'add_socket':'[False,None]'}
+                modelData = {'add_socket':'[False,None]', 'sockedID': 0, 'socketIDSocket': False}
             #
             newPart['rot'] = self.adjustRotation(newPart['rot'])
             filePath = fileData[1]
@@ -457,7 +457,10 @@ class partsManaging(mathFunctions):
             ############################################################
             # 
             ############################################################
-            viewProviderPartObject(step_model.ViewObject)
+            if fileData[2]['modelID'] > 0:
+                viewProviderPartObject(step_model.ViewObject)
+            else:
+                viewProviderPartObjectExternal(step_model.ViewObject)
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
@@ -654,7 +657,7 @@ class partsManaging(mathFunctions):
                         else:
                             grp_2 = createGroup(categoryData.name)
                     else:
-                        grp_2 = createGroup_Missing()
+                        grp_2 = createGroup_Others()
                 
                 grp_2.addObject(step_model)
                 partsFolder.addObject(grp_2)

@@ -51,6 +51,7 @@ class dialogMAIN(dialogMAIN_FORM):
         self.spisWarstw.sortItems(1)
         #
         self.kicadModels = QtGui.QCheckBox(u"Load KiCad models from file")
+        self.kicadModels.setChecked(True)
         self.layParts.addWidget(self.kicadModels, 4, 1, 1, 1)
     
     def getBoardThickness(self):
@@ -321,7 +322,10 @@ class KiCadv4_PCB(KiCadv3_PCB):
                                 FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(name, userTextValue.strip(), package))
                                 package = userTextValue.strip()
                 ####################################
-                #3D package from KiCad
+                # 3D package from KiCad
+                #
+                # FIX OFFSET/ROT!!!!!!!!!!!!
+              
                 package3Data = []
                 for j in self.getFootprintMultiData(i, r"\(model"):
                     path = re.search(r'"(.*?)"', j, re.MULTILINE|re.DOTALL).groups()[0]
