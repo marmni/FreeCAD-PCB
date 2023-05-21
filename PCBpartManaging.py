@@ -356,6 +356,19 @@ class partsManaging(mathFunctions):
             correctingValue_RX = fileData[2]['rx']  # pos_RX
             correctingValue_RY = fileData[2]['ry']  # pos_RY
             correctingValue_RZ = fileData[2]['rz']  # pos_RZ
+            
+            
+            if 'adjustModel' in fileData[2].keys() and fileData[2]['adjustModel' ]:
+                ###################################################
+                # "realthunder" solution
+                # https://github.com/marmni/FreeCAD-PCB/pull/1/commits/0be0cde5f41d4c0f65fe793ad1db337f9d370a9e
+                ###################################################
+                shapeDUMMY = Part.read(filePath)
+                pos = FreeCAD.Placement(FreeCAD.Base.Vector(0.0,0.0,0.0), FreeCAD.Rotation(correctingValue_RX, correctingValue_RY, correctingValue_RZ), FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shapeDUMMY.BoundBox.Center)
+                
+                correctingValue_X += pos.x * -1
+                correctingValue_Y += pos.y
+                #correctingValue_Z += pos.z
             ############################################################
             # ADDING OBJECT
             ############################################################
@@ -992,19 +1005,27 @@ class partsManaging(mathFunctions):
             if databaseType == 'kicad_v4':
                 if self.wersjaFormatu.dialogMAIN.kicadModels.isChecked():
                     for i in newModelData["package3Data"]:
+                        x = i['offsetX']
+                        y = i['offsetY']
+                        z = i['offsetZ']
+                        rx = i['rotX']
+                        ry = i['rotY']
+                        rz = i['rotZ']
+                        # adjustModel - only for kicad_v4
+                        
                         kicadPackageData = {
-                            'ry': i['rotY'], 
-                            'z': i['offsetZ'], 
-                            'x': i['offsetX'], 
+                            'ry': ry, 
+                            'z': z, 
+                            'x': x, 
                             'software': 'KiCad', 
                             'modelID': -1, 
-                            'rz': i['rotZ'], 
-                            'rx': i['rotX'], 
-                            'y': i['offsetY'], 
+                            'rz': rz, 
+                            'rx': rx, 
+                            'y': y, 
                             'name': newModelData['name'], 
-                            'id': -1
+                            'id': -1,
+                            'adjustModel': True,
                         }
-                        
                         pathsList.append([i['kicad3dModelDir'], kicadPackageData])
             #################
             # get packages from database

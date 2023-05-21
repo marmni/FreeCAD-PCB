@@ -323,12 +323,10 @@ class KiCadv4_PCB(KiCadv3_PCB):
                                 package = userTextValue.strip()
                 ####################################
                 # 3D package from KiCad
-                #
-                # FIX OFFSET/ROT!!!!!!!!!!!!
-              
                 package3Data = []
                 for j in self.getFootprintMultiData(i, r"\(model"):
-                    path = re.search(r'"(.*?)"', j, re.MULTILINE|re.DOTALL).groups()[0]
+                    j = j.replace('"', '')
+                    path = re.search(r'\(model\s+(.*?)\n', j, re.DOTALL).groups()[0]
                     
                     if len(path.split('\\')) == 1:
                         path = path.split('/')
@@ -338,7 +336,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     kicad3dModelVar = path[0]
                     kicad3dModelDir = os.path.normcase("/".join(path[1:]))
                     #
-                    [offsetX, offsetY, offsetZ] = re.search(r'\(offset\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    [info, offsetX, offsetY, offsetZ] = re.search(r'\((offset|at)\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
                     [rotX, rotY, rotZ] = re.search(r'\(rotate\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
                     [scaleX, scaleY, scaleZ] = re.search(r'\(scale\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
                     #
@@ -347,7 +345,7 @@ class KiCadv4_PCB(KiCadv3_PCB):
                         "kicad3dModelDir": os.path.splitext(kicad3dModelDir)[0],
                         "kicad3dModelExt": os.path.splitext(kicad3dModelDir)[1],
                         "offsetX": float(offsetX),
-                        "offsetY": float(offsetY) * (-1),
+                        "offsetY": float(offsetY),
                         "offsetZ": float(offsetZ),
                         "rotX": float(rotX),
                         "rotY": float(rotY),
