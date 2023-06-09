@@ -359,6 +359,18 @@ class viewProviderPartObject:
         return ":/data/img/modelOK.svg"
 
 
+class viewProviderPartObjectExternal(viewProviderPartObject):
+    def __init__(self, obj):
+        ''' Set this object to the proxy object of the actual view provider '''
+        viewProviderPartObject.__init__(self, obj)
+
+    def getIcon(self):
+        ''' Return the icon in XMP format which will appear in the tree view. This method is optional
+        and if not defined a default icon is shown.
+        '''
+        return ":/data/img/updateModels.png"
+
+
 class viewProviderPartObject_E:
     def __init__(self, obj):
         ''' Set this object to the proxy object of the actual view provider '''

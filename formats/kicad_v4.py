@@ -50,11 +50,9 @@ class dialogMAIN(dialogMAIN_FORM):
         self.generateLayers([44, 45])
         self.spisWarstw.sortItems(1)
         #
-        #self.kicadModels = QtGui.QCheckBox(u"Load kicad models (if there are any")
-
-        #lay = QtGui.QHBoxLayout()
-        #lay.addWidget(self.kicadModels)
-        #self.lay.addLayout(lay, 12, 0, 1, 6)
+        self.kicadModels = QtGui.QCheckBox(u"Load KiCad models from file")
+        self.kicadModels.setChecked(True)
+        self.layParts.addWidget(self.kicadModels, 4, 1, 1, 1)
     
     def getBoardThickness(self):
         return float(re.findall(r'\(thickness (.+?)\)', self.projektBRD)[0])
@@ -259,6 +257,32 @@ class KiCadv4_PCB(KiCadv3_PCB):
         for i in self.elements:
             self.addStandardShapes(i['dataElement'], layerNew, layerNumber[1], display=[True, True, True, True], parent=i)
     
+    def getFootprintMultiData(self, inputString, findValue):
+        data = []
+        #
+        stringCount = len(re.findall(findValue, inputString))
+        ###################################################
+        # based on "realthunder" solution
+        # https://github.com/marmni/FreeCAD-PCB/pull/1/commits/0be0cde5f41d4c0f65fe793ad1db337f9d370a9e
+        ###################################################
+        for i in range(0, stringCount):
+            m = re.search(findValue, inputString)
+            #
+            end = m.start()
+            counter = 0
+            for c in inputString[m.start():]:
+                if c == '(': counter+=1
+                if c == ')': 
+                    counter-=1
+                    if counter == 0:
+                        break
+                end+=1
+            #
+            data.append(inputString[m.start():end])
+            inputString = inputString[end:]
+        #
+        return data
+    
     def getElements(self):
         if len(self.elements) == 0:
             for i in re.findall(r'\[start\]\((?:footprint|module)\s+(.+?)\)\[stop\]', self.projektBRD, re.MULTILINE|re.DOTALL):
@@ -274,11 +298,12 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 y = float(y) * (-1)
                 ########
                 package = re.search(r'^(.+?)\(layer', i).groups()[0]
-                package = re.sub('locked|placed|pla', '', package).split(':')[-1]
-                package = package.replace('"', '').strip()
+                package = re.sub('locked|placed|pla', '', package).split(':')
                 
-                pathAttribute = ""
+                library = package[0].replace('"', '').strip()
+                package = package[-1].replace('"', '').strip()
                 # use different 3D model for current package
+                pathAttribute = ""
                 userText = re.findall(r'\(fp_text user\s+(.*)\s+\(at\s+', i)
                 
                 if any(k for k in ['FREECAD', 'FCM', 'FCMV'] if k in "__".join(userText)):
@@ -296,15 +321,41 @@ class KiCadv4_PCB(KiCadv3_PCB):
                             elif userTextName in ['FREECAD', 'FCM']:
                                 FreeCAD.Console.PrintWarning(spisTekstow["loadModelImportDifferentPackageInfo"].format(name, userTextValue.strip(), package))
                                 package = userTextValue.strip()
-                ##3D package from KiCad
-                #try:
-                    #package3D = re.search(r'\(model\s+(.+?).wrl', i).groups()[0]
-                    #if package3D and self.partExist(os.path.basename(package3D), "", False):
-                        #package = os.path.basename(package3D)
-                #except:
-                    #pass
-                ########
-                library = package
+                ####################################
+                # 3D package from KiCad
+                package3Data = []
+                for j in self.getFootprintMultiData(i, r"\(model"):
+                    j = j.replace('"', '')
+                    path = re.search(r'\(model\s+(.*?)\n', j, re.DOTALL).groups()[0]
+                    
+                    if len(path.split('\\')) == 1:
+                        path = path.split('/')
+                    else:
+                        path = path.split('\\')
+                    
+                    kicad3dModelVar = path[0]
+                    kicad3dModelDir = os.path.normcase("/".join(path[1:]))
+                    #
+                    [info, offsetX, offsetY, offsetZ] = re.search(r'\((offset|at)\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    [rotX, rotY, rotZ] = re.search(r'\(rotate\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    [scaleX, scaleY, scaleZ] = re.search(r'\(scale\s+\(xyz\s+([-0-9\.]*?)\s+([-0-9\.]*?)\s+([-0-9\.]*?)\)\)', j).groups()
+                    #
+                    package3Data.append({
+                        "kicad3dModelVar": kicad3dModelVar,
+                        "kicad3dModelDir": os.path.splitext(kicad3dModelDir)[0],
+                        "kicad3dModelExt": os.path.splitext(kicad3dModelDir)[1],
+                        "offsetX": float(offsetX),
+                        "offsetY": float(offsetY),
+                        "offsetZ": float(offsetZ),
+                        "rotX": float(rotX),
+                        "rotY": float(rotY),
+                        "rotZ": float(rotZ),
+                        "scaleX": float(scaleX),
+                        "scaleY": float(scaleY),
+                        "scaleZ": float(scaleZ),
+                    })
+                ####################################
+                ####################################
                 #
                 if rot == '':
                     rot = 0.0
@@ -317,9 +368,9 @@ class KiCadv4_PCB(KiCadv3_PCB):
                 else:
                     side = 0  # BOTTOM
                     mirror = 'Local Y axis'
-                
+               
                 self.elements.append({
-                    'name': name, 
+                    'name': name,
                     'library': library, 
                     'package': package, 
                     'value': value, 
@@ -329,5 +380,6 @@ class KiCadv4_PCB(KiCadv3_PCB):
                     'rot': rot,
                     'side': side, 
                     'dataElement': i, 
-                    'mirror': mirror
+                    'mirror': mirror,
+                    'package3Data': package3Data,
                 })

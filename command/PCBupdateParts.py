@@ -195,12 +195,12 @@ class updateParts(partsManaging):
                 if self.form.listaElementow.item(j).checkState() == 2:
                     package = self.form.listaElementow.item(j).text()
                     
-                    fileData = self.partExist(package, u"")
+                    fileData = self.partExist({'package': package,'pathAttribute': "","partNameTXT": "", 'value': ""})
                     ####
                     for i in self.listOfModels[package]:
                         if i.Proxy.Type == "PCBpart" and fileData[0]:
-                            if fileData[2] > 0:
-                                modelData = self.__SQL__.getModelByID(fileData[2])
+                            if fileData[2]['modelID'] > 0:
+                                modelData = self.__SQL__.getModelByID(fileData[2]['modelID'])
                                 
                                 if modelData[0]:
                                     modelData = self.__SQL__.convertToTable(modelData[1])
@@ -210,12 +210,12 @@ class updateParts(partsManaging):
                                 modelData = {'add_socket':'[False,None]'}
                             
                             filePath = fileData[1]
-                            correctingValue_X = fileData[3]['x']  # pos_X
-                            correctingValue_Y = fileData[3]['y']  # pos_Y
-                            correctingValue_Z = fileData[3]['z']  # pos_Z
-                            correctingValue_RX = fileData[3]['rx']  # pos_RX
-                            correctingValue_RY = fileData[3]['ry']  # pos_RY
-                            correctingValue_RZ = fileData[3]['rz']  # pos_RZ
+                            correctingValue_X = fileData[2]['x']  # pos_X
+                            correctingValue_Y = fileData[2]['y']  # pos_Y
+                            correctingValue_Z = fileData[2]['z']  # pos_Z
+                            correctingValue_RX = fileData[2]['rx']  # pos_RX
+                            correctingValue_RY = fileData[2]['ry']  # pos_RY
+                            correctingValue_RZ = fileData[2]['rz']  # pos_RZ
                             
                             #### NEW MODEL SHAPE
                             i = self.getPartShape(filePath, i, koloroweElemnty)

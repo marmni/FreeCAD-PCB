@@ -179,8 +179,7 @@ static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm
                     self.appendContextMenu("Explode", self.explodeSettings)
                 elif elem[0].Proxy.Type == 'PCBpart_E':
                     self.appendContextMenu("PCB model", self.parts_E_Settings)
-                elif elem[0].Proxy.Type == 'PCBpart':
+                elif elem[0].Proxy.Type == 'PCBpart' and not elem[0].ViewObject.Proxy.__class__.__name__ == "viewProviderPartObjectExternal":
                     self.appendContextMenu("PCB model", self.partsSettings)
-
 
 Gui.addWorkbench(PCB())
