@@ -12,7 +12,7 @@
 
   <content>
     <workbench>
-      <classname>FreeCAD-PCB</classname>
+      <classname>PCB</classname>
       <subdirectory>./</subdirectory>
       <freecadmin>0.18.0</freecadmin>
       <tag>eagle</tag>
