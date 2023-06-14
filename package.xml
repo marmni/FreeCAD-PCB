@@ -6,7 +6,7 @@
   <maintainer email="marmni@onet.eu">marmni</maintainer>
   <license file="LICENSE">AGPLv3.0</license>
   <url type="repository" branch="master">https://github.com/marmni/FreeCAD-PCB</url>
-  <url type="readme">https://github.com/marmni/FreeCAD-PCB/README.md</url>
+  <url type="readme">https://github.com/marmni/FreeCAD-PCB/blob/master/README.md</url>
   <url type="bugtracker">https://github.com/marmni/FreeCAD-PCB/issues</url>
   <icon>data/FreeCAD-PCB_workbench_icon.svg</icon>
 
