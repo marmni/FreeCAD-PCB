@@ -39,7 +39,7 @@ import time
 #
 from PCBconf import *
 from formats.PCBmainForms import mainPCB
-import PCBcheckFreeCADVersion
+#import PCBcheckFreeCADVersion
 
 
 def insert(filename, other):
@@ -52,22 +52,22 @@ def insert(filename, other):
 
 def open(filename):
     ''' '''
-    result = PCBcheckFreeCADVersion.checkCompatibility()
-    if result[0]:
-        PCBcheckFreeCADVersion.setDefaultValues()
-        #
-        kursor = QtGui.QCursor()
-        kursor.setShape(QtCore.Qt.ArrowCursor)
-        QtGui.QApplication.setOverrideCursor(kursor)
-        #
-        wersjaFormatu = wersjaFormatuF(filename)
-        if wersjaFormatu[0]:
-            FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
-            importBRD(filename, wersjaFormatu[0])
-        else:
-            FreeCAD.Console.PrintError("Incompatible file format.\n")
-        #
-        QtGui.QApplication.restoreOverrideCursor()
+    #result = PCBcheckFreeCADVersion.checkCompatibility()
+    #if result[0]:
+    #PCBcheckFreeCADVersion.setDefaultValues()
+    #
+    kursor = QtGui.QCursor()
+    kursor.setShape(QtCore.Qt.ArrowCursor)
+    QtGui.QApplication.setOverrideCursor(kursor)
+    #
+    wersjaFormatu = wersjaFormatuF(filename)
+    if wersjaFormatu[0]:
+        FreeCAD.Console.PrintMessage("The file was created in {0}.\n".format(wersjaFormatu[1]))
+        importBRD(filename, wersjaFormatu[0])
+    else:
+        FreeCAD.Console.PrintError("Incompatible file format.\n")
+    #
+    QtGui.QApplication.restoreOverrideCursor()
 
 
 def wersjaFormatuF(filename):
