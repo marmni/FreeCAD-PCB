@@ -29,7 +29,7 @@ from PySide import QtGui
 
 __scriptVersion__ = 5.0
 __pythonVersion__ = 3.6
-__requiredFreeCADVersion__ = (0.18, 0.19)  # (min, max)
+__requiredFreeCADVersion__ = (0.18, 0.20)  # (min, max)
 
 
 def currentFreeCADVersion():
