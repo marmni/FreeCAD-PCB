@@ -119,38 +119,38 @@ static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm
 
     def Initialize(self):
         import PCBcheckFreeCADVersion
-        result = PCBcheckFreeCADVersion.checkCompatibility()
-        if result[0]:
-            PCBcheckFreeCADVersion.setDefaultValues()
-            #
-            import PCBtoolBar
-            import PCBrc
-            import PCBcommands
-            import SketcherGui
-            #
-            FreeCADGui.addIconPath(":/data/img")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui", "PCB")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui", "PCB")
-            FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui", "PCB")
-            #
-            self.explodeSettings = PCBcommands.listaExplode
-            self.parts_E_Settings = PCBcommands.listaPartsE
-            self.partsSettings = PCBcommands.listaParts
-            #
-            self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch",
-                                    "Sketcher_ViewSketch", "Sketcher_MapSketch",
-                                    "Separator", "ScriptCmd_OpenSketcherWorkbench",
-                                    "Separator",
-                                    "Sketcher_CreatePoint", "Sketcher_CreateArc",
-                                    "Sketcher_Create3PointArc", "Sketcher_CreateCircle",
-                                    "Sketcher_Create3PointCircle", "Sketcher_CreateLine",
-                                    "Sketcher_CreatePolyline", "Sketcher_CreateRectangle",
-                                    "Sketcher_CreateSlot", "Separator",
-                                    "Sketcher_CreateFillet", "Sketcher_Trimming",
-                                    "Sketcher_External", "Sketcher_ToggleConstruction"]
+        #result = PCBcheckFreeCADVersion.checkCompatibility()
+        #if result[0]:
+        PCBcheckFreeCADVersion.setDefaultValues()
+        #
+        import PCBtoolBar
+        import PCBrc
+        import PCBcommands
+        import SketcherGui
+        #
+        FreeCADGui.addIconPath(":/data/img")
+        FreeCADGui.addPreferencePage(":/data/ui/pcbGeneral.ui", "PCB")
+        FreeCADGui.addPreferencePage(":/data/ui/pcbExport.ui", "PCB")
+        FreeCADGui.addPreferencePage(":/data/ui/pcbColors.ui", "PCB")
+        #
+        self.explodeSettings = PCBcommands.listaExplode
+        self.parts_E_Settings = PCBcommands.listaPartsE
+        self.partsSettings = PCBcommands.listaParts
+        #
+        self.sketchertools = ["Sketcher_NewSketch", "Sketcher_LeaveSketch",
+                                "Sketcher_ViewSketch", "Sketcher_MapSketch",
+                                "Separator", "ScriptCmd_OpenSketcherWorkbench",
+                                "Separator",
+                                "Sketcher_CreatePoint", "Sketcher_CreateArc",
+                                "Sketcher_Create3PointArc", "Sketcher_CreateCircle",
+                                "Sketcher_Create3PointCircle", "Sketcher_CreateLine",
+                                "Sketcher_CreatePolyline", "Sketcher_CreateRectangle",
+                                "Sketcher_CreateSlot", "Separator",
+                                "Sketcher_CreateFillet", "Sketcher_Trimming",
+                                "Sketcher_External", "Sketcher_ToggleConstruction"]
 
-            self.appendToolbar("Sketcher", self.sketchertools)
-            self.appendMenu("Sketcher", self.sketchertools)
+        self.appendToolbar("Sketcher", self.sketchertools)
+        self.appendMenu("Sketcher", self.sketchertools)
 
     def Activated(self):
         if hasattr(FreeCADGui, "pcbToolBar"):

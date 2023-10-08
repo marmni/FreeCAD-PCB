@@ -2,7 +2,7 @@
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>FreeCAD-PCB</name>
   <description>Printed Circuit Board (PCB) Workbench for FreeCAD</description>
-  <version>06.2023</version>
+  <version>6.2023.1</version>
   <maintainer email="marmni@onet.eu">marmni</maintainer>
   <license file="LICENSE">AGPLv3.0</license>
   <url type="repository" branch="master">https://github.com/marmni/FreeCAD-PCB</url>
