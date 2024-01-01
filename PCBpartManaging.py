@@ -206,8 +206,7 @@ class partsManaging(mathFunctions):
         
         return step_model
     
-    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y):
-
+    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y, adjustModel=False):
         step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
             
         step_model.Placement.Base.x = cX
@@ -215,12 +214,19 @@ class partsManaging(mathFunctions):
         
         step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(cRZ, cRY, cRX)) # rotation correction
         
-        xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
-        yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+        if not adjustModel:
+            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
         
-        step_model.Placement.Base.x = xB0 + X # final position X-axis
-        step_model.Placement.Base.y = yB0 + Y # final position Y-axis
+            step_model.Placement.Base.x = xB0 + X # final position X-axis
+            step_model.Placement.Base.y = yB0 + Y # final position Y-axis
+        else: # kicad
+            pass
+            step_model.Placement.Base.x = X + cX # final position X-axis
+            step_model.Placement.Base.y = Y + cY # final position Y-axis
+            
         step_model.Proxy.offsetZ = cZ
+
     
     def partStandardDictionary(self):
         return {
@@ -357,17 +363,17 @@ class partsManaging(mathFunctions):
             correctingValue_RY = fileData[2]['ry']  # pos_RY
             correctingValue_RZ = fileData[2]['rz']  # pos_RZ
             
-            
-            if 'adjustModel' in fileData[2].keys() and fileData[2]['adjustModel' ]:
-                ###################################################
-                # "realthunder" solution
-                # https://github.com/marmni/FreeCAD-PCB/pull/1/commits/0be0cde5f41d4c0f65fe793ad1db337f9d370a9e
-                ###################################################
-                shapeDUMMY = Part.read(filePath)
-                pos = FreeCAD.Placement(FreeCAD.Base.Vector(0.0,0.0,0.0), FreeCAD.Rotation(correctingValue_RX, correctingValue_RY, correctingValue_RZ), FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shapeDUMMY.BoundBox.Center)
+            adjustModel = False
+            if 'adjustModel' in fileData[2].keys() and fileData[2]['adjustModel']:
+                # ###################################################
+                # # "realthunder" solution
+                # # https://github.com/marmni/FreeCAD-PCB/pull/1/commits/0be0cde5f41d4c0f65fe793ad1db337f9d370a9e
+                # ###################################################
+                adjustModel = True
+                #shapeDUMMY = Part.read(filePath)
+                #pos = FreeCAD.Placement(FreeCAD.Base.Vector(0.0,0.0,0.0), FreeCAD.Rotation(correctingValue_RX, correctingValue_RY, correctingValue_RZ), FreeCAD.Base.Vector(0.0,0.0,0.0)).multVec(shapeDUMMY.BoundBox.Center)
                 
-                correctingValue_X += pos.x * -1
-                correctingValue_Y += pos.y
+                #correctingValue_Y += pos.y
                 #correctingValue_Z += pos.z
             ############################################################
             # ADDING OBJECT
@@ -381,7 +387,7 @@ class partsManaging(mathFunctions):
             ############################################################
             # PUTTING OBJECT IN CORRECT POSITION/ORIENTATION
             ############################################################
-            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart["x"], newPart["y"])
+            self.partPlacement(step_model, correctingValue_X, correctingValue_Y, correctingValue_Z, correctingValue_RX, correctingValue_RY, correctingValue_RZ, newPart["x"], newPart["y"], adjustModel)
             #################################################################
             # FILTERING OBJECTS BY SIZE L/W/H
             #################################################################

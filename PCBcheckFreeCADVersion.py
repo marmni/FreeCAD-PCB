@@ -38,28 +38,27 @@ def currentFreeCADVersion():
     return float(data[0] + '.' + (data[1][:data[1].index('.')] if '.' in data[1] else data[1]))
 
 
-def checkCompatibility():
-    ''' InitGui -> Initialize() '''
-    currentFCVersion = currentFreeCADVersion()
-    #
-    if currentFCVersion >= __requiredFreeCADVersion__[0] and currentFCVersion <= __requiredFreeCADVersion__[1]:
-        # if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
-            # FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
-            # return [False]
-        # else:
-        return [True]
-    elif currentFCVersion <= __requiredFreeCADVersion__[0]:
-        FreeCAD.Console.PrintError("PCB Workbench: Error\n\tYour version of FreeCAD is too old. Supported versions => {0}.\n".format(__requiredFreeCADVersion__[0]))
-        return [False]
-    else:
-        FreeCAD.Console.PrintWarning("PCB Workbench: Warning\n\tIncompatible FreeCAD version. Supported versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
-        return [True]
+# def checkCompatibility():
+    # ''' InitGui -> Initialize() '''
+    # currentFCVersion = currentFreeCADVersion()
+    # #
+    # if currentFCVersion >= __requiredFreeCADVersion__[0] and currentFCVersion <= __requiredFreeCADVersion__[1]:
+        # # if float("{0}.{1}".format(sys.version_info[0], sys.version_info[1])) < __pythonVersion__:
+            # # FreeCAD.Console.PrintWarning("PCB Workbench: Error. Minimum required Python version: {0}.\n".format(__pythonVersion__))
+            # # return [False]
+        # # else:
+        # return [True]
+    # elif currentFCVersion <= __requiredFreeCADVersion__[0]:
+        # FreeCAD.Console.PrintError("PCB Workbench: Error\n\tYour version of FreeCAD is too old. Supported versions => {0}.\n".format(__requiredFreeCADVersion__[0]))
+        # return [False]
+    # else:
+        # FreeCAD.Console.PrintWarning("PCB Workbench: Warning\n\tIncompatible FreeCAD version. Supported versions: {0}-{1}.\n".format(__requiredFreeCADVersion__[0], __requiredFreeCADVersion__[1]))
+        # return [True]
 
 
 def setDefaultValues():
     ''' InitGui -> Initialize() '''
     data = {
-        
         "scriptVersion": ['f', __scriptVersion__]
     }
 
