@@ -749,6 +749,12 @@ class CollectionAdapter(object):
         )
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, d):
+        self.loads(d)
+
+    def dumps(self):
         return {
             "key": self._key,
             "owner_state": self.owner_state,
@@ -757,7 +763,7 @@ class CollectionAdapter(object):
             "invalidated": self.invalidated,
         }
 
-    def __setstate__(self, d):
+    def loads(self, d):
         self._key = d["key"]
         self.owner_state = d["owner_state"]
         self._data = weakref.ref(d["data"])
