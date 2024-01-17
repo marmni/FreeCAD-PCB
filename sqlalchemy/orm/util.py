@@ -648,13 +648,13 @@ class AliasedInsp(InspectionAttr):
         else:
             return PathRegistry.per_mapper(self)
 
-     def __getstate__(self):
+    def __getstate__(self):
         self.dumps()
 
     def __setstate__(self, state):
         self.loads(state)
 
-   def dumps(self):
+    def dumps(self):
         return {
             "entity": self.entity,
             "mapper": self.mapper,
