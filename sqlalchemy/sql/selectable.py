@@ -1887,6 +1887,12 @@ class FromGrouping(FromClause):
     def __setstate__(self, state):
         self.element = state["element"]
 
+    def dumps(self):
+        return {"element": self.element}
+
+    def loads(self, state):
+        self.element = state["element"]
+
 
 class TableClause(Immutable, FromClause):
     """Represents a minimal "table" construct.
