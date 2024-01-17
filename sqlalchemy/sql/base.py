@@ -612,6 +612,12 @@ class ColumnCollection(util.OrderedProperties):
         return {"_data": self._data, "_all_columns": self._all_columns}
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return {"_data": self._data, "_all_columns": self._all_columns}
+
+    def loads(self, state):
         object.__setattr__(self, "_data", state["_data"])
         object.__setattr__(self, "_all_columns", state["_all_columns"])
 
