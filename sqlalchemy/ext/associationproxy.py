@@ -935,9 +935,14 @@ class _lazy_collection(object):
         return {"obj": self.parent, "target": self.target}
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return {"obj": self.parent, "target": self.target}
+
+    def loads(self, state):
         self.parent = state["obj"]
         self.target = state["target"]
-
 
 class _AssociationCollection(object):
     def __init__(self, lazy_collection, creator, getter, setter, parent):
@@ -985,6 +990,12 @@ class _AssociationCollection(object):
         return {"parent": self.parent, "lazy_collection": self.lazy_collection}
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return {"parent": self.parent, "lazy_collection": self.lazy_collection}
+
+    def loads(self, state):
         self.parent = state["parent"]
         self.lazy_collection = state["lazy_collection"]
         self.parent._inflate(self)

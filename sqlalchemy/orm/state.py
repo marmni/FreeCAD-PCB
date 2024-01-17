@@ -444,6 +444,12 @@ class InstanceState(interfaces.InspectionAttrInfo):
         return self._pending_mutations[key]
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state_dict):
+        self.loads(state_dict)
+
+    def dumps(self):
         state_dict = {"instance": self.obj()}
         state_dict.update(
             (k, self.__dict__[k])
@@ -469,7 +475,7 @@ class InstanceState(interfaces.InspectionAttrInfo):
 
         return state_dict
 
-    def __setstate__(self, state_dict):
+    def loads(self, state_dict):
         inst = state_dict["instance"]
         if inst is not None:
             self.obj = weakref.ref(inst, self._cleanup)

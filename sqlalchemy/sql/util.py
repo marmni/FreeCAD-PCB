@@ -950,10 +950,16 @@ class ColumnAdapter(ClauseAdapter):
         return c
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         d = self.__dict__.copy()
         del d["columns"]
         return d
 
-    def __setstate__(self, state):
+    def loads(self, state):
         self.__dict__.update(state)
         self.columns = util.WeakPopulateDict(self._locate_col)

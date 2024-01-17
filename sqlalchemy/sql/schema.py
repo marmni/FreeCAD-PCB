@@ -4228,6 +4228,12 @@ class MetaData(SchemaItem):
             )
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         return {
             "tables": self.tables,
             "schema": self.schema,
@@ -4237,7 +4243,7 @@ class MetaData(SchemaItem):
             "naming_convention": self.naming_convention,
         }
 
-    def __setstate__(self, state):
+    def loads(self, state):
         self.tables = state["tables"]
         self.schema = state["schema"]
         self.naming_convention = state["naming_convention"]

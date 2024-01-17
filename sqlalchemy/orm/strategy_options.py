@@ -503,6 +503,12 @@ class Load(Generative, MapperOption):
         self.context = None
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         d = self.__dict__.copy()
         if d["context"] is not None:
             d["context"] = PathRegistry.serialize_context_dict(
@@ -511,7 +517,7 @@ class Load(Generative, MapperOption):
         d["path"] = self.path.serialize()
         return d
 
-    def __setstate__(self, state):
+    def loads(self, state):
         self.__dict__.update(state)
         self.path = PathRegistry.deserialize(self.path)
         if self.context is not None:

@@ -135,6 +135,12 @@ class partsObject(mathFunctions):
         return [self.Type, self.oldROT, self.oldX, self.oldY, self.offsetZ, self.oldZ]
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return [self.Type, self.oldROT, self.oldX, self.oldY, self.offsetZ, self.oldZ]
+
+    def loads(self, state):
         if state:
             self.Type = state[0]
             self.oldROT = state[1]
@@ -301,7 +307,20 @@ class viewProviderPartObject:
         internals here. Since no data were pickled nothing needs to be done here.
         '''
         return None
-        
+
+    def dumps(self):
+        ''' When saving the document this object gets stored using Python's cPickle module.
+        Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        to return a tuple of all pickable objects or None.
+        '''
+        return None
+
+    def loads(self, state):
+        ''' When restoring the pickled object from document we have the chance to set some
+        internals here. Since no data were pickled nothing needs to be done here.
+        '''
+        return None
+
     def attach(self, obj):
         ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
         self.Object = obj.Object
@@ -389,7 +408,20 @@ class viewProviderPartObject_E:
         internals here. Since no data were pickled nothing needs to be done here.
         '''
         return None
-    
+
+    def dumps(self):
+        ''' When saving the document this object gets stored using Python's cPickle module.
+        Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        to return a tuple of all pickable objects or None.
+        '''
+        return None
+
+    def loads(self, state):
+        ''' When restoring the pickled object from document we have the chance to set some
+        internals here. Since no data were pickled nothing needs to be done here.
+        '''
+        return None
+
     def attach(self, obj):
         ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
         self.Object = obj.Object
@@ -656,12 +688,18 @@ class layerSilkObject(objectWire):
         obj.Proxy = self
     
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         try:
             return [self.Type, None, self.defHeight, self.side, self.cleanShape.exportBrepToString(), self.signalsList]
         except:
             return [self.Type, None, self.defHeight, self.side, Part.Shape().exportBrepToString(), self.signalsList]
         
-    def __setstate__(self, state):
+    def loads(self, state):
         self.Type = state[0]
         self.defHeight = state[2]
         self.side = state[3]
@@ -1461,6 +1499,18 @@ class viewProviderLayerSilkObject:
         '''
         return None
 
+    def dumps(self):
+        ''' When saving the document this object gets stored using Python's cPickle module.
+        Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        to return a tuple of all pickable objects or None.
+        '''
+        return None
+
+    def loads(self, state):
+        ''' When restoring the pickled object from document we have the chance to set some
+        internals here. Since no data were pickled nothing needs to be done here.
+        '''
+        return None
 
 #####################################
 #####################################
@@ -1534,6 +1584,12 @@ class constraintAreaObject:
         return [self.Type, self.pcbHeight]
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return [self.Type, self.pcbHeight]
+
+    def loads(self, state):
         self.Type = state[0]
         self.pcbHeight = state[1]
 
@@ -1596,6 +1652,19 @@ class viewProviderConstraintAreaObject:
         return None
 
     def __setstate__(self, state):
+        ''' When restoring the pickled object from document we have the chance to set some
+        internals here. Since no data were pickled nothing needs to be done here.
+        '''
+        return None
+
+    def dumps(self):
+        ''' When saving the document this object gets stored using Python's cPickle module.
+        Since we have some un-pickable here -- the Coin stuff -- we must define this method
+        to return a tuple of all pickable objects or None.
+        '''
+        return None
+
+    def loads(self, state):
         ''' When restoring the pickled object from document we have the chance to set some
         internals here. Since no data were pickled nothing needs to be done here.
         '''

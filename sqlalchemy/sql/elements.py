@@ -1306,6 +1306,12 @@ class BindParameter(ColumnElement):
         )
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         """Execute a deferred value for serialization purposes."""
 
         d = self.__dict__.copy()
@@ -1316,7 +1322,7 @@ class BindParameter(ColumnElement):
         d["value"] = v
         return d
 
-    def __setstate__(self, state):
+    def loads(self, state):
         if state.get("unique", False):
             state["key"] = _anonymous_label(
                 "%%(%d %s)s" % (id(self), state.get("_orig_key", "param"))
@@ -3405,6 +3411,12 @@ class Grouping(ColumnElement):
         return {"element": self.element, "type": self.type}
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return {"element": self.element, "type": self.type}
+
+    def loads(self, state):
         self.element = state["element"]
         self.type = state["type"]
 

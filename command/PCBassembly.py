@@ -411,6 +411,12 @@ class childAssemblyObject:
         return [self.Type, self.rotX, self.rotY, self.rotZ, self.offsetX, self.offsetY, self.offsetZ]
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return [self.Type, self.rotX, self.rotY, self.rotZ, self.offsetX, self.offsetY, self.offsetZ]
+
+    def loads(self, state):
         if state:
             self.Type = state[0]
             self.rotX = state[1]
@@ -437,6 +443,12 @@ class mainAssemblyObject:
         return [self.Type, str(self.center)]
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return [self.Type, str(self.center)]
+
+    def loads(self, state):
         if state:
             self.Type = state[0]
             self.center = eval(state[1])
@@ -555,6 +567,12 @@ class viewProviderMainAssemblyObject:
     def __setstate__(self, state):
         return None
 
+    def dumps(self):
+        return None
+
+    def loads(self, state):
+        return None
+
     def onChanged(self, vp, prop):
         ''' Print the name of the property that has changed '''
         if hasattr(vp, "AngularDeflection"):
@@ -601,6 +619,12 @@ class viewProviderChildAssemblyObject:
         return None
 
     def __setstate__(self, state):
+        return None
+
+    def dumps(self):
+        return None
+
+    def loads(self, state):
         return None
 
     def onChanged(self, vp, prop):
