@@ -649,6 +649,12 @@ class AliasedInsp(InspectionAttr):
             return PathRegistry.per_mapper(self)
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         return {
             "entity": self.entity,
             "mapper": self.mapper,
@@ -662,7 +668,7 @@ class AliasedInsp(InspectionAttr):
             "represents_outer_join": self.represents_outer_join,
         }
 
-    def __setstate__(self, state):
+    def loads(self, state):
         self.__init__(
             state["entity"],
             state["mapper"],

@@ -745,6 +745,11 @@ class MutableDict(Mutable, dict):
     def __setstate__(self, state):
         self.update(state)
 
+    def dumps(self):
+        return dict(self)
+
+    def loads(self, state):
+        self.update(state)
 
 class MutableList(Mutable, list):
     """A list type that implements :class:`.Mutable`.
@@ -777,6 +782,9 @@ class MutableList(Mutable, list):
     # needed for backwards compatibility with
     # older pickles
     def __setstate__(self, state):
+        self[:] = state
+
+    def loads(self, state):
         self[:] = state
 
     def __setitem__(self, index, value):
@@ -940,6 +948,12 @@ class MutableSet(Mutable, set):
         return set(self)
 
     def __setstate__(self, state):
+        self.update(state)
+
+    def dumps(self):
+        return set(self)
+
+    def loads(self, state):
         self.update(state)
 
     def __reduce_ex__(self, proto):

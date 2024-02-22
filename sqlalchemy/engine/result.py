@@ -141,6 +141,12 @@ class RowProxy(BaseRowProxy):
         return {"_parent": self._parent, "_row": tuple(self)}
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return {"_parent": self._parent, "_row": tuple(self)}
+
+    def loads(self, state):
         self._parent = parent = state["_parent"]
         self._row = state["_row"]
         self._processors = parent._processors
@@ -718,6 +724,12 @@ class ResultMetaData(object):
         return operator.itemgetter(index)
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         return {
             "_pickled_keymap": dict(
                 (key, index)
@@ -729,7 +741,7 @@ class ResultMetaData(object):
             "matched_on_name": self.matched_on_name,
         }
 
-    def __setstate__(self, state):
+    def loads(self, state):
         # the row has been processed at pickling time so we don't need any
         # processor anymore
         self._processors = [None for _ in range(len(state["keys"]))]
