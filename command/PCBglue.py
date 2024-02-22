@@ -207,6 +207,12 @@ class PCBgluePath(layerSilkObject):
         return [self.Type, self.cutToBoard, self.side]
 
     def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
+        return [self.Type, self.cutToBoard, self.side]
+
+    def loads(self, state):
         if state:
             self.Type = state[0]
             self.cutToBoard = state[1]
@@ -344,7 +350,13 @@ class viewProviderPCBgluePath:
 
     def __setstate__(self, state):
         return None
-    
+
+    def dumps(self):
+        return None
+
+    def loads(self, state):
+        return None
+
     def claimChildren(self):
         return [self.Object.Base]
     

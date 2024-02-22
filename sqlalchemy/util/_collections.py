@@ -205,6 +205,12 @@ class Properties(object):
     def __setstate__(self, state):
         object.__setattr__(self, "_data", state["_data"])
 
+    def dumps(self):
+        return {"_data": self._data}
+
+    def loads(self, state):
+        object.__setattr__(self, "_data", state["_data"])
+
     def __getattr__(self, key):
         try:
             return self._data[key]

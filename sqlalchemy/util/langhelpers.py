@@ -634,13 +634,19 @@ class portable_instancemethod(object):
     __slots__ = "target", "name", "kwargs", "__weakref__"
 
     def __getstate__(self):
+        self.dumps()
+
+    def __setstate__(self, state):
+        self.loads(state)
+
+    def dumps(self):
         return {
             "target": self.target,
             "name": self.name,
             "kwargs": self.kwargs,
         }
 
-    def __setstate__(self, state):
+    def loads(self, state):
         self.target = state["target"]
         self.name = state["name"]
         self.kwargs = state.get("kwargs", ())
@@ -743,6 +749,8 @@ def monkeypatch_proxied_specials(
                 "__metaclass__",
                 "__getstate__",
                 "__setstate__",
+                "dumps",
+                "loads",
             )
         dunders = [
             m
