@@ -4,7 +4,7 @@
   <description>Printed Circuit Board (PCB) Workbench for FreeCAD</description>
   <version>6.2023.1</version>
   <maintainer email="marmni@onet.eu">marmni</maintainer>
-  <license file="LICENSE">AGPLv3.0</license>
+  <license file="LICENSE">AGPL-3.0-or-later</license>
   <url type="repository" branch="master">https://github.com/marmni/FreeCAD-PCB</url>
   <url type="readme">https://github.com/marmni/FreeCAD-PCB/blob/master/README.md</url>
   <url type="bugtracker">https://github.com/marmni/FreeCAD-PCB/issues</url>
