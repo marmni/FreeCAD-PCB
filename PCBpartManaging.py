@@ -27,6 +27,7 @@
 
 import FreeCAD
 import FreeCADGui
+from BOPTools import BOPFeatures
 import Part
 import os
 import re
@@ -58,7 +59,7 @@ class partsManaging(mathFunctions):
         #    1 - dodaj podstawki dla wszystkich obiektow
         self.allSocket = 0
         self.databaseType = databaseType
-        self.colFileVersion = 3
+        self.colFileVersion = 4
     
     def adjustRotation(self, angle):
         if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
@@ -94,118 +95,142 @@ class partsManaging(mathFunctions):
         return newPartObjectFC
     
     def getPartShape(self, filePath, step_model, colorizeElements):
-        standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
-        ################################################################
-        ################################################################
-        # check if model was already imported
-        ################################################################
-        ################################################################
-        if filePath in self.objColors.keys():
-            step_model.Shape = self.objColors[filePath]['shape']
-            
-            if colorizeElements:
-                step_model.ViewObject.DiffuseColor = self.objColors[filePath]['col']
-            else:
-                step_model.ViewObject.DiffuseColor = standardColor
-            
-            return step_model
-        else:
-            self.objColors[filePath] = {}
-        ################################################################
-        ################################################################
-        # reading data from colFile - if exist
-        ################################################################
-        ################################################################
-        colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
-        #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
-        
         try:
-            if os.path.exists(colFile):
-                colFileData = builtins.open(colFile, "r").readlines()
-                header = colFileData[0].strip().split("|")
+            defColor = (FreeCAD.Material())  # standard gray color
+            #
+            # ################################################################
+            # ################################################################
+            # # check if model was already imported
+            # ################################################################
+            # ################################################################
+            if filePath in self.objColors.keys():
+                step_model.Shape = self.objColors[filePath]['shape']
                 
-                if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
-                    newShape = Part.Shape()
-                    newShape.importBrepFromString("".join(colFileData[2:]))
-                    step_model.Shape = newShape
-                    
-                    if colorizeElements:
-                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
-                    else:
-                        step_model.ViewObject.DiffuseColor = standardColor
-                    
-                    self.objColors[filePath]['shape'] = newShape
-                    self.objColors[filePath]['col'] = eval(colFileData[1].strip())
-                    
-                    if len(colFileData[2:]) > 20:
-                        return step_model
+                if colorizeElements:
+                    step_model.ViewObject.ShapeAppearance = self.objColors[filePath]['col']
                 else:
-                    FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
-            else:  # generate new *.col file
-                FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
+                    step_model.ViewObject.ShapeAppearance = defColor
+                
+                return step_model 
+            else:
+                self.objColors[filePath] = {}
+            ################################################################
+            ################################################################
+            # reading data from colFile - if exist 
+            ################################################################
+            ################################################################
+            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+            #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
+            
+            try:
+                if os.path.exists(colFile):
+                    colFileData = builtins.open(colFile, "r").readlines()
+                    header = colFileData[0].strip().split("|")
+                    
+                    if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
+                        newShape = Part.Shape()
+                        newShape.importBrepFromString("".join(colFileData[2:]))
+                        step_model.Shape = newShape
+                        
+                        if colorizeElements:
+                            faceColor = []
+                            for i in eval(colFileData[1].strip()):
+                                faceColor.append(FreeCAD.Material(DiffuseColor=i['diffuseColor'],AmbientColor=i['ambientColor'],SpecularColor=i['specularColor'],EmissiveColor=i['emissiveColor'],Shininess=i['shininess'],Transparency=i['transparency'],))
+                            
+                            step_model.ViewObject.ShapeAppearance = tuple(faceColor)
+                        else:
+                            step_model.ViewObject.ShapeAppearance = defColor
+                        
+                        self.objColors[filePath]['shape'] = newShape
+                        self.objColors[filePath]['col'] = tuple(faceColor)
+                        
+                        if len(colFileData[2:]) > 20:
+                            return step_model
+                    else:
+                        FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
+                else:  # generate new *.col file
+                    FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+            ################################################################
+            ################################################################
+            # generating new col file
+            ################################################################
+            ################################################################
+            active = FreeCAD.ActiveDocument.Name
+            #
+            colFileData = builtins.open(colFile, "w")
+            colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
+            
+            FreeCAD.newDocument('importingPartsPCB')
+            FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
+            FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
+            ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
+            
+            fuse = []
+            col = []
+            for i in FreeCAD.ActiveDocument.Objects:
+                if i.ViewObject.Visibility and 'Shape' in i.PropertiesList:
+                    fuse.append(i)
+            #
+            try:
+                if len(fuse) == 1:
+                    shape = fuse[0].Shape
+                    for i in fuse[0].ViewObject.ShapeAppearance:
+                        col.append(i)
+                else:
+                    newPart = BOPFeatures.BOPFeatures(FreeCAD.activeDocument())
+                    newPart = newPart.make_multi_fuse([i.Name for i in fuse])
+                    newPart.recompute()
+                    shape = newPart.Shape
+                    for i in newPart.ViewObject.ShapeAppearance:
+                        col.append(i)
+                
+                step_model.Shape = shape
+                if colorizeElements:
+                     step_model.ViewObject.ShapeAppearance = tuple(col)
+                else:
+                     step_model.ViewObject.ShapeAppearance = defColor
+                #
+                colFileData.write(str(self.materialListTostring(col)))
+                colFileData.write(shape.exportBrepToString())
+                #
+                self.objColors[filePath]['shape'] = shape
+                self.objColors[filePath]['col'] = tuple(col)
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("Error in getPartShape: {0}\n".format(e))
+            
+            colFileData.close()
+            
+            FreeCAD.closeDocument("importingPartsPCB")
+            FreeCAD.setActiveDocument(active)
+            FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+            FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+            ################################################################
+            ################################################################
         except Exception as e:
-            FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-        ################################################################
-        ################################################################
-        # generating new col file
-        ################################################################
-        ################################################################
-        active = FreeCAD.ActiveDocument.Name
+            print("Error: " + e)
         #
-        colFileData = builtins.open(colFile, "w")
-        colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
-        
-        FreeCAD.newDocument('importingPartsPCB')
-        FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
-        FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
-        ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
-        
-        fuse = []
-        col = standardColor
-        for i in FreeCAD.ActiveDocument.Objects:
-            if i.ViewObject.Visibility and hasattr(i, 'Shape'):
-                fuse.append(i)
-        
-        try:
-            if len(fuse) == 1:
-                shape = fuse[0].Shape
-                col = fuse[0].ViewObject.DiffuseColor
-            else:
-                # FC 0.16
-                #newPart = FreeCAD.ActiveDocument.addObject("Part::MultiFuse","Union").Shapes=fuse
-                #FreeCAD.ActiveDocument.recompute()
-                #shape = FreeCAD.ActiveDocument.getObject("Union").Shape
-                #col = FreeCAD.ActiveDocument.getObject("Union").ViewObject.DiffuseColor
-                # FC 0.18
-                newPart = FreeCAD.ActiveDocument.addObject("Part::Compound","Compound")
-                newPart.Links = fuse
-                newPart.recompute()
-                shape = newPart.Shape
-                col = newPart.ViewObject.DiffuseColor
-            
-            step_model.Shape = shape
-            if colorizeElements:
-                step_model.ViewObject.DiffuseColor = col
-            else:
-                step_model.ViewObject.DiffuseColor = standardColor
-            
-            colFileData.write(str(col))
-            colFileData.write(shape.exportBrepToString())
-            
-            self.objColors[filePath]['shape'] = shape
-            self.objColors[filePath]['col'] = col
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("2. {0}\n".format(e))
-        
-        colFileData.close()
-        
-        FreeCAD.closeDocument("importingPartsPCB")
-        FreeCAD.setActiveDocument(active)
-        FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-        FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-        
         return step_model
+        
+    def materialListTostring(self, materialList):
+        data = []
+        #
+        for i in materialList:
+            data.append(self.materialTostring(i))
+        #
+        return data
     
+    def materialTostring(self, material):
+        data = {"ambientColor": material.AmbientColor,
+            "diffuseColor": material.DiffuseColor,
+            "emissiveColor": material.EmissiveColor,
+            "shininess": material.Shininess,
+            "specularColor": material.SpecularColor,
+            "transparency": material.Transparency
+        }
+        return data
+
     def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y, adjustModel=False):
         step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
             
@@ -479,10 +504,12 @@ class partsManaging(mathFunctions):
             ############################################################
             # 
             ############################################################
+            tmpData = step_model.ViewObject.ShapeAppearance
             if fileData[2]['modelID'] > 0:
                 viewProviderPartObject(step_model.ViewObject)
             else:
                 viewProviderPartObjectExternal(step_model.ViewObject)
+            step_model.ViewObject.ShapeAppearance = tmpData
             #
             step_model.X = newPart["x"]
             step_model.Y = newPart["y"]
@@ -637,8 +664,8 @@ class partsManaging(mathFunctions):
             #
             annotation.generate(False)
             step_model.PartValue = annotation.Annotation
-        except:
-            pass
+        except Exception as e:
+            print(e)
         ##################################################################
         #step_model.Rot = newPart['rot'] # after setting X/Y
         if self.databaseType in ["freepcb", "kicad_v4", "kicad"]:

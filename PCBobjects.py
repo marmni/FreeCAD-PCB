@@ -360,7 +360,7 @@ class viewProviderPartObject:
         vp.setEditorMode("Deviation", 2)
         vp.setEditorMode("Lighting", 2)
         vp.setEditorMode("BoundingBox", 2)
-        vp.setEditorMode("ShapeColor", 2)
+        vp.setEditorMode("ShapeAppearance", 2)
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
         #vp.setEditorMode("Side", 1)
@@ -461,7 +461,7 @@ class viewProviderPartObject_E:
         vp.setEditorMode("Deviation", 2)
         vp.setEditorMode("Lighting", 2)
         # vp.setEditorMode("BoundingBox", 2)
-        vp.setEditorMode("ShapeColor", 2)
+        vp.setEditorMode("ShapeAppearance", 2)
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
 
@@ -850,7 +850,8 @@ class layerSilkObject(objectWire):
         return obj
         
     def resetColors(self, fp):
-        fp.ViewObject.ShapeColor = fp.ViewObject.ShapeColor
+        pass
+        #fp.ViewObject.ShapeColor = fp.ViewObject.ShapeColor
         
     def colorizePaths(self, fp, colorsList):
         data = []
@@ -1476,9 +1477,9 @@ class viewProviderLayerSilkObject:
         if hasattr(vp, "AngularDeflection"):
             vp.setEditorMode("AngularDeflection", 2)
         
-        if prop == "ShapeColor":
-            vp.LineColor = vp.ShapeColor
-            vp.PointColor = vp.ShapeColor
+        #if prop == "ShapeAppearance":
+            #vp.LineColor = vp.ShapeAppearance
+            #vp.PointColor = vp.ShapeAppearance
 
     def getIcon(self):
         ''' Return the icon in XMP format which will appear in the tree view. This method is optional
