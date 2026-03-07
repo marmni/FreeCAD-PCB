@@ -38,7 +38,7 @@
 
 __title__ ="Kerkythea exporter v1.2"
 __author__ = "marmni <marmni@onet.eu>"
-__url__ = ["http://www.freecadweb.org"]
+__url__ = ["https://freecad.org"]
 
 
 import FreeCAD, FreeCADGui

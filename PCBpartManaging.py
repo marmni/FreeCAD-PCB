@@ -92,6 +92,17 @@ class partsManaging(mathFunctions):
         newPartObjectFC.addObject(grp)
         ####
         return newPartObjectFC
+        
+    def resetCoordinates(self, parent):
+        for obj in parent.Group:
+            obj.Placement.Matrix = obj.Placement.Matrix.multiply(parent.Placement.Matrix)
+            #
+            if(obj.TypeId == "App::Part"):
+                self.resetCoordinates(obj)
+                #
+                obj.Placement.Base.x = 0
+                obj.Placement.Base.y = 0
+                obj.Placement.Base.z = 0
     
     def getPartShape(self, filePath, step_model, colorizeElements):
         standardColor = [(0.800000011920929, 0.800000011920929, 0.800000011920929, 0.0)]  # standard gray color
@@ -162,6 +173,18 @@ class partsManaging(mathFunctions):
         
         fuse = []
         col = standardColor
+        ################################################################
+        # reset positions
+        #
+        ################################################################
+        for obj in FreeCAD.ActiveDocument.RootObjects:
+            if(obj.TypeId == "App::Part"):
+                self.resetCoordinates(obj)
+                #
+                obj.Placement.Base.x = 0
+                obj.Placement.Base.y = 0
+                obj.Placement.Base.z = 0
+        ################################################################
         for i in FreeCAD.ActiveDocument.Objects:
             if i.ViewObject.Visibility and hasattr(i, 'Shape'):
                 fuse.append(i)

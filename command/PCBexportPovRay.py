@@ -26,7 +26,7 @@
 
 __title__ ="POV-Ray object exporter v1.0"
 __author__ = "marmni <marmni@onet.eu>"
-__url__ = ["http://www.freecadweb.org"]
+__url__ = ["https://freecad.org"]
 
 
 import FreeCAD, FreeCADGui

@@ -31,7 +31,7 @@
 
 __title__ = "FreeCAD Printed Circuit Board Workbench - Init file"
 __author__ = "marmni <marmni@onet.eu>"
-__url__ = ["http://www.freecadweb.org"]
+__url__ = ["https://freecad.org"]
 
 
 class PCB(Workbench):
