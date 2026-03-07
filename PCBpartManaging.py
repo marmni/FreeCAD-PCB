@@ -182,6 +182,7 @@ class partsManaging(mathFunctions):
             col = []
             ################################################################
             # reset positions
+            #
             ################################################################
             for obj in FreeCAD.ActiveDocument.RootObjects:
                 if(obj.TypeId == "App::Part"):
