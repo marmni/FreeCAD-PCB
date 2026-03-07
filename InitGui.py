@@ -31,7 +31,7 @@
 
 __title__ = "FreeCAD Printed Circuit Board Workbench - Init file"
 __author__ = "marmni <marmni@onet.eu>"
-__url__ = ["http://www.freecadweb.org"]
+__url__ = ["https://freecad.org"]
 
 
 class PCB(Workbench):
@@ -39,7 +39,7 @@ class PCB(Workbench):
     ToolTip = "PCB workbench"
     Icon = """
 /* XPM */
-static char * D:\Program Files\FreeCAD 0_18_4\Mod\PCB\RC_test\svg\modelKopia_xpm[] = {
+static char *FreeCADPCB_xpm[] = {
 "32 32 41 1",
 " 	c None",
 ".	c #FFFFFF",
