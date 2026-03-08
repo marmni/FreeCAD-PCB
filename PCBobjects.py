@@ -1555,8 +1555,11 @@ class constraintAreaObject:
         try:
             if fp.Base:
                 if fp.Base.isDerivedFrom("Sketcher::SketchObject"):
-                    if fp.Base.Support != None:
-                        fp.Base.Support = None
+                    try:
+                        if fp.Base.Support != None:
+                            fp.Base.Support = None
+                    except:
+                        pass
                     
                     d = OpenSCAD2Dgeom.edgestofaces(fp.Base.Shape.Edges)
                     if self.Type.startswith('b'):
@@ -1572,8 +1575,8 @@ class constraintAreaObject:
                     fp.Base.recompute()
                     fp.purgeTouched()
                     fp.Base.purgeTouched()
-        except:
-            pass
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(e)
 
     def onChanged(self, fp, prop):
         if prop in ["Base"]:
