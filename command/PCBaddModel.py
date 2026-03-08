@@ -283,6 +283,7 @@ class addModel(QtGui.QWidget, partsManaging):
         newPart['y'] = self.val_y.value()
         newPart['rot'] = self.rotation.value()
         newPart['side'] = str(self.side.itemText(self.side.currentIndex()))
+        newPart['populate'] = True
         
         newPart['EL_Name']["x"] = self.val_x.value()
         newPart['EL_Name']["y"] = self.val_y.value()
@@ -301,9 +302,6 @@ class addModel(QtGui.QWidget, partsManaging):
         else:
             self.removeRoot()
             return True
-        
-        
-        
         
         # name = self.label.text()
         # package = self.listaBibliotek.itemData(self.listaBibliotek.currentIndex(), QtCore.Qt.UserRole)

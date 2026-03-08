@@ -243,115 +243,6 @@ class pcbToolBarView(pcbToolBarMain):
         self.addAction(scriptCmd_QuickAssembly)
         self.addAction(scriptCmd_QuickAssembly2)
         self.addToolBar(self)
-    
-    def openInstruction(self, fileName):
-        path = os.path.join(__currentPath__, "instructions", fileName)
-        if os.path.isfile(path):
-            os.startfile(path)
-    
-    def cutHolesThroughAllLayers(self, value):
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            for i in pcb[2].Group:
-                if hasattr(i, "Cut") and not i.Cut == value:
-                    i.Cut = value
-    
-    def showSignals(self, value):
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            colorsList = {}
-            
-            for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and isinstance(i.Proxy.Type, list) and "paths" in i.Proxy.Type:
-                    if value:
-                        colorsList = i.Proxy.colorizePaths(i, colorsList)
-                    else:
-                        i.Proxy.resetColors(i)
-    
-    def cutToBoardOutline(self, value):
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            for i in pcb[2].Group:
-                if hasattr(i, "CutToBoard") and not i.CutToBoard == value:
-                    i.CutToBoard = value
-    
-    def ungroupParts(self):
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            groupsToDelete = []
-            pM = partsManaging()
-            
-            for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    if not i.getParentGroup().Name in groupsToDelete:
-                        groupsToDelete.append(i.getParentGroup().Name)
-                    
-                    pM.addPartToGroup(False, i)
-            
-            for i in groupsToDelete:
-                if i == "Parts":
-                    continue
-                
-                try:
-                    FreeCAD.ActiveDocument.removeObject(i)
-                except Exception as e:
-                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
-
-    def groupParts(self):
-        pcb = getPCBheight()
-        if pcb[0]:  # board is available
-            pM = partsManaging()
-            pM.setDatabase()
-            
-            for i in pcb[2].Group:
-                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
-                    pM.addPartToGroup(True, i)
-
-    def quickAssembly(self):
-        try:
-            if FreeCAD.activeDocument():
-                FreeCADGui.Control.showDialog(createAssemblyGui())
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-        
-    def quickAssemblyUpdate(self):
-        try:
-            if FreeCAD.activeDocument():
-                updateAssembly()
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def checkForCollisionsFALL(self):
-        try:
-            if FreeCAD.activeDocument():
-                FreeCADGui.Control.showDialog(checkCollisionsGuiALL())
-            else:
-                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def checkForCollisionsFPCB(self):
-        try:
-            if FreeCAD.activeDocument() and getPCBheight()[0]:
-                FreeCADGui.Control.showDialog(checkCollisionsGuiPCB())
-            else:
-                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def exportToKerkytheaF(self):
-        if FreeCAD.activeDocument():
-            FreeCADGui.Control.showDialog(exportToKerkytheaGui())
-            
-    def exportObjectToPovRayF(self):
-        if FreeCAD.activeDocument():
-            FreeCADGui.Control.showDialog(exportObjectToPovRayGui())
-    
-    def Flayers(self):
-        pcb = getPCBheight()
-        if FreeCAD.activeDocument() and pcb[0]:
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(layersSettings())
 
     def changeDisplayMode(self, mode):
         hidePCB = False
@@ -377,6 +268,115 @@ class pcbToolBarView(pcbToolBarMain):
                 FreeCAD.ActiveDocument.Board.ViewObject.DisplayMode = 'Wireframe'
             except Exception as e:
                 pass
+
+    def checkForCollisionsFALL(self):
+        try:
+            if FreeCAD.activeDocument():
+                FreeCADGui.Control.showDialog(checkCollisionsGuiALL())
+            else:
+                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    
+    def checkForCollisionsFPCB(self):
+        try:
+            if FreeCAD.activeDocument() and getPCBheight()[0]:
+                FreeCADGui.Control.showDialog(checkCollisionsGuiPCB())
+            else:
+                FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    
+    def cutHolesThroughAllLayers(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "Cut") and not i.Cut == value:
+                    i.Cut = value
+
+    def cutToBoardOutline(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            for i in pcb[2].Group:
+                if hasattr(i, "CutToBoard") and not i.CutToBoard == value:
+                    i.CutToBoard = value
+
+    def exportObjectToPovRayF(self):
+        if FreeCAD.activeDocument():
+            FreeCADGui.Control.showDialog(exportObjectToPovRayGui())
+            
+    def exportToKerkytheaF(self):
+        if FreeCAD.activeDocument():
+            FreeCADGui.Control.showDialog(exportToKerkytheaGui())
+            
+    def Flayers(self):
+        pcb = getPCBheight()
+        if FreeCAD.activeDocument() and pcb[0]:
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(layersSettings())
+
+    def groupParts(self):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            pM = partsManaging()
+            pM.setDatabase()
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    pM.addPartToGroup(True, i)
+    
+    def openInstruction(self, fileName):
+        path = os.path.join(__currentPath__, "instructions", fileName)
+        if os.path.isfile(path):
+            os.startfile(path)
+    
+    def quickAssembly(self):
+        try:
+            if FreeCAD.activeDocument():
+                FreeCADGui.Control.showDialog(createAssemblyGui())
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+        
+    def quickAssemblyUpdate(self):
+        try:
+            if FreeCAD.activeDocument():
+                updateAssembly()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("{0} \n".format(e))
+    
+    def showSignals(self, value):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            colorsList = {}
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and isinstance(i.Proxy.Type, list) and "paths" in i.Proxy.Type:
+                    if value:
+                        colorsList = i.Proxy.colorizePaths(i, colorsList)
+                    else:
+                        i.Proxy.resetColors(i)
+    
+    def ungroupParts(self):
+        pcb = getPCBheight()
+        if pcb[0]:  # board is available
+            groupsToDelete = []
+            pM = partsManaging()
+            
+            for i in pcb[2].Group:
+                if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart", "PCBpart_E"]:
+                    if not i.getParentGroup().Name in groupsToDelete:
+                        groupsToDelete.append(i.getParentGroup().Name)
+                    
+                    pM.addPartToGroup(False, i)
+            
+            for i in groupsToDelete:
+                if i == "Parts":
+                    continue
+                
+                try:
+                    FreeCAD.ActiveDocument.removeObject(i)
+                except Exception as e:
+                    FreeCAD.Console.PrintWarning("{0} \n".format(e))
 
 
 ###########
@@ -642,9 +642,223 @@ class pcbToolBar(pcbToolBarMain):
         #
         self.addToolBar(self)
 
+    def addAnnotation(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createAnnotation_Gui())
+
+    def addAnnotationsGroup(self):
+        createGroup_Annotations()
+
+    def addGlueGroup(self):
+        createGroup_Glue()
+
+    def addModel(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(addModel())
+
+    def addLayerGroup(self):
+        createGroup_Layers()
+
+    def addPartsGroup(self):
+        createGroup_Parts()
+        
+    def addPCBGroup(self):
+        createGroup_PCB()
+
+    def addAreasGroup(self):
+        createGroup_Areas()
+
+    def assignModels(self):
+        try:
+            dodajElement().exec_()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))       
+
+    def constraintAreaF(self, typeCA):
+        ''' create constraint area '''
+        zaznaczoneObiekty = FreeCADGui.Selection.getSelection()
+
+        if len(zaznaczoneObiekty) and getPCBheight()[0]:
+            #grp = createGroup_Areas()
+            for i in zaznaczoneObiekty:
+                try:
+                    createConstraintArea(i, typeCA)
+                except Exception as e:
+                    continue
+                    #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
+        elif not pcb[0]:
+            FreeCAD.Console.PrintWarning("No PCB found\n")
+
+    def createCenteDrill(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            try:
+                form = createDrillcenter_Gui()
+                FreeCADGui.Control.showDialog(form)
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("{0} \n".format(e))
+
+    def createDefaultProjectF(self):
+        ''' add to current document all groups '''
+        #setProject()
+        if FreeCAD.ActiveDocument:
+            pM = partsManaging()
+            pM.createDefaultProject(FreeCAD.ActiveDocument.Name)
+
+    def createGluePath(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(createGlueGui())
+
+    def createPCB_F(self):
+        if FreeCAD.activeDocument():
+            if getPCBheight()[0]:
+                FreeCAD.Console.PrintWarning("One board per project.\n")
+                return
+            #
+            form = createPCB()
+            if len(FreeCADGui.Selection.getSelection()):
+                if FreeCADGui.Selection.getSelection()[0].isDerivedFrom("Sketcher::SketchObject"):
+                    form.pcbBorder.setText(FreeCADGui.Selection.getSelection()[0].Name)
+                    if len(FreeCADGui.Selection.getSelection()) > 1 and FreeCADGui.Selection.getSelection()[1].isDerivedFrom("Sketcher::SketchObject"):
+                        form.pcbHoles.setText(FreeCADGui.Selection.getSelection()[1].Name)
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(form)
+
+    def createSectionsSelParts(self):
+        if FreeCAD.activeDocument():
+            if len(FreeCADGui.Selection.getSelection()):
+                if not FreeCADGui.Control.activeDialog():
+                    FreeCADGui.Control.showDialog(createSectionsGui())
+            else:
+                FreeCAD.Console.PrintWarning("Select minimum one object\n")
+
+    def createSimplifiedModelF(self):
+        if FreeCAD.activeDocument():
+            if getPCBheight()[0]:
+                createSimplifiedModel()
+            else:
+                FreeCAD.Console.PrintWarning("No PCB found\n")
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+
+    def defConstraintAreaF(self):
+        ''' create constraint are dialog '''
+        dial = QtGui.QDialog()
+        dial.setWindowTitle("Create constraint area")
+        # areas list
+        lista = QtGui.QListWidget()
+        for i, j in PCBconstraintAreas.items():
+            a = QtGui.QListWidgetItem(j[0])
+            a.setData(QtCore.Qt.UserRole, i)
+            
+            lista.addItem(a)
+        lista.sortItems()
+        ##########
+        # przyciski
+        buttons = QtGui.QDialogButtonBox()
+        buttons.setOrientation(QtCore.Qt.Vertical)
+        buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
+        buttons.addButton("Create", QtGui.QDialogButtonBox.AcceptRole)
+        dial.connect(buttons, QtCore.SIGNAL("accepted()"), dial, QtCore.SLOT("accept()"))
+        dial.connect(buttons, QtCore.SIGNAL("rejected()"), dial, QtCore.SLOT("reject()"))
+        ####
+        lay = QtGui.QGridLayout()
+        lay.addWidget(lista, 0, 0, 1, 1)
+        lay.addWidget(buttons, 0, 1, 1, 1)
+        dial.setLayout(lay)
+        
+        if dial.exec_():
+            self.constraintAreaF(str(lista.currentItem().data(QtCore.Qt.UserRole)))
+    
+    def downloadModels(self):
+        if not FreeCADGui.Control.activeDialog():
+            FreeCADGui.Control.showDialog(downloadModelW())
+    
+    def explodeModels(self):
+        doc = FreeCAD.activeDocument()
+        if doc and len(doc.Objects):
+            panel = explodeWizard()
+            if not FreeCADGui.Control.activeDialog():
+                FreeCADGui.Control.showDialog(panel)
+    
+    def exportHoleLocations(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportHoles_Gui().exec_()
+    
+    def exportHoleLocationsReport(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportHolesReport_Gui().exec_()
+
+    def exportDrillingMap(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportDrillingMap_Gui().exec_()
+
+    def exportBOM(self):
+        ''' load export bom to file '''
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportBOM_Gui().exec_()
+            
+    def exportCentroid(self):
+        ''' also known as Insertion or pick-and-place or XY data '''
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            createCentroid_Gui().exec_()
+    
+    def exportPCB(self):
+        ''' export project to one supported file format '''
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportPCB_Gui().exec_()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+    
+    def exportAssemblyAll(self):
+        if FreeCAD.activeDocument() and len(FreeCAD.ActiveDocument.Objects):
+            exportAssemblyAll()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+
+    def exportAssemblySel(self):
+        exportAssemblySel()
+        
+    def exportAssemblyPCB(self):
+        if FreeCAD.activeDocument() and getPCBheight()[0]:
+            exportAssemblyPCB()
+        else:
+            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+
+    def fastExplodeModels(self):
+        if FreeCAD.activeDocument():
+            doc = FreeCAD.activeDocument()
+            pcb = getPCBheight()
+            
+            if pcb[0]:  # board is available
+                a = doc.addObject("App::FeaturePython", 'Explode')
+                obj = explodeObject(a)
+                viewProviderExplodeObject(a.ViewObject)
+                #
+                for i in pcb[2].Group:
+                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
+                        if i.Side == "TOP":
+                            obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
+                        else:
+                            obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
+                #
+                obj.setParam(a, 'Inverse', False)
+                obj.setParam(a, 'Active', True)
+                obj.setParam(a, 'TopStepSize', 10)
+                obj.setParam(a, 'BottomStepSize', 10)
+                obj.generuj(a)
+
     def generateModelF(self):
         if not FreeCADGui.Control.activeDialog():
             FreeCADGui.Control.showDialog(generateModelGui())
+    
+    def showPCBBoundingBox(self):
+        boundingBox()
+
+    def showPCBBoundingBoxSel(self):
+        boundingBoxFromSelection(FreeCADGui.Selection.getSelection())
     
     def storeNameValueAsParam(self):
         sel = FreeCADGui.Selection.getSelection()
@@ -734,199 +948,33 @@ class pcbToolBar(pcbToolBarMain):
                 model.Rot.Value = mROT
                 model.Side = mSIDE
             
-    def addAnnotation(self):
+    def updateModels(self):
+        ''' update 3d models of packages '''
         if FreeCAD.activeDocument() and getPCBheight()[0]:
             if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(createAnnotation_Gui())
+                FreeCADGui.Control.showDialog(updateParts())
 
-    def exportHoleLocations(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportHoles_Gui().exec_()
-    
-    def exportHoleLocationsReport(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportHolesReport_Gui().exec_()
+    def wyszukajObiekty(self, fraza):
+        ''' find object in current document '''
+        try:
+            FreeCADGui.Selection.clearSelection()
+            self.szukaneFrazy = []
+            self.szukaneFrazyNr = 0
             
-    def createCenteDrill(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            try:
-                form = createDrillcenter_Gui()
-                FreeCADGui.Control.showDialog(form)
-            except Exception as e:
-                FreeCAD.Console.PrintWarning("{0} \n".format(e))
-    
-    def exportDrillingMap(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportDrillingMap_Gui().exec_()
+            fraza = str(fraza).strip()
+            if fraza != "":
+                pcb = getPCBheight()
+                if pcb[0]:
+                    for i in pcb[2].Group:
+                        if i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
+                            if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
+                                self.szukaneFrazy.append(i)
 
-    def exportBOM(self):
-        ''' load export bom to file '''
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportBOM_Gui().exec_()
-            
-    def exportCentroid(self):
-        ''' also known as Insertion or pick-and-place or XY data '''
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            createCentroid_Gui().exec_()
-    
-    def exportPCB(self):
-        ''' export project to one supported file format '''
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportPCB_Gui().exec_()
-        else:
-            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
-    
-    def exportAssemblyAll(self):
-        if FreeCAD.activeDocument() and len(FreeCAD.ActiveDocument.Objects):
-            exportAssemblyAll()
-        else:
-            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
+            if len(self.szukaneFrazy):
+                FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
 
-    def exportAssemblySel(self):
-        exportAssemblySel()
-        
-    def exportAssemblyPCB(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            exportAssemblyPCB()
-        else:
-            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
-
-    def defConstraintAreaF(self):
-        ''' create constraint are dialog '''
-        dial = QtGui.QDialog()
-        dial.setWindowTitle("Create constraint area")
-        # areas list
-        lista = QtGui.QListWidget()
-        for i, j in PCBconstraintAreas.items():
-            a = QtGui.QListWidgetItem(j[0])
-            a.setData(QtCore.Qt.UserRole, i)
-            
-            lista.addItem(a)
-        lista.sortItems()
-        ##########
-        # przyciski
-        buttons = QtGui.QDialogButtonBox()
-        buttons.setOrientation(QtCore.Qt.Vertical)
-        buttons.addButton("Cancel", QtGui.QDialogButtonBox.RejectRole)
-        buttons.addButton("Create", QtGui.QDialogButtonBox.AcceptRole)
-        dial.connect(buttons, QtCore.SIGNAL("accepted()"), dial, QtCore.SLOT("accept()"))
-        dial.connect(buttons, QtCore.SIGNAL("rejected()"), dial, QtCore.SLOT("reject()"))
-        ####
-        lay = QtGui.QGridLayout()
-        lay.addWidget(lista, 0, 0, 1, 1)
-        lay.addWidget(buttons, 0, 1, 1, 1)
-        dial.setLayout(lay)
-        
-        if dial.exec_():
-            self.constraintAreaF(str(lista.currentItem().data(QtCore.Qt.UserRole)))
-
-    def constraintAreaF(self, typeCA):
-        ''' create constraint area '''
-        zaznaczoneObiekty = FreeCADGui.Selection.getSelection()
-
-        if len(zaznaczoneObiekty) and getPCBheight()[0]:
-            #grp = createGroup_Areas()
-            for i in zaznaczoneObiekty:
-                try:
-                    createConstraintArea(i, typeCA)
-                except Exception as e:
-                    continue
-                    #FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
-        elif not pcb[0]:
-            FreeCAD.Console.PrintWarning("No PCB found\n")
-    
-    def createSimplifiedModelF(self):
-        if FreeCAD.activeDocument():
-            if getPCBheight()[0]:
-                createSimplifiedModel()
-            else:
-                FreeCAD.Console.PrintWarning("No PCB found\n")
-        else:
-            FreeCAD.Console.PrintWarning("File does not exist or is empty\n")
-    
-    def createSectionsSelParts(self):
-        if FreeCAD.activeDocument():
-            if len(FreeCADGui.Selection.getSelection()):
-                if not FreeCADGui.Control.activeDialog():
-                    FreeCADGui.Control.showDialog(createSectionsGui())
-            else:
-                FreeCAD.Console.PrintWarning("Select minimum one object\n")
-        
-    def createGluePath(self):
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(createGlueGui())
-            
-    def createPCB_F(self):
-        if FreeCAD.activeDocument():
-            if getPCBheight()[0]:
-                FreeCAD.Console.PrintWarning("One board per project.\n")
-                return
-            #
-            form = createPCB()
-            if len(FreeCADGui.Selection.getSelection()):
-                if FreeCADGui.Selection.getSelection()[0].isDerivedFrom("Sketcher::SketchObject"):
-                    form.pcbBorder.setText(FreeCADGui.Selection.getSelection()[0].Name)
-                    if len(FreeCADGui.Selection.getSelection()) > 1 and FreeCADGui.Selection.getSelection()[1].isDerivedFrom("Sketcher::SketchObject"):
-                        form.pcbHoles.setText(FreeCADGui.Selection.getSelection()[1].Name)
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(form)
-
-    def createDefaultProjectF(self):
-        ''' add to current document all groups '''
-        #setProject()
-        if FreeCAD.ActiveDocument:
-            pM = partsManaging()
-            pM.createDefaultProject(FreeCAD.ActiveDocument.Name)
-    
-    def addAreasGroup(self):
-        createGroup_Areas()
-        
-    def addAnnotationsGroup(self):
-        createGroup_Annotations()
-        
-    def addPCBGroup(self):
-        createGroup_PCB()
-
-    def addLayerGroup(self):
-        createGroup_Layers()
-        
-    def addPartsGroup(self):
-        createGroup_Parts()
-        
-    def addGlueGroup(self):
-        createGroup_Glue()
-        
-    def fastExplodeModels(self):
-        if FreeCAD.activeDocument():
-            doc = FreeCAD.activeDocument()
-            pcb = getPCBheight()
-            
-            if pcb[0]:  # board is available
-                a = doc.addObject("App::FeaturePython", 'Explode')
-                obj = explodeObject(a)
-                viewProviderExplodeObject(a.ViewObject)
-                #
-                for i in pcb[2].Group:
-                    if hasattr(i, "Proxy") and hasattr(i.Proxy, "Type") and i.Proxy.Type in ["PCBpart"]:
-                        if i.Side == "TOP":
-                            obj.spisObiektowGora[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                        else:
-                            obj.spisObiektowDol[i.Name] = [doc.getObject(i.Name).Placement.Base.z, 3]
-                #
-                obj.setParam(a, 'Inverse', False)
-                obj.setParam(a, 'Active', True)
-                obj.setParam(a, 'TopStepSize', 10)
-                obj.setParam(a, 'BottomStepSize', 10)
-                obj.generuj(a)
-
-    def explodeModels(self):
-        doc = FreeCAD.activeDocument()
-        if doc and len(doc.Objects):
-            panel = explodeWizard()
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(panel)
-            
     def wyszukajObiektyNext(self):
         ''' find next object '''
         try:
@@ -956,62 +1004,11 @@ class pcbToolBar(pcbToolBarMain):
         except RuntimeError:
             self.szukaneFrazy = []
             self.szukaneFrazyNr = 0
-        
-    def wyszukajObiekty(self, fraza):
-        ''' find object in current document '''
-        try:
-            FreeCADGui.Selection.clearSelection()
-            self.szukaneFrazy = []
-            self.szukaneFrazyNr = 0
-            
-            fraza = str(fraza).strip()
-            if fraza != "":
-                pcb = getPCBheight()
-                if pcb[0]:
-                    for i in pcb[2].Group:
-                        if i.Proxy.Type in ['PCBpart', "PCBpart_E"]:
-                            if re.match('^{0}.*'.format(re.escape(fraza).lower()), i.Label.lower()):
-                                self.szukaneFrazy.append(i)
-
-            if len(self.szukaneFrazy):
-                FreeCADGui.Selection.addSelection(self.szukaneFrazy[self.szukaneFrazyNr])
-        except Exception as e:
-            FreeCAD.Console.PrintWarning(u"{0}\n".format(e))
 
     #def convertDB(self):
         #''' convert old database format ot new one '''
         #dial = convertDB()
         #dial.exec_()
-    
-    def addModel(self):
-        ''' add model from library to project '''
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(addModel())
-
-    def assignModels(self):
-        ''' assign 3d models to packages '''
-        try:
-            dodajElement().exec_()
-        except Exception as e:
-            FreeCAD.Console.PrintWarning("Error: {0}\n".format(e))
-
-    def updateModels(self):
-        ''' update 3d models of packages '''
-        if FreeCAD.activeDocument() and getPCBheight()[0]:
-            if not FreeCADGui.Control.activeDialog():
-                FreeCADGui.Control.showDialog(updateParts())
-    
-    def downloadModels(self):
-        if not FreeCADGui.Control.activeDialog():
-            FreeCADGui.Control.showDialog(downloadModelW())
-        
-    def showPCBBoundingBox(self):
-        boundingBox()
-
-    def showPCBBoundingBoxSel(self):
-        boundingBoxFromSelection(FreeCADGui.Selection.getSelection())
-
 
 #####################################
 #####################################

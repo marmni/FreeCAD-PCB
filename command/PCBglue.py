@@ -197,6 +197,7 @@ class PCBgluePath(layerSilkObject):
         obj.addProperty("App::PropertyLink", "Base", "Base", "Base")
         obj.addProperty("App::PropertyLength", "Length", "Info", "Length", 1)
         obj.addProperty("App::PropertyFloat", "Volume", "Info", "Volume", 1)
+        obj.addProperty("Part::PropertyPartShape", "cleanShape", "Shape", "cleanShape", 4)
         
         obj.Proxy = self
         self.Object = obj

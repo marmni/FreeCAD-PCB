@@ -61,270 +61,6 @@ class partsManaging(mathFunctions):
         self.databaseType = databaseType
         self.colFileVersion = 4
     
-    def adjustRotation(self, angle):
-        if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
-            angle = angle % 360
-        
-        return angle
-        
-    def updateView(self):
-        FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
-        FreeCADGui.ActiveDocument.ActiveView.fitAll()
-    
-    def createDefaultProject(self, objName):
-        newPartObjectFC = FreeCAD.ActiveDocument.addObject('App::Part', objName + "_PCB")
-        newPartObjectFC.Label = objName + "_PCB"
-        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
-        
-        ####
-        grp = createGroup_Parts()
-        newPartObjectFC.addObject(grp)
-        
-        grp = createGroup_Layers()
-        newPartObjectFC.addObject(grp)
-        
-        grp = createGroup_PCB()
-        newPartObjectFC.addObject(grp)
-        
-        grp = createGroup_Annotations()
-        newPartObjectFC.addObject(grp)
-        
-        grp = createGroup_Areas()
-        newPartObjectFC.addObject(grp)
-        ####
-        return newPartObjectFC
-    
-    def resetCoordinates(self, parent):
-        for obj in parent.Group:
-            obj.Placement.Matrix = obj.Placement.Matrix.multiply(parent.Placement.Matrix)
-            #
-            if(obj.TypeId == "App::Part"):
-                self.resetCoordinates(obj)
-                #
-                obj.Placement.Base.x = 0
-                obj.Placement.Base.y = 0
-                obj.Placement.Base.z = 0
-    
-    def getPartShape(self, filePath, step_model, colorizeElements):
-        try:
-            defColor = (FreeCAD.Material())  # standard gray color
-            #
-            # ################################################################
-            # ################################################################
-            # # check if model was already imported
-            # ################################################################
-            # ################################################################
-            if filePath in self.objColors.keys():
-                step_model.Shape = self.objColors[filePath]['shape']
-                
-                if colorizeElements:
-                    step_model.ViewObject.ShapeAppearance = self.objColors[filePath]['col']
-                else:
-                    step_model.ViewObject.ShapeAppearance = defColor
-                
-                return step_model 
-            else:
-                self.objColors[filePath] = {}
-            ################################################################
-            ################################################################
-            # reading data from colFile - if exist 
-            ################################################################
-            ################################################################
-            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
-            #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
-            
-            try:
-                if os.path.exists(colFile):
-                    colFileData = builtins.open(colFile, "r").readlines()
-                    header = colFileData[0].strip().split("|")
-                    
-                    if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
-                        newShape = Part.Shape()
-                        newShape.importBrepFromString("".join(colFileData[2:]))
-                        step_model.Shape = newShape
-                        
-                        if colorizeElements:
-                            faceColor = []
-                            for i in eval(colFileData[1].strip()):
-                                faceColor.append(FreeCAD.Material(DiffuseColor=i['diffuseColor'],AmbientColor=i['ambientColor'],SpecularColor=i['specularColor'],EmissiveColor=i['emissiveColor'],Shininess=i['shininess'],Transparency=i['transparency'],))
-                            
-                            step_model.ViewObject.ShapeAppearance = tuple(faceColor)
-                        else:
-                            step_model.ViewObject.ShapeAppearance = defColor
-                        
-                        self.objColors[filePath]['shape'] = newShape
-                        self.objColors[filePath]['col'] = tuple(faceColor)
-                        
-                        if len(colFileData[2:]) > 20:
-                            return step_model
-                    else:
-                        FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
-                else:  # generate new *.col file
-                    FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
-            except Exception as e:
-                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
-            ################################################################
-            ################################################################
-            # generating new col file
-            ################################################################
-            ################################################################
-            active = FreeCAD.ActiveDocument.Name
-            #
-            colFileData = builtins.open(colFile, "w")
-            colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
-            
-            FreeCAD.newDocument('importingPartsPCB')
-            FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
-            FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
-            ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
-            
-            fuse = []
-            col = []
-            ################################################################
-            # reset positions
-            #
-            ################################################################
-            for obj in FreeCAD.ActiveDocument.RootObjects:
-                if(obj.TypeId == "App::Part"):
-                    self.resetCoordinates(obj)
-                    #
-                    obj.Placement.Base.x = 0
-                    obj.Placement.Base.y = 0
-                    obj.Placement.Base.z = 0
-            ################################################################
-            for i in FreeCAD.ActiveDocument.Objects:
-                if i.ViewObject.Visibility and 'Shape' in i.PropertiesList:
-                    fuse.append(i)
-            #
-            try:
-                if len(fuse) == 1:
-                    shape = fuse[0].Shape
-                    for i in fuse[0].ViewObject.ShapeAppearance:
-                        col.append(i)
-                else:
-                    newPart = BOPFeatures.BOPFeatures(FreeCAD.activeDocument())
-                    newPart = newPart.make_multi_fuse([i.Name for i in fuse])
-                    newPart.recompute()
-                    shape = newPart.Shape
-                    for i in newPart.ViewObject.ShapeAppearance:
-                        col.append(i)
-                
-                step_model.Shape = shape
-                if colorizeElements:
-                     step_model.ViewObject.ShapeAppearance = tuple(col)
-                else:
-                     step_model.ViewObject.ShapeAppearance = defColor
-                #
-                colFileData.write(str(self.materialListTostring(col)))
-                colFileData.write(shape.exportBrepToString())
-                #
-                self.objColors[filePath]['shape'] = shape
-                self.objColors[filePath]['col'] = tuple(col)
-            except Exception as e:
-                FreeCAD.Console.PrintWarning("Error in getPartShape: {0}\n".format(e))
-            
-            colFileData.close()
-            
-            FreeCAD.closeDocument("importingPartsPCB")
-            FreeCAD.setActiveDocument(active)
-            FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
-            FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
-            ################################################################
-            ################################################################
-        except Exception as e:
-            print("Error: " + e)
-        #
-        return step_model
-        
-    def materialListTostring(self, materialList):
-        data = []
-        #
-        for i in materialList:
-            data.append(self.materialTostring(i))
-        #
-        return data
-    
-    def materialTostring(self, material):
-        data = {"ambientColor": material.AmbientColor,
-            "diffuseColor": material.DiffuseColor,
-            "emissiveColor": material.EmissiveColor,
-            "shininess": material.Shininess,
-            "specularColor": material.SpecularColor,
-            "transparency": material.Transparency
-        }
-        return data
-
-    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y, adjustModel=False):
-        step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
-            
-        step_model.Placement.Base.x = cX
-        step_model.Placement.Base.y = cY
-        
-        step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(cRZ, cRY, cRX)) # rotation correction
-        
-        if not adjustModel:
-            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
-            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
-        
-            step_model.Placement.Base.x = xB0 + X # final position X-axis
-            step_model.Placement.Base.y = yB0 + Y # final position Y-axis
-        else: # kicad
-            pass
-            step_model.Placement.Base.x = X + cX # final position X-axis
-            step_model.Placement.Base.y = Y + cY # final position Y-axis
-            
-        step_model.Proxy.offsetZ = cZ
-
-    
-    def partStandardDictionary(self):
-        return {
-            'name': '', 
-            'library': '', 
-            'package': '',
-            'pathAttribute': '',
-            'value': '', 
-            'x': 0, 
-            'y': 0, 
-            'locked': False, 
-            'populate': False,  
-            'smashed': False, 
-            'rot': 0, 
-            'side': 'TOP', 
-            'dataElement': None,
-            'EL_Name': {
-                'text': 'NAME', 
-                'x': 0,
-                'y': 0, 
-                'z': 0, 
-                'size': 1.27, 
-                'rot': 0, 
-                'side': 'TOP', 
-                'align': 'center', 
-                'spin': True, 
-                'font': 'Proportional', 
-                'display': True, 
-                'distance': 50, 
-                'tracking': 0, 
-                'mode': 'param'
-            }, 
-            'EL_Value': {
-                'text': 'VALUE', 
-                'x': 0, 
-                'y': 0,
-                'z': 0, 
-                'size': 1.27, 
-                'rot': 0, 
-                'side': 'TOP', 
-                'align': 'bottom-left', 
-                'spin': True, 
-                'font': 'Proportional', 
-                'display': True, 
-                'distance': 50, 
-                'tracking': 0, 
-                'mode': 'param'
-            }
-        }
-        
     def addPart(self, newPart, koloroweElemnty=True, adjustParts=False, groupParts=True, partMinX=0, partMinY=0, partMinZ=0):
         #newPart = {
             # 'name': 'E$2', 
@@ -387,8 +123,10 @@ class partsManaging(mathFunctions):
         else:
             fileData = self.partExist(newPart)
             '''
+            example result
+            
             fileDAta = [
-                True, 
+                True/False, 
                 pathToFile, 
                 {'ry': 0.0, 'z': 0.02, 'x': 0.0, 'software': 'Eagle', 'modelID': 32, 'rz': 0.0, 'rx': 0.0, 'y': 0.02, 'name': 'R1206', 'id': 66}
             ]
@@ -700,9 +438,6 @@ class partsManaging(mathFunctions):
         #self.updateView()
         return result
     
-    def partGenerateAnnotation(self, data, ):
-        pass
-    
     def addPartToGroup(self, groupParts, step_model):
         if hasattr(step_model, "Proxy") and hasattr(step_model.Proxy, "Type") and not step_model.Proxy.Type in ["PCBpart", "PCBpart_E"]:
             return
@@ -737,86 +472,36 @@ class partsManaging(mathFunctions):
                 partsFolder.addObject(step_model)
         except Exception as e:
             FreeCAD.Console.PrintWarning("{0} \n".format(e))
-
-    def getObjRot(self, obj):
-        rx = obj.Placement.Rotation.Q[0]
-        ry = obj.Placement.Rotation.Q[1]
-        rz = obj.Placement.Rotation.Q[2]
-        angle = obj.Placement.Rotation.Angle * 180. / 3.14
-
-        return [rx, ry, rz, angle]
-        
-    #def axisAngleToEuler(self, x, y, z, angle):
-        #angle = angle * 3.14 / 180
-        #s = sin(angle)
-        #c = cos(angle)
-        #t = 1 - c
-        
-        #if (x * y * t + z * s) > 0.998:
-            #heading = 2 * atan2(x * sin(angle / 2), cos(angle / 2))
-            #attitude = pi / 2
-            #bank = 0
-            ##return [heading, attitude, bank]
-            #return [bank, heading, attitude]
-        #if (x * y * t + z * s) < -0.998:
-            #heading = -2 * atan2(x * sin(angle / 2), cos(angle / 2))
-            #attitude = -pi / 2
-            #bank = 0
-            ##return [heading, attitude, bank]
-            #return [bank, heading, attitude]
-        
-        #heading = atan2(y * s- x * z * t , 1 - (y * y + z * z ) * t)
-        #attitude = asin(x * y * t + z * s)
-        #bank = atan2(x * s - y * z * t , 1 - (x * x + z * z) * t)
-        
-        ##return [heading, attitude, bank]
-        #return [bank, heading, attitude]
     
-    #def quaternionToEuler(self, x, y, z, w):
-        #test = x * y + z * w
-        #if test > 0.499:
-            #heading = 2 * atan2(x, w)
-            #attitude = pi / 2
-            #bank = 0
-            
-            #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
-        #if test < -0.499:
-            #heading = -2 * atan2(x, w)
-            #attitude = - pi / 2;
-            #bank = 0
-            
-            #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
+    def adjustRotation(self, angle):
+        if angle > 360 or angle < 360:  # max = 360deg; min= -360deg
+            angle = angle % 360
         
-        #sqx = x * x
-        #sqy = y * y
-        #sqz = z * z
+        return angle
+
+    def createDefaultProject(self, objName):
+        newPartObjectFC = FreeCAD.ActiveDocument.addObject('App::Part', objName + "_PCB")
+        newPartObjectFC.Label = objName + "_PCB"
+        FreeCADGui.activeView().setActiveObject('part', newPartObjectFC)
         
-        #heading = atan2(2 * y * w - 2 * x * z , 1 - 2 * sqy - 2 * sqz)
-        #attitude = asin(2 * test)
-        #bank = atan2(2 * x * w - 2 * y * z , 1 - 2 * sqx - 2 * sqz)
+        ####
+        grp = createGroup_Parts()
+        newPartObjectFC.addObject(grp)
         
-        #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
+        grp = createGroup_Layers()
+        newPartObjectFC.addObject(grp)
         
-    #def toQuaternion(self, pitch, yaw, roll):
-        #''' Quaternion from Euler angles '''
-        #p = pitch / 2.
-        #y = yaw / 2.
-        #r = roll / 2.
+        grp = createGroup_PCB()
+        newPartObjectFC.addObject(grp)
         
-        #sin_p = sin(p)
-        #sin_y = sin(y)
-        #sin_r = sin(r)
-        #cos_p = cos(p)
-        #cos_y = cos(y)
-        #cos_r = cos(r)
+        grp = createGroup_Annotations()
+        newPartObjectFC.addObject(grp)
         
-        #x = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
-        #y = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
-        #z = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
-        #w = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
-        
-        #return FreeCAD.Base.Rotation(x, y, z, w)
-        
+        grp = createGroup_Areas()
+        newPartObjectFC.addObject(grp)
+        ####
+        return newPartObjectFC
+
     def generateNewLabel(self, label):
         #if isinstance(label, str):
             #label = unicodedata.normalize('NFKD', label).encode('ascii', 'ignore')
@@ -825,77 +510,6 @@ class partsManaging(mathFunctions):
             return wygenerujID(3, 3)
         else:
             return label
-            
-    def getColorFromSTP(self, filePath, step_model):
-        try:
-            ################################################################
-            # paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
-            # paletaKolorow = [(R, G, B), (R, G, B), itd]
-            ################################################################
-            if filePath in self.objColors:
-                step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
-                return step_model
-            #
-            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
-            if os.path.exists(colFile):
-                colFileData = builtins.open(colFile, "r").readlines()
-                header = colFileData[0].strip().split("|")
-                
-                if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
-                #if str(os.path.getmtime(filePath)) == colFileData[0].strip():
-                    try:
-                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
-                        self.objColors[filePath] = eval(colFileData[1].strip())
-                        return step_model
-                    except:
-                        pass
-            
-            colFileData = builtins.open(colFile, "w")
-            colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
-            #
-            plik = builtins.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
-            paletaKolorow = []
-            # v2
-            defColors = {}
-            for k in re.findall("#([0-9]+) = CLOSED_SHELL\('',\((.+?)\).+?;", plik):
-                for j in k[1].split(','):
-                    try:
-                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),{0}\);".format(j.strip()), plik)[0].strip()
-                        colNum = j.strip()
-                    except:
-                        part = re.search("#([0-9]+) = MANIFOLD_SOLID_BREP\('',#{0}\);".format(k[0]), plik).groups()[0]
-                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),#{0}\);".format(part.strip()), plik)[0].strip()
-                        colNum = part.strip()
-                        
-                    if colNum in defColors:
-                        paletaKolorow.append(defColors[colNum])
-                        continue
-                    
-                    PRESENTATION_STYLE_ASSIGNMENT = int(re.findall("#{0} = PRESENTATION_STYLE_ASSIGNMENT[\s]?\(\([\s]?#([0-9]+?)[\s]?[,|\)]".format(STYLED_ITEM), plik)[0])
-                    SURFACE_STYLE_USAGE = int(re.findall("#{0} = SURFACE_STYLE_USAGE[\s]?\(.+?,[\s]?#(.+?)[\s]?\)[\s]?;".format(PRESENTATION_STYLE_ASSIGNMENT), plik)[0])
-                    SURFACE_SIDE_STYLE = int(re.findall("#{0} = SURFACE_SIDE_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_USAGE), plik)[0])
-                    SURFACE_STYLE_FILL_AREA = int(re.findall("#{0} = SURFACE_STYLE_FILL_AREA[\s]?\([\s]?#(.+?)[\s]?\)".format(SURFACE_SIDE_STYLE), plik)[0])
-                    FILL_AREA_STYLE = int(re.findall("#{0} = FILL_AREA_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_FILL_AREA), plik)[0])
-                    FILL_AREA_STYLE_COLOUR = int(re.findall("#{0} = FILL_AREA_STYLE_COLOUR[\s]?\(.+?,[\s]?#(.+?)[\s]?\)".format(FILL_AREA_STYLE), plik)[0])
-                    defKoloru = re.findall("#{0} = (.+?);".format(int(FILL_AREA_STYLE_COLOUR)), plik)[0]
-                    
-                    matchObj = re.match("DRAUGHTING_PRE_DEFINED_COLOUR[\s]?\([\s]?'(.*)'[\s]?\)", defKoloru)
-                    if matchObj:
-                        paletaKolorow.append(spisKolorowSTP[matchObj.groups()[0]])
-                        defColors[colNum] = spisKolorowSTP[matchObj.groups()[0]]
-                    else:
-                        matchObj = re.match("COLOUR_RGB[\s]?\([\s]?'',[\s]?(.*),[\s]?(.*),[\s]?(.*)[\s]?\)", defKoloru)
-                        if matchObj:
-                            paletaKolorow.append((float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2])))
-                            defColors[colNum] = (float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2]))
-            ##
-            step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
-            self.objColors[filePath] = paletaKolorow
-            colFileData.write(str(paletaKolorow))
-            colFileData.close()
-        except Exception as e:
-            FreeCAD.Console.PrintWarning(u"Error 1b: {0} \n".format(e))
-        return step_model
 
     def getColorFromIGS(self, filePath, step_model):
         try:
@@ -1046,10 +660,234 @@ class partsManaging(mathFunctions):
             FreeCAD.Console.PrintWarning(u"Error 1a: {0} \n".format(e))
         
         return step_model
+
+    def getColorFromSTP(self, filePath, step_model):
+        try:
+            ################################################################
+            # paletaKolorow zawiera tablice okreslajace kolory poszczegolnych plaszczyzn
+            # paletaKolorow = [(R, G, B), (R, G, B), itd]
+            ################################################################
+            if filePath in self.objColors:
+                step_model.ViewObject.DiffuseColor = self.objColors[filePath] # ustawienie kolorow dla obiektu
+                return step_model
+            #
+            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+            if os.path.exists(colFile):
+                colFileData = builtins.open(colFile, "r").readlines()
+                header = colFileData[0].strip().split("|")
+                
+                if len(header) >= 2 and header[0] == "2" and str(os.path.getmtime(filePath)) == header[1]:  # col file version
+                #if str(os.path.getmtime(filePath)) == colFileData[0].strip():
+                    try:
+                        step_model.ViewObject.DiffuseColor = eval(colFileData[1].strip())
+                        self.objColors[filePath] = eval(colFileData[1].strip())
+                        return step_model
+                    except:
+                        pass
+            
+            colFileData = builtins.open(colFile, "w")
+            colFileData.write("{0}\n".format(os.path.getmtime(filePath)))
+            #
+            plik = builtins.open(filePath, "r").read().replace('\r\n', '').replace('\r', '').replace('\\n', '').replace('\n', '')
+            paletaKolorow = []
+            # v2
+            defColors = {}
+            for k in re.findall("#([0-9]+) = CLOSED_SHELL\('',\((.+?)\).+?;", plik):
+                for j in k[1].split(','):
+                    try:
+                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),{0}\);".format(j.strip()), plik)[0].strip()
+                        colNum = j.strip()
+                    except:
+                        part = re.search("#([0-9]+) = MANIFOLD_SOLID_BREP\('',#{0}\);".format(k[0]), plik).groups()[0]
+                        STYLED_ITEM = re.findall("STYLED_ITEM\('color',\(#([0-9]+)\),#{0}\);".format(part.strip()), plik)[0].strip()
+                        colNum = part.strip()
+                        
+                    if colNum in defColors:
+                        paletaKolorow.append(defColors[colNum])
+                        continue
+                    
+                    PRESENTATION_STYLE_ASSIGNMENT = int(re.findall("#{0} = PRESENTATION_STYLE_ASSIGNMENT[\s]?\(\([\s]?#([0-9]+?)[\s]?[,|\)]".format(STYLED_ITEM), plik)[0])
+                    SURFACE_STYLE_USAGE = int(re.findall("#{0} = SURFACE_STYLE_USAGE[\s]?\(.+?,[\s]?#(.+?)[\s]?\)[\s]?;".format(PRESENTATION_STYLE_ASSIGNMENT), plik)[0])
+                    SURFACE_SIDE_STYLE = int(re.findall("#{0} = SURFACE_SIDE_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_USAGE), plik)[0])
+                    SURFACE_STYLE_FILL_AREA = int(re.findall("#{0} = SURFACE_STYLE_FILL_AREA[\s]?\([\s]?#(.+?)[\s]?\)".format(SURFACE_SIDE_STYLE), plik)[0])
+                    FILL_AREA_STYLE = int(re.findall("#{0} = FILL_AREA_STYLE[\s]?\(.+?,\([\s]?#(.+?)[\s]?\)".format(SURFACE_STYLE_FILL_AREA), plik)[0])
+                    FILL_AREA_STYLE_COLOUR = int(re.findall("#{0} = FILL_AREA_STYLE_COLOUR[\s]?\(.+?,[\s]?#(.+?)[\s]?\)".format(FILL_AREA_STYLE), plik)[0])
+                    defKoloru = re.findall("#{0} = (.+?);".format(int(FILL_AREA_STYLE_COLOUR)), plik)[0]
+                    
+                    matchObj = re.match("DRAUGHTING_PRE_DEFINED_COLOUR[\s]?\([\s]?'(.*)'[\s]?\)", defKoloru)
+                    if matchObj:
+                        paletaKolorow.append(spisKolorowSTP[matchObj.groups()[0]])
+                        defColors[colNum] = spisKolorowSTP[matchObj.groups()[0]]
+                    else:
+                        matchObj = re.match("COLOUR_RGB[\s]?\([\s]?'',[\s]?(.*),[\s]?(.*),[\s]?(.*)[\s]?\)", defKoloru)
+                        if matchObj:
+                            paletaKolorow.append((float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2])))
+                            defColors[colNum] = (float(matchObj.groups()[0]), float(matchObj.groups()[1]), float(matchObj.groups()[2]))
+            ##
+            step_model.ViewObject.DiffuseColor = paletaKolorow  # ustawienie kolorow dla obiektu
+            self.objColors[filePath] = paletaKolorow
+            colFileData.write(str(paletaKolorow))
+            colFileData.close()
+        except Exception as e:
+            FreeCAD.Console.PrintWarning(u"Error 1b: {0} \n".format(e))
+        return step_model
+
+    def getObjRot(self, obj):
+        rx = obj.Placement.Rotation.Q[0]
+        ry = obj.Placement.Rotation.Q[1]
+        rz = obj.Placement.Rotation.Q[2]
+        angle = obj.Placement.Rotation.Angle * 180. / 3.14
+
+        return [rx, ry, rz, angle]
+
+    def getPartShape(self, filePath, step_model, colorizeElements):
+        try:
+            defColor = (FreeCAD.Material())  # standard gray color
+            #
+            # ################################################################
+            # ################################################################
+            # # check if model was already imported
+            # ################################################################
+            # ################################################################
+            if filePath in self.objColors.keys():
+                step_model.Shape = self.objColors[filePath]['shape']
+                
+                if colorizeElements:
+                    step_model.ViewObject.ShapeAppearance = self.objColors[filePath]['col']
+                else:
+                    step_model.ViewObject.ShapeAppearance = defColor
+                
+                return step_model 
+            else:
+                self.objColors[filePath] = {}
+            ################################################################
+            ################################################################
+            # reading data from colFile - if exist 
+            ################################################################
+            ################################################################
+            colFile = os.path.join(os.path.dirname(filePath), os.path.splitext(os.path.basename(filePath))[0] + '.col')
+            #FreeCAD.Console.PrintWarning("3. {0}\n".format(colFile))
+            
+            try:
+                if os.path.exists(colFile):
+                    colFileData = builtins.open(colFile, "r").readlines()
+                    header = colFileData[0].strip().split("|")
+                    
+                    if len(header) >= 2 and int(header[0]) == self.colFileVersion and str(os.path.getmtime(filePath)) == header[1]:
+                        newShape = Part.Shape()
+                        newShape.importBrepFromString("".join(colFileData[2:]))
+                        step_model.Shape = newShape
+                        
+                        if colorizeElements:
+                            faceColor = []
+                            for i in eval(colFileData[1].strip()):
+                                faceColor.append(FreeCAD.Material(DiffuseColor=i['diffuseColor'],AmbientColor=i['ambientColor'],SpecularColor=i['specularColor'],EmissiveColor=i['emissiveColor'],Shininess=i['shininess'],Transparency=i['transparency'],))
+                            
+                            step_model.ViewObject.ShapeAppearance = tuple(faceColor)
+                        else:
+                            step_model.ViewObject.ShapeAppearance = defColor
+                        
+                        self.objColors[filePath]['shape'] = newShape
+                        self.objColors[filePath]['col'] = tuple(faceColor)
+                        
+                        if len(colFileData[2:]) > 20:
+                            return step_model
+                    else:
+                        FreeCAD.Console.PrintWarning("Too old *.col file. It is necessary to generate a new one.\n")
+                else:  # generate new *.col file
+                    FreeCAD.Console.PrintWarning("No *.col file. It is necessary to generate a new one.\n")
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("1. {0}\n".format(e))
+            ################################################################
+            ################################################################
+            # generating new col file
+            ################################################################
+            ################################################################
+            active = FreeCAD.ActiveDocument.Name
+            #
+            colFileData = builtins.open(colFile, "w")
+            colFileData.write("{1}|{0}\n".format(os.path.getmtime(filePath), self.colFileVersion))  # version|date
+            
+            FreeCAD.newDocument('importingPartsPCB')
+            FreeCAD.ActiveDocument = FreeCAD.getDocument('importingPartsPCB')
+            FreeCADGui.ActiveDocument = FreeCADGui.getDocument('importingPartsPCB')
+            ImportGui.insert(u"{0}".format(filePath), "importingPartsPCB")
+            
+            fuse = []
+            col = []
+            ################################################################
+            # reset positions
+            #
+            ################################################################
+            for obj in FreeCAD.ActiveDocument.RootObjects:
+                if(obj.TypeId == "App::Part"):
+                    self.resetCoordinates(obj)
+                    #
+                    obj.Placement.Base.x = 0
+                    obj.Placement.Base.y = 0
+                    obj.Placement.Base.z = 0
+            ################################################################
+            for i in FreeCAD.ActiveDocument.Objects:
+                if i.ViewObject.Visibility and 'Shape' in i.PropertiesList:
+                    fuse.append(i)
+            #
+            try:
+                if len(fuse) == 1:
+                    shape = fuse[0].Shape
+                    for i in fuse[0].ViewObject.ShapeAppearance:
+                        col.append(i)
+                else:
+                    newPart = BOPFeatures.BOPFeatures(FreeCAD.activeDocument())
+                    newPart = newPart.make_multi_fuse([i.Name for i in fuse])
+                    newPart.recompute()
+                    shape = newPart.Shape
+                    for i in newPart.ViewObject.ShapeAppearance:
+                        col.append(i)
+                
+                step_model.Shape = shape
+                if colorizeElements:
+                     step_model.ViewObject.ShapeAppearance = tuple(col)
+                else:
+                     step_model.ViewObject.ShapeAppearance = defColor
+                #
+                colFileData.write(str(self.materialListTostring(col)))
+                colFileData.write(shape.exportBrepToString())
+                #
+                self.objColors[filePath]['shape'] = shape
+                self.objColors[filePath]['col'] = tuple(col)
+            except Exception as e:
+                FreeCAD.Console.PrintWarning("Error in getPartShape: {0}\n".format(e))
+            
+            colFileData.close()
+            
+            FreeCAD.closeDocument("importingPartsPCB")
+            FreeCAD.setActiveDocument(active)
+            FreeCAD.ActiveDocument=FreeCAD.getDocument(active)
+            FreeCADGui.ActiveDocument=FreeCADGui.getDocument(active)
+            ################################################################
+            ################################################################
+        except Exception as e:
+            print("Error: " + e)
+        #
+        return step_model
+
+    def materialListTostring(self, materialList):
+        data = []
+        #
+        for i in materialList:
+            data.append(self.materialTostring(i))
+        #
+        return data
     
-    def setDatabase(self):
-        self.__SQL__ = dataBase()
-        self.__SQL__.connect()
+    def materialTostring(self, material):
+        data = {"ambientColor": material.AmbientColor,
+            "diffuseColor": material.DiffuseColor,
+            "emissiveColor": material.EmissiveColor,
+            "shininess": material.Shininess,
+            "specularColor": material.SpecularColor,
+            "transparency": material.Transparency
+        }
+        return data
 
     def partExist(self, newModelData, showDial=True):
         if not self.databaseType:
@@ -1161,6 +999,170 @@ class partsManaging(mathFunctions):
         except Exception as e:
             FreeCAD.Console.PrintWarning(u"Error partExist(): {0} \n".format(e))
             return [False]
+
+    def partGenerateAnnotation(self, data, ):
+        pass
+
+    def partPlacement(self, step_model, cX, cY, cZ, cRX, cRY, cRZ, X, Y, adjustModel=False):
+        step_model.Placement = FreeCAD.Placement(FreeCAD.Vector(0, 0, 0), FreeCAD.Rotation(0, 0, 0))  # important for PCBmoveParts and PCBupdateParts
+            
+        step_model.Placement.Base.x = cX
+        step_model.Placement.Base.y = cY
+        
+        step_model.Placement = FreeCAD.Placement(step_model.Placement.Base, FreeCAD.Rotation(cRZ, cRY, cRX)) # rotation correction
+        
+        if not adjustModel:
+            xB0 = step_model.Shape.BoundBox.XLength / 2. - step_model.Shape.BoundBox.XMax
+            yB0 = step_model.Shape.BoundBox.YLength / 2. - step_model.Shape.BoundBox.YMax
+        
+            step_model.Placement.Base.x = xB0 + X # final position X-axis
+            step_model.Placement.Base.y = yB0 + Y # final position Y-axis
+        else: # kicad
+            pass
+            step_model.Placement.Base.x = X + cX # final position X-axis
+            step_model.Placement.Base.y = Y + cY # final position Y-axis
+            
+        step_model.Proxy.offsetZ = cZ
+
+    
+    def partStandardDictionary(self):
+        return {
+            'name': '', 
+            'library': '', 
+            'package': '',
+            'pathAttribute': '',
+            'value': '', 
+            'x': 0, 
+            'y': 0, 
+            'locked': False, 
+            'populate': False,  
+            'smashed': False, 
+            'rot': 0, 
+            'side': 'TOP', 
+            'dataElement': None,
+            'EL_Name': {
+                'text': 'NAME', 
+                'x': 0,
+                'y': 0, 
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'center', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }, 
+            'EL_Value': {
+                'text': 'VALUE', 
+                'x': 0, 
+                'y': 0,
+                'z': 0, 
+                'size': 1.27, 
+                'rot': 0, 
+                'side': 'TOP', 
+                'align': 'bottom-left', 
+                'spin': True, 
+                'font': 'Proportional', 
+                'display': True, 
+                'distance': 50, 
+                'tracking': 0, 
+                'mode': 'param'
+            }
+        }
+
+    def resetCoordinates(self, parent):
+        for obj in parent.Group:
+            obj.Placement.Matrix = obj.Placement.Matrix.multiply(parent.Placement.Matrix)
+            #
+            if(obj.TypeId == "App::Part"):
+                self.resetCoordinates(obj)
+                #
+                obj.Placement.Base.x = 0
+                obj.Placement.Base.y = 0
+                obj.Placement.Base.z = 0
+
+    def setDatabase(self):
+        self.__SQL__ = dataBase()
+        self.__SQL__.connect()
+
+    def updateView(self):
+        FreeCADGui.ActiveDocument.ActiveView.viewAxometric()
+        FreeCADGui.ActiveDocument.ActiveView.fitAll()
+    
+    #def axisAngleToEuler(self, x, y, z, angle):
+        #angle = angle * 3.14 / 180
+        #s = sin(angle)
+        #c = cos(angle)
+        #t = 1 - c
+        
+        #if (x * y * t + z * s) > 0.998:
+            #heading = 2 * atan2(x * sin(angle / 2), cos(angle / 2))
+            #attitude = pi / 2
+            #bank = 0
+            ##return [heading, attitude, bank]
+            #return [bank, heading, attitude]
+        #if (x * y * t + z * s) < -0.998:
+            #heading = -2 * atan2(x * sin(angle / 2), cos(angle / 2))
+            #attitude = -pi / 2
+            #bank = 0
+            ##return [heading, attitude, bank]
+            #return [bank, heading, attitude]
+        
+        #heading = atan2(y * s- x * z * t , 1 - (y * y + z * z ) * t)
+        #attitude = asin(x * y * t + z * s)
+        #bank = atan2(x * s - y * z * t , 1 - (x * x + z * z) * t)
+        
+        ##return [heading, attitude, bank]
+        #return [bank, heading, attitude]
+    
+    #def quaternionToEuler(self, x, y, z, w):
+        #test = x * y + z * w
+        #if test > 0.499:
+            #heading = 2 * atan2(x, w)
+            #attitude = pi / 2
+            #bank = 0
+            
+            #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
+        #if test < -0.499:
+            #heading = -2 * atan2(x, w)
+            #attitude = - pi / 2;
+            #bank = 0
+            
+            #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
+        
+        #sqx = x * x
+        #sqy = y * y
+        #sqz = z * z
+        
+        #heading = atan2(2 * y * w - 2 * x * z , 1 - 2 * sqy - 2 * sqz)
+        #attitude = asin(2 * test)
+        #bank = atan2(2 * x * w - 2 * y * z , 1 - 2 * sqx - 2 * sqz)
+        
+        #return [heading*180/3.14, attitude*180/3.14, bank*180/3.14]
+        
+    #def toQuaternion(self, pitch, yaw, roll):
+        #''' Quaternion from Euler angles '''
+        #p = pitch / 2.
+        #y = yaw / 2.
+        #r = roll / 2.
+        
+        #sin_p = sin(p)
+        #sin_y = sin(y)
+        #sin_r = sin(r)
+        #cos_p = cos(p)
+        #cos_y = cos(y)
+        #cos_r = cos(r)
+        
+        #x = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
+        #y = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
+        #z = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
+        #w = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
+        
+        #return FreeCAD.Base.Rotation(x, y, z, w)
 
 
 def partExistPath(filePos):

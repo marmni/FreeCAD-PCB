@@ -678,7 +678,7 @@ class layerSilkObject(objectWire):
         
         obj.addProperty("App::PropertyBool", "Cut", "Holes", "Cut", 8).Cut = False
         obj.addProperty("App::PropertyBool", "CutToBoard", "Shape", "Cut to board", 8).CutToBoard = False
-        # obj.addProperty("Part::PropertyPartShape", "cleanShape", "Shape", "cleanShape", 4)
+        obj.addProperty("Part::PropertyPartShape", "cleanShape", "Shape", "cleanShape", 4)
 
         self.defHeight = 35
         self.spisObiektowTXT = []

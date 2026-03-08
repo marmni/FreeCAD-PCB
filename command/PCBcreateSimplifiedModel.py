@@ -47,7 +47,8 @@ def createSimplifiedModel():
     
     for i in pcb[2].Group:
         obj = createBoxForModel(i)
-        if hasattr(obj, "Shape"):
+        #if hasattr(obj, "Shape"):
+        if obj and "Shape" in obj.PropertiesList and not obj.Shape.isNull():
             dataComp.append(obj.Shape)
             FreeCAD.ActiveDocument.removeObject(obj.Name)
     #
